@@ -219,30 +219,173 @@ public sealed partial class GameDetailPage : UserControl
         var achieved = achievements.Count(a => a.Achieved);
         _achievementsTitle.Text = $"Conquistas ({achieved}/{achievements.Count})";
 
-        var barBg = new Border { Background = SteamColors.CardHoverBrush, CornerRadius = new CornerRadius(3), Height = 5, Margin = new Thickness(0, 2, 0, 2) };
-        var barFill = new Border { Background = SteamColors.BlueBrush, CornerRadius = new CornerRadius(3), Height = 5, Width = achievements.Count > 0 ? 400 * achieved / achievements.Count : 0, HorizontalAlignment = HorizontalAlignment.Left };
-        var bar = new Grid(); bar.Children.Add(barBg); bar.Children.Add(barFill);
-        _achievementsContainer.Children.Add(bar);
+        // Header com barra de progresso estilo Steam
+        var headerGrid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var pct = new TextBlock { Text = $"{achieved}/{achievements.Count} — {Math.Round(achievements.Count > 0 ? 100.0 * achieved / achievements.Count : 0, 0)}%", FontSize = 11, Foreground = SteamColors.TextSecondaryBrush, Margin = new Thickness(0, 2, 0, 4) };
-        _achievementsContainer.Children.Add(pct);
-
-        foreach (var ach in achievements)
+        var progressContainer = new StackPanel { Spacing = 4 };
+        var pctText = new TextBlock
         {
+            Text = $"{achieved} de {achievements.Count} conquistas desbloqueadas",
+            FontSize = 12,
+            Foreground = SteamColors.TextSecondaryBrush
+        };
+        progressContainer.Children.Add(pctText);
+
+        // Barra de progresso estilo Steam
+        var barHeight = 8;
+        var barBg = new Border
+        {
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x33, 0x66, 0xC0, 0xF4)),
+            CornerRadius = new CornerRadius(4),
+            Height = barHeight
+        };
+        var barFill = new Border
+        {
+            Background = SteamColors.BlueBrush,
+            CornerRadius = new CornerRadius(4),
+            Height = barHeight,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            MinWidth = achieved > 0 ? barHeight : 0
+        };
+        var bar = new Grid();
+        bar.Children.Add(barBg);
+        bar.Children.Add(barFill);
+        progressContainer.Children.Add(bar);
+        headerGrid.Children.Add(progressContainer);
+
+        var pctBadge = new Border
+        {
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x33, 0x66, 0xC0, 0xF4)),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(8, 4, 8, 4),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(12, 0, 0, 0)
+        };
+        pctBadge.Child = new TextBlock
+        {
+            Text = $"{Math.Round(achievements.Count > 0 ? 100.0 * achieved / achievements.Count : 0, 0)}%",
+            FontSize = 14,
+            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+            Foreground = SteamColors.BlueBrush
+        };
+        Grid.SetColumn(pctBadge, 1);
+        headerGrid.Children.Add(pctBadge);
+        _achievementsContainer.Children.Add(headerGrid);
+
+        // Separador
+        _achievementsContainer.Children.Add(new Border
+        {
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+            Height = 1,
+            Margin = new Thickness(0, 0, 0, 8)
+        });
+
+        // Grid de conquistas estilo Steam
+        var achievementsGrid = new Grid { ColumnSpacing = 8, RowSpacing = 2 };
+        achievementsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        achievementsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        for (int i = 0; i < achievements.Count; i++)
+        {
+            var ach = achievements[i];
             var done = ach.Achieved;
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(4, 3, 4, 3) };
-            row.Children.Add(new FontIcon
+            var col = i % 2;
+            var row = i / 2;
+
+            var achCard = new Border
             {
-                Glyph = done ? "\uE8FB" : "\uE739", FontSize = 14,
-                Foreground = done ? SteamColors.BlueBrush : new SolidColorBrush(Windows.UI.Color.FromArgb(0x44, 0x66, 0x66, 0x66))
-            });
-            row.Children.Add(new TextBlock
+                Background = done
+                    ? new SolidColorBrush(Windows.UI.Color.FromArgb(0x15, 0x66, 0xC0, 0xF4))
+                    : new SolidColorBrush(Windows.UI.Color.FromArgb(0x0A, 0xFF, 0xFF, 0xFF)),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(10),
+                Margin = new Thickness(0, 2, 0, 2),
+                BorderThickness = new Thickness(1),
+                BorderBrush = done
+                    ? new SolidColorBrush(Windows.UI.Color.FromArgb(0x20, 0x66, 0xC0, 0xF4))
+                    : new SolidColorBrush(Windows.UI.Color.FromArgb(0x0A, 0xFF, 0xFF, 0xFF))
+            };
+
+            var achContent = new Grid { ColumnSpacing = 10 };
+            achContent.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            achContent.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            // Ícone da conquista
+            var iconBorder = new Border
             {
-                Text = ach.Name, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                Foreground = done ? SteamColors.TextBrush : new SolidColorBrush(Windows.UI.Color.FromArgb(0x77, 0xC6, 0xD4, 0xDF)),
+                Width = 40,
+                Height = 40,
+                CornerRadius = new CornerRadius(20),
+                Background = done
+                    ? SteamColors.BlueBrush
+                    : new SolidColorBrush(Windows.UI.Color.FromArgb(0x22, 0x66, 0x66, 0x66)),
                 VerticalAlignment = VerticalAlignment.Center
+            };
+            iconBorder.Child = new FontIcon
+            {
+                Glyph = done ? "\uE8FB" : "\uE739",
+                FontSize = 18,
+                Foreground = done
+                    ? new SolidColorBrush(Colors.White)
+                    : new SolidColorBrush(Windows.UI.Color.FromArgb(0x44, 0x66, 0x66, 0x66)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            achContent.Children.Add(iconBorder);
+
+            // Texto da conquista
+            var textStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 2 };
+            textStack.Children.Add(new TextBlock
+            {
+                Text = ach.Name,
+                FontSize = 12,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Foreground = done
+                    ? SteamColors.TextBrush
+                    : new SolidColorBrush(Windows.UI.Color.FromArgb(0x77, 0xC6, 0xD4, 0xDF)),
+                TextTrimming = TextTrimming.CharacterEllipsis
             });
-            _achievementsContainer.Children.Add(row);
+
+            if (!string.IsNullOrEmpty(ach.Description))
+            {
+                textStack.Children.Add(new TextBlock
+                {
+                    Text = ach.Description,
+                    FontSize = 10,
+                    Foreground = done
+                        ? SteamColors.TextSecondaryBrush
+                        : new SolidColorBrush(Windows.UI.Color.FromArgb(0x44, 0x88, 0x88, 0x88)),
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    MaxLines = 2,
+                    TextWrapping = TextWrapping.Wrap
+                });
+            }
+
+            if (done)
+            {
+                textStack.Children.Add(new TextBlock
+                {
+                    Text = "Desbloqueado",
+                    FontSize = 9,
+                    Foreground = SteamColors.GreenBrush,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold
+                });
+            }
+
+            Grid.SetColumn(textStack, 1);
+            achContent.Children.Add(textStack);
+            achCard.Child = achContent;
+
+            Grid.SetColumn(achCard, col);
+            Grid.SetRow(achCard, row);
+            achievementsGrid.Children.Add(achCard);
         }
+
+        for (int i = 0; i < (achievements.Count + 1) / 2; i++)
+            achievementsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        _achievementsContainer.Children.Add(achievementsGrid);
     }
 }
