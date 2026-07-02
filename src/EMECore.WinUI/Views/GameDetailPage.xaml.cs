@@ -235,23 +235,26 @@ public sealed partial class GameDetailPage : UserControl
 
         // Barra de progresso estilo Steam
         var barHeight = 8;
-        var barBg = new Border
-        {
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x33, 0x66, 0xC0, 0xF4)),
-            CornerRadius = new CornerRadius(4),
-            Height = barHeight
-        };
+        var pct = achievements.Count > 0 ? (double)achieved / achievements.Count : 0;
+        var bar = new Grid();
+        bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(pct, GridUnitType.Star) });
+        bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - pct, GridUnitType.Star) });
         var barFill = new Border
         {
             Background = SteamColors.BlueBrush,
-            CornerRadius = new CornerRadius(4),
-            Height = barHeight,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Width = achievements.Count > 0 ? 400.0 * achieved / achievements.Count : 0
+            CornerRadius = new CornerRadius(4, 0, 0, 4),
+            Height = barHeight
         };
-        var bar = new Grid();
-        bar.Children.Add(barBg);
+        var barBg = new Border
+        {
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x33, 0x66, 0xC0, 0xF4)),
+            CornerRadius = new CornerRadius(0, 4, 4, 0),
+            Height = barHeight
+        };
+        Grid.SetColumn(barFill, 0);
+        Grid.SetColumn(barBg, 1);
         bar.Children.Add(barFill);
+        bar.Children.Add(barBg);
         progressContainer.Children.Add(bar);
         headerGrid.Children.Add(progressContainer);
 

@@ -26,6 +26,8 @@ public sealed partial class MainWindow : Window
     private readonly GameDetailPage _detailPage;
     private readonly AddGamePage _addGamePage;
     private readonly AchievementService _achievementService;
+    private readonly AchievementPopup _achievementPopup;
+    private List<Achievement>? _lastAchievements;
 
     public MainWindow()
     {
@@ -97,6 +99,10 @@ public sealed partial class MainWindow : Window
 
         Grid.SetRow(contentGrid, 1);
         rootGrid.Children.Add(contentGrid);
+
+        // Achievement popup
+        _achievementPopup = new AchievementPopup();
+        rootGrid.Children.Add(_achievementPopup.Element);
 
         Content = rootGrid;
 
@@ -189,6 +195,20 @@ public sealed partial class MainWindow : Window
             _detailPage.LoadGame(ViewModel.SelectedGame);
             var achievements = await _achievementService.GetAchievementsAsync(ViewModel.SelectedGame);
             _detailPage.SetAchievements(achievements);
+            
+            // Verificar novas conquistas desbloqueadas
+            if (_lastAchievements != null)
+            {
+                var newAchievements = achievements.Where(a => a.Achieved && 
+                    !_lastAchievements.Any(old => old.Apiname == a.Apiname && old.Achieved)).ToList();
+                
+                foreach (var ach in newAchievements.Take(3)) // Máximo 3 popups
+                {
+                    _achievementPopup.Show(ach);
+                    await Task.Delay(500); // Delay entre popups
+                }
+            }
+            _lastAchievements = achievements;
         }
     }
 
