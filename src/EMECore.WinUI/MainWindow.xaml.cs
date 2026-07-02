@@ -25,6 +25,7 @@ public sealed partial class MainWindow : Window
     private readonly LibraryPage _libraryPage;
     private readonly GameDetailPage _detailPage;
     private readonly AddGamePage _addGamePage;
+    private readonly AchievementService _achievementService;
 
     public MainWindow()
     {
@@ -34,6 +35,7 @@ public sealed partial class MainWindow : Window
         var steamStoreService = new SteamStoreService();
         var gameScannerService = new GameScannerService(steamStoreService);
         ViewModel = new MainViewModel(databaseService, gameScannerService, steamStoreService);
+        _achievementService = new AchievementService();
 
         var rootGrid = new Grid { Background = new SolidColorBrush(SteamColors.Dark) };
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
@@ -69,13 +71,13 @@ public sealed partial class MainWindow : Window
 
         _sidebar = new Sidebar { Background = SteamColors.DarkerBrush };
         _sidebar.NavigationRequested += Sidebar_NavigationRequested;
-        _sidebar.ScanRequested += Sidebar_ScanRequested;
         contentGrid.Children.Add(_sidebar);
 
         var pageContainer = new Grid();
         _libraryPage = new LibraryPage { Visibility = Visibility.Visible };
         _libraryPage.GameSelected += LibraryPage_GameSelected;
         _libraryPage.GameLaunchRequested += LibraryPage_GameLaunchRequested;
+        _libraryPage.ScanRequested += LibraryPage_ScanRequested;
         pageContainer.Children.Add(_libraryPage);
 
         _detailPage = new GameDetailPage { Visibility = Visibility.Collapsed };
@@ -158,7 +160,7 @@ public sealed partial class MainWindow : Window
                             $"{ViewModel.TotalGames} jogos",
                             $"{ViewModel.TotalPlayTime} jogado",
                             ViewModel.StatusText);
-                        _sidebar.SetScanning(ViewModel.IsScanning);
+                        _libraryPage.SetScanning(ViewModel.IsScanning);
                     });
                 }
             };
@@ -173,7 +175,7 @@ public sealed partial class MainWindow : Window
             _libraryPage.LoadGames(ViewModel.Games);
     }
 
-    private void UpdatePageVisibility()
+    private async void UpdatePageVisibility()
     {
         var page = ViewModel.CurrentPage;
         _libraryPage.Visibility = page == "library" ? Visibility.Visible : Visibility.Collapsed;
@@ -181,7 +183,11 @@ public sealed partial class MainWindow : Window
         _addGamePage.Visibility = page == "addgame" ? Visibility.Visible : Visibility.Collapsed;
 
         if (page == "detail" && ViewModel.SelectedGame != null)
+        {
             _detailPage.LoadGame(ViewModel.SelectedGame);
+            var achievements = await _achievementService.GetAchievementsAsync(ViewModel.SelectedGame);
+            _detailPage.SetAchievements(achievements);
+        }
     }
 
     private static Windows.UI.Color ParseColor(string hex)
@@ -227,7 +233,7 @@ public sealed partial class MainWindow : Window
         ViewModel.NavigateToCommand.Execute(page);
     }
 
-    private async void Sidebar_ScanRequested(object? sender, EventArgs e)
+    private async void LibraryPage_ScanRequested(object? sender, EventArgs e)
     {
         await ViewModel.ScanGamesCommand.ExecuteAsync(null);
         _libraryPage.LoadGames(ViewModel.Games);

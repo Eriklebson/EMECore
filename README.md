@@ -119,6 +119,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.1.0.0 | 02/07/2026 | Scanner movido para Biblioteca, parser Stellar Blade (conquistas via save), display de conquistas no detalhe do jogo |
 | 2.0.2.0 | 02/07/2026 | Correcao: icones da barra de titulo e voltar (FontIcon), versao em 4 partes |
 | 2.0.1.0 | 02/07/2026 | Correcao: versao no app.manifest e sidebar |
 | 2.0.0.0 | 02/07/2026 | Release inicial — rewrite completo de Electron/React para C# WinUI 3. Scanner Steam + Xbox + pastas, capas via Steam Store API, imagens locais fallback, filtro avancado de nao-jogos, tema Steam escuro, banco SQLite local |

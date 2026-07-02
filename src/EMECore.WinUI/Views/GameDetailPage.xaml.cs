@@ -21,6 +21,8 @@ public sealed partial class GameDetailPage : UserControl
     private readonly TextBlock _pathText;
     private readonly Image _coverImage;
     private readonly FontIcon _coverPlaceholder;
+    private readonly StackPanel _achievementsContainer;
+    private readonly TextBlock _achievementsTitle;
 
     public GameDetailPage()
     {
@@ -154,6 +156,21 @@ public sealed partial class GameDetailPage : UserControl
         };
         contentStack.Children.Add(sessionsCard);
 
+        // Achievements
+        _achievementsTitle = new TextBlock { Text = "Conquistas", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush };
+        _achievementsContainer = new StackPanel { Spacing = 8 };
+        var achievementsStack = new StackPanel { Spacing = 8 };
+        achievementsStack.Children.Add(_achievementsTitle);
+        achievementsStack.Children.Add(_achievementsContainer);
+        var achievementsCard = new Border
+        {
+            Background = SteamColors.CardBrush,
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(16),
+            Child = achievementsStack
+        };
+        contentStack.Children.Add(achievementsCard);
+
         scrollViewer.Content = contentStack;
         Grid.SetRow(scrollViewer, 1);
         root.Children.Add(scrollViewer);
@@ -217,6 +234,63 @@ public sealed partial class GameDetailPage : UserControl
             _coverImage.Source = null;
             _coverImage.Visibility = Visibility.Collapsed;
             _coverPlaceholder.Visibility = Visibility.Visible;
+        }
+    }
+
+    public void SetAchievements(List<Achievement> achievements)
+    {
+        _achievementsContainer.Children.Clear();
+
+        if (achievements.Count == 0)
+        {
+            _achievementsContainer.Children.Add(new TextBlock
+            {
+                Text = "Nenhuma conquista encontrada",
+                FontSize = 12,
+                Foreground = SteamColors.TextSecondaryBrush
+            });
+            return;
+        }
+
+        var achieved = achievements.Count(a => a.Achieved);
+        _achievementsTitle.Text = $"Conquistas ({achieved}/{achievements.Count})";
+
+        foreach (var ach in achievements)
+        {
+            var row = new Grid { ColumnSpacing = 10, Margin = new Thickness(0, 4, 0, 0) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            var checkIcon = new FontIcon
+            {
+                Glyph = ach.Achieved ? "\uE8FB" : "\uE739",
+                FontSize = 14,
+                Foreground = ach.Achieved
+                    ? SteamColors.GreenBrush
+                    : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0x66, 0x66, 0x66, 0x66))
+            };
+            Grid.SetColumn(checkIcon, 0);
+            row.Children.Add(checkIcon);
+
+            var details = new StackPanel();
+            details.Children.Add(new TextBlock
+            {
+                Text = ach.Name,
+                FontSize = 12,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Foreground = SteamColors.TextBrush
+            });
+            details.Children.Add(new TextBlock
+            {
+                Text = ach.Description,
+                FontSize = 10,
+                Foreground = SteamColors.TextSecondaryBrush,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+            Grid.SetColumn(details, 1);
+            row.Children.Add(details);
+
+            _achievementsContainer.Children.Add(row);
         }
     }
 }

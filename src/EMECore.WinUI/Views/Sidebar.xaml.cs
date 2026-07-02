@@ -9,10 +9,7 @@ namespace EMECore.WinUI.Views;
 public sealed partial class Sidebar : UserControl
 {
     public event EventHandler<string>? NavigationRequested;
-    public event EventHandler? ScanRequested;
 
-    private readonly Button _scanBtn;
-    private readonly TextBlock _scanText;
     private readonly TextBlock _statusTextBlock;
     private readonly TextBlock _statsText;
     private readonly TextBlock _playTimeText;
@@ -25,19 +22,17 @@ public sealed partial class Sidebar : UserControl
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        // Logo Area
         var logoPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         logoPanel.Children.Add(new FontIcon { Glyph = "\uE7F3", FontSize = 24, Foreground = SteamColors.BlueBrush });
         var logoTexts = new StackPanel();
         logoTexts.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush });
-        logoTexts.Children.Add(new TextBlock { Text = "v2.0.2.0", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush });
+        logoTexts.Children.Add(new TextBlock { Text = "v2.1.0.0", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush });
         logoPanel.Children.Add(logoTexts);
         var logoBorder = new Grid { Padding = new Thickness(16, 20, 16, 12) };
         logoBorder.Children.Add(logoPanel);
         Grid.SetRow(logoBorder, 0);
         root.Children.Add(logoBorder);
 
-        // Navigation
         var navPanel = new StackPanel { Padding = new Thickness(0, 8, 0, 8) };
 
         var navLibraryBtn = CreateSidebarButton("\uE80F", "Biblioteca");
@@ -48,12 +43,6 @@ public sealed partial class Sidebar : UserControl
         addBtn.Click += (_, _) => NavigationRequested?.Invoke(this, "addgame");
         navPanel.Children.Add(addBtn);
 
-        _scanBtn = CreateSidebarButton("\uE721", "Procurar Jogos");
-        _scanText = (TextBlock)((StackPanel)_scanBtn.Content).Children[1];
-        _scanBtn.Click += (_, _) => ScanRequested?.Invoke(this, EventArgs.Empty);
-        navPanel.Children.Add(_scanBtn);
-
-        // Status card
         var statusCard = new Border
         {
             Background = SteamColors.CardBrush,
@@ -71,7 +60,6 @@ public sealed partial class Sidebar : UserControl
         Grid.SetRow(navPanel, 1);
         root.Children.Add(navPanel);
 
-        // Stats footer
         var footerPanel = new StackPanel { Spacing = 2 };
         _statsText = new TextBlock { Text = "0 jogos", FontSize = 11, Foreground = SteamColors.TextSecondaryBrush };
         _playTimeText = new TextBlock { Text = "0m jogado", FontSize = 11, Foreground = SteamColors.TextSecondaryBrush };
@@ -114,11 +102,5 @@ public sealed partial class Sidebar : UserControl
         _statsText.Text = stats;
         _playTimeText.Text = playTime;
         _statusTextBlock.Text = status;
-    }
-
-    public void SetScanning(bool scanning)
-    {
-        _scanText.Text = scanning ? "Procurando..." : "Procurar Jogos";
-        _scanBtn.IsEnabled = !scanning;
     }
 }
