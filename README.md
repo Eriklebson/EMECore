@@ -1,0 +1,126 @@
+<div align="center">
+
+# E.M.E Core
+
+**Game Launcher nativo para Windows — organize, descubra e jogue seus jogos favoritos.**
+
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![C#](https://img.shields.io/badge/C%23-12-239120?logo=csharp)](https://learn.microsoft.com/en-us/dotnet/csharp/)
+[![WinUI 3](https://img.shields.io/badge/WinUI-3-0078D4?logo=windows)](https://learn.microsoft.com/en-us/windows/apps/winui/)
+[![SQLite](https://img.shields.io/badge/SQLite-local-003B57?logo=sqlite)](https://www.sqlite.org/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+
+</div>
+
+---
+
+## Funcionalidades
+
+| Recurso | Descricao |
+|---------|-----------|
+| **Scanner Automatico** | Detecta jogos Steam, Xbox/Game Pass e pastas comuns (`C:\Games`, etc.) |
+| **Biblioteca Visual** | Grid com capas reais, busca por nome e filtros |
+| **Capas Automáticas** | Steam Store API para jogos Steam + fallback de imagens locais para Xbox |
+| **Badge de Plataforma** | Identifica Steam, Xbox e Outros com cores especificas |
+| **Detalhe do Jogo** | Informacoes completas: plataforma, tempo, ultimo acesso, caminho |
+| **Play Time Tracking** | Registro de tempo de jogo por sessao (em breve) |
+| **Filtro Inteligente** | Ignora automaticamente uninstallers, redistributiveis, crash handlers e outros nao-jogos |
+| **100% Offline** | Banco SQLite local, sem dependencia de nuvem |
+| **Nativo Windows** | Aplicacao leve em C# WinUI 3, baixo consumo de RAM/CPU |
+
+---
+
+## Instalacao
+
+### Pre-requisitos
+- [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (8.0.422)
+- Windows 10 (build 17763+) ou Windows 11
+- Visual Studio 2022 (opcional)
+
+### Build
+
+```bash
+# 1. Clone o repositorio
+git clone https://github.com/Eriklebson/EMECore.git
+cd EMECore
+
+# 2. Build
+dotnet build EMECore.sln -c Debug -p:Platform=x64
+
+# 3. Executar
+src/EMECore.WinUI/bin/x64/Debug/net8.0-windows10.0.26100.0/EMECore.WinUI.exe
+```
+
+---
+
+## Estrutura do Projeto
+
+```
+EMECore/
+├── src/
+│   ├── EMECore.Core/           # Modelos e interfaces (Domain Layer)
+│   │   ├── Models/             # Game, ScannedGame, Achievement, PlaySession
+│   │   ├── Services/           # IDatabaseService, IGameScannerService, ISteamStoreService
+│   │   └── Helpers/            # FormatHelpers
+│   ├── EMECore.Hardware/       # Implementacoes (Infrastructure Layer)
+│   │   └── Services/           # DatabaseService, GameScannerService, SteamStoreService
+│   └── EMECore.WinUI/          # Aplicacao Desktop (Presentation Layer)
+│       ├── ViewModels/         # MainViewModel (MVVM)
+│       ├── Views/              # LibraryPage, GameCard, GameDetailPage, AddGamePage, Sidebar
+│       ├── Theme/              # SteamColors (tema escuro)
+│       └── MainWindow.xaml.cs  # Janela principal
+└── docs/                       # Documentacao tecnica
+```
+
+---
+
+## Banco de Dados
+
+SQLite local com WAL mode ativado.
+
+### Tabelas
+
+- **games** — Jogos da biblioteca (nome, plataforma, capa, SteamAppId, play time)
+- **achievements** — Conquistas salvas por jogo
+- **play_sessions** — Historico de sessoes de jogo
+
+Localizacao: `%LocalAppData%\EMECore\eme_core.db`
+
+---
+
+## Scanner de Jogos
+
+| Plataforma | Metodo de Deteccao |
+|------------|-------------------|
+| **Steam** | `libraryfolders.vdf` + `appmanifest_*.acf` |
+| **Xbox / Game Pass** | Scan de `C:\XboxGames\` |
+| **Pastas Comuns** | `C:\Games`, `D:\Games`, `E:\Games` |
+
+Capas buscadas via **Steam Store API** (gratuita, sem autenticacao). Para jogos nao-Steam, busca na Steam Store Search pelo nome. Fallback para imagens locais (SplashScreen, Logo) em jogos Xbox.
+
+---
+
+## Arquitetura
+
+Clean Architecture com 3 camadas + MVVM + SOLID.
+
+```
+EMECore.WinUI (WinExe)
+  ├── EMECore.Core (Class Library)
+  └── EMECore.Hardware (Class Library)
+        └── EMECore.Core
+```
+
+UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
+
+---
+
+## Versao
+
+| Versao | Data | Mudanca |
+|--------|------|---------|
+| 2.0.0 | 02/07/2026 | Release inicial — rewrite completo de Electron/React para C# WinUI 3. Scanner Steam + Xbox + pastas, capas via Steam Store API, imagens locais fallback, filtro avancado de nao-jogos, tema Steam escuro, banco SQLite local |
+
+---
+
+**Autor:** Eriklebson — [GitHub](https://github.com/Eriklebson)
