@@ -34,6 +34,7 @@ public class HardwareMonitorService
         s.GpuUsage = ReadGpuUsage();
         s.GpuModel = ReadGpuModel();
         s.GpuTemp = ReadGpuTemp();
+        s.GpuHotspotTemp = ReadGpuHotspot();
 
         s.TotalRam = ReadTotalRamGb();
         s.UsedRam = ReadUsedRamGb();
@@ -90,7 +91,18 @@ public class HardwareMonitorService
         foreach (var h in _computer.Hardware)
             if (h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)
                 foreach (var sn in h.Sensors)
-                    if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0) return Math.Round(sn.Value.Value, 1);
+                    if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0 && !sn.Name.Contains("Hot"))
+                        return Math.Round(sn.Value.Value, 1);
+        return 0;
+    }
+
+    private double ReadGpuHotspot()
+    {
+        foreach (var h in _computer.Hardware)
+            if (h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)
+                foreach (var sn in h.Sensors)
+                    if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0 && sn.Name.Contains("Hot"))
+                        return Math.Round(sn.Value.Value, 1);
         return 0;
     }
 

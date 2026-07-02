@@ -11,6 +11,7 @@ public class HardwareStats
     public double GpuUsage { get; set; }
     public string GpuModel { get; set; } = "GPU";
     public double GpuTemp { get; set; }
+    public double GpuHotspotTemp { get; set; }
 
     public double TotalRam { get; set; }
     public double UsedRam { get; set; }
