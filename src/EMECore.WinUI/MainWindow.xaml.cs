@@ -87,6 +87,7 @@ public sealed partial class MainWindow : Window
         _detailPage.BackRequested += DetailPage_BackRequested;
         _detailPage.LaunchRequested += DetailPage_LaunchRequested;
         _detailPage.DeleteRequested += DetailPage_DeleteRequested;
+        _detailPage.TestAchievementRequested += DetailPage_TestAchievementRequested;
         pageContainer.Children.Add(_detailPage);
 
         _addGamePage = new AddGamePage { Visibility = Visibility.Collapsed };
@@ -323,5 +324,17 @@ public sealed partial class MainWindow : Window
     {
         _addGamePage.ClearForm();
         ViewModel.NavigateToCommand.Execute("library");
+    }
+
+    private void DetailPage_TestAchievementRequested(object? sender, EventArgs e)
+    {
+        var testAchievement = new Achievement
+        {
+            Apiname = "Test_Achievement",
+            Name = "Protocolo EVE",
+            Description = "Adquira todos os troféus",
+            Achieved = true
+        };
+        _achievementPopup.Show(testAchievement);
     }
 }

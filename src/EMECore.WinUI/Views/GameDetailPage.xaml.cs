@@ -13,6 +13,7 @@ public sealed partial class GameDetailPage : UserControl
     public event EventHandler? BackRequested;
     public event EventHandler<Game>? LaunchRequested;
     public event EventHandler<Game>? DeleteRequested;
+    public event EventHandler? TestAchievementRequested;
 
     private Game? _game;
     private readonly TextBlock _gameTitle;
@@ -100,6 +101,16 @@ public sealed partial class GameDetailPage : UserControl
         };
         playBtn.Click += (_, _) => { if (_game != null) LaunchRequested?.Invoke(this, _game); };
         actions.Children.Add(playBtn);
+
+        var testAchBtn = new Button
+        {
+            Content = BtnContent("\uE8FB", "Testar Conquista"),
+            Background = SteamColors.BlueBrush, Foreground = new SolidColorBrush(Colors.White),
+            BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(16, 10, 16, 10)
+        };
+        testAchBtn.Click += (_, _) => TestAchievementRequested?.Invoke(this, EventArgs.Empty);
+        actions.Children.Add(testAchBtn);
 
         var delBtn = new Button
         {
