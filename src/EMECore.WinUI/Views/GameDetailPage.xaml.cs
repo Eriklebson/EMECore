@@ -247,7 +247,7 @@ public sealed partial class GameDetailPage : UserControl
             CornerRadius = new CornerRadius(4),
             Height = barHeight,
             HorizontalAlignment = HorizontalAlignment.Left,
-            MinWidth = achieved > 0 ? barHeight : 0
+            Width = achievements.Count > 0 ? 400.0 * achieved / achievements.Count : 0
         };
         var bar = new Grid();
         bar.Children.Add(barBg);
@@ -281,6 +281,14 @@ public sealed partial class GameDetailPage : UserControl
             Height = 1,
             Margin = new Thickness(0, 0, 0, 8)
         });
+
+        // ScrollViewer para as conquistas
+        var achievementsScroll = new ScrollViewer
+        {
+            MaxHeight = 400,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+        };
 
         // Grid de conquistas estilo Steam
         var achievementsGrid = new Grid { ColumnSpacing = 8, RowSpacing = 2 };
@@ -386,6 +394,7 @@ public sealed partial class GameDetailPage : UserControl
         for (int i = 0; i < (achievements.Count + 1) / 2; i++)
             achievementsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        _achievementsContainer.Children.Add(achievementsGrid);
+        achievementsScroll.Content = achievementsGrid;
+        _achievementsContainer.Children.Add(achievementsScroll);
     }
 }
