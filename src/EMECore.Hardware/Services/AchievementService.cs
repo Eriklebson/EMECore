@@ -15,7 +15,8 @@ public class AchievementService
 
     public async Task<List<Achievement>> GetAchievementsAsync(Game game)
     {
-        if (game.SteamAppId == "3489700")
+        if (game.SteamAppId == "3489700" || 
+            game.Name.Contains("Stellar Blade", StringComparison.OrdinalIgnoreCase))
         {
             return _stellarBladeParser.ParseAchievements();
         }
