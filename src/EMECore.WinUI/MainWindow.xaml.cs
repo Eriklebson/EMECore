@@ -33,7 +33,7 @@ public sealed partial class MainWindow : Window
         var databaseService = new DatabaseService();
         var steamStoreService = new SteamStoreService();
         var gameScannerService = new GameScannerService(steamStoreService);
-        ViewModel = new MainViewModel(databaseService, gameScannerService);
+        ViewModel = new MainViewModel(databaseService, gameScannerService, steamStoreService);
 
         var rootGrid = new Grid { Background = new SolidColorBrush(SteamColors.Dark) };
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });

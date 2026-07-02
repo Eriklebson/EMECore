@@ -1,6 +1,7 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using EMECore.Core.Models;
 using EMECore.WinUI.Theme;
 
@@ -18,6 +19,8 @@ public sealed partial class GameDetailPage : UserControl
     private readonly TextBlock _playTimeText;
     private readonly TextBlock _lastPlayedText;
     private readonly TextBlock _pathText;
+    private readonly Image _coverImage;
+    private readonly FontIcon _coverPlaceholder;
 
     public GameDetailPage()
     {
@@ -25,8 +28,8 @@ public sealed partial class GameDetailPage : UserControl
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        // Header
         var header = new Grid { Padding = new Thickness(24, 16, 24, 12), Background = SteamColors.DarkestBrush };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -46,11 +49,44 @@ public sealed partial class GameDetailPage : UserControl
         backButton.Click += (_, _) => BackRequested?.Invoke(this, EventArgs.Empty);
         header.Children.Add(backButton);
 
+        var coverImageBorder = new Border
+        {
+            Width = 72,
+            Height = 45,
+            CornerRadius = new CornerRadius(4),
+            Background = SteamColors.CardHoverBrush,
+            Margin = new Thickness(12, 0, 0, 0),
+            Clip = new Microsoft.UI.Xaml.Media.RectangleGeometry
+            {
+                Rect = new Windows.Foundation.Rect(0, 0, 72, 45)
+            }
+        };
+        _coverImage = new Image
+        {
+            Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Visibility = Visibility.Collapsed
+        };
+        _coverPlaceholder = new FontIcon
+        {
+            Glyph = "\uE7F3",
+            FontSize = 28,
+            Foreground = SteamColors.BlueBrush,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var coverGrid = new Grid();
+        coverGrid.Children.Add(_coverImage);
+        coverGrid.Children.Add(_coverPlaceholder);
+        coverImageBorder.Child = coverGrid;
+        Grid.SetColumn(coverImageBorder, 1);
+        header.Children.Add(coverImageBorder);
+
         var titlePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(12, 0, 0, 0) };
-        titlePanel.Children.Add(new FontIcon { Glyph = "\uE7F3", FontSize = 28, Foreground = SteamColors.BlueBrush });
         _gameTitle = new TextBlock { FontSize = 22, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush, VerticalAlignment = VerticalAlignment.Center };
         titlePanel.Children.Add(_gameTitle);
-        Grid.SetColumn(titlePanel, 1);
+        Grid.SetColumn(titlePanel, 2);
         header.Children.Add(titlePanel);
 
         var actionsPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
@@ -78,17 +114,15 @@ public sealed partial class GameDetailPage : UserControl
         };
         deleteBtn.Click += (_, _) => { if (_game != null) DeleteRequested?.Invoke(this, _game); };
         actionsPanel.Children.Add(deleteBtn);
-        Grid.SetColumn(actionsPanel, 2);
+        Grid.SetColumn(actionsPanel, 3);
         header.Children.Add(actionsPanel);
 
         Grid.SetRow(header, 0);
         root.Children.Add(header);
 
-        // Content
         var scrollViewer = new ScrollViewer { Padding = new Thickness(24) };
         var contentStack = new StackPanel { Spacing = 20, MaxWidth = 800 };
 
-        // Info cards row
         var infoGrid = new Grid { ColumnSpacing = 16 };
         infoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         infoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -101,18 +135,16 @@ public sealed partial class GameDetailPage : UserControl
         infoGrid.Children.Add(CreateInfoCard("Tempo de Jogo", _playTimeText, 1));
 
         _lastPlayedText = new TextBlock { FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush };
-        infoGrid.Children.Add(CreateInfoCard("Última Vez", _lastPlayedText, 2));
+        infoGrid.Children.Add(CreateInfoCard("Ultima Vez", _lastPlayedText, 2));
 
         contentStack.Children.Add(infoGrid);
 
-        // Path card
         _pathText = new TextBlock { FontSize = 12, Foreground = SteamColors.TextBrush, TextWrapping = TextWrapping.Wrap };
         contentStack.Children.Add(CreateInfoCard("Caminho", _pathText, 0));
 
-        // Sessions card
         var sessionsStack = new StackPanel { Spacing = 8 };
-        sessionsStack.Children.Add(new TextBlock { Text = "Sessões de Jogo", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush });
-        sessionsStack.Children.Add(new TextBlock { Text = "Nenhuma sessão registrada", FontSize = 12, Foreground = SteamColors.TextSecondaryBrush });
+        sessionsStack.Children.Add(new TextBlock { Text = "Sessoes de Jogo", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush });
+        sessionsStack.Children.Add(new TextBlock { Text = "Nenhuma sessao registrada", FontSize = 12, Foreground = SteamColors.TextSecondaryBrush });
         var sessionsCard = new Border
         {
             Background = SteamColors.CardBrush,
@@ -161,5 +193,30 @@ public sealed partial class GameDetailPage : UserControl
             : "Nunca";
 
         _pathText.Text = game.ExecutablePath;
+
+        if (!string.IsNullOrWhiteSpace(game.CoverImage) &&
+            Uri.TryCreate(game.CoverImage, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == "http" || uri.Scheme == "https" || uri.Scheme == "file"))
+        {
+            var bitmap = new BitmapImage();
+            bitmap.ImageOpened += (_, _) =>
+            {
+                _coverImage.Visibility = Visibility.Visible;
+                _coverPlaceholder.Visibility = Visibility.Collapsed;
+            };
+            bitmap.ImageFailed += (_, _) =>
+            {
+                _coverImage.Visibility = Visibility.Collapsed;
+                _coverPlaceholder.Visibility = Visibility.Visible;
+            };
+            bitmap.UriSource = uri;
+            _coverImage.Source = bitmap;
+        }
+        else
+        {
+            _coverImage.Source = null;
+            _coverImage.Visibility = Visibility.Collapsed;
+            _coverPlaceholder.Visibility = Visibility.Visible;
+        }
     }
 }

@@ -2,16 +2,16 @@
 
 ## Workarounds Ativos
 
-### 1. XAML Compiler Totalmente Bypassed
-- **Problema:** `XamlCompiler.exe` (net472) crasha com .NET 10 SDK
-- **Solucao:** Todos `.xaml` removidos, UI 100% em codigo C#
-- **Impacto:** Nao e possivel usar XAML bindings, styles, ou data templates
-- **Arquivo afetado:** `App.g.cs` (stub vazio de `InitializeComponent`)
+### 1. XAML Compiler Funcional (Corrigido - Julho 2026)
+- **Problema original:** `XamlCompiler.exe` (net472) crashava com .NET 10 SDK
+- **Solucao atual:** App.xaml restaurado, XAML compiler funciona com .NET 8 SDK (8.0.422)
+- **Arquivos corrigidos:** `App.xaml` criado, `App.g.cs` stub removido (gerado pelo compiler)
+- **Program.cs** removido (Main agora e gerado pelo XAML compiler em `App.g.i.cs`)
 
-### 2. CsWinRT Source Generator Limitado
-- **Problema:** `cswinrt.exe` nao gera `WinRT.ComWrappers.InitializeComWrappers()`
-- **Solucao:** `RoInitialize(2)` via P/Invoke em `Program.cs`
-- **Impacto:** Inicializacao COM manual, sem beneficios do CsWinRT auto-init
+### 2. CsWinRT COM Wrappers (Corrigido - Julho 2026)
+- **Problema original:** `WinRT.ComWrappersSupport.InitializeComWrappers()` nao era chamado
+- **Solucao:** XAML compiler gera automaticamente o Main com `InitializeComWrappers()`
+- **Impacto:** COM wrappers do WinRT inicializados corretamente, resolvendo crash 0xc000027b
 
 ### 3. WindowsAppSDK Auto-Initializer Desabilitado
 - **Problema:** `DeploymentManagerAutoInitializer` crasha com `REGDB_E_CLASSNOTREG`
@@ -102,7 +102,7 @@
 | Risco | Impacto | Mitigacao |
 |-------|---------|-----------|
 | Atualizacao WindowsAppSDK quebra compatibilidade | Alto | Fixar versao no .csproj |
-| .NET 9/10 LTS incompativel com CsWinRT | Alto | `global.json` fixa SDK |
+| .NET 9/10 LTS incompativel com CsWinRT | Medio | `global.json` fixa SDK em 8.0.422 |
 | SQLite corrompido por crash | Medio | WAL mode + backup |
 | Steam API muda formato | Medio | Tratamento de erros silencioso |
 | Memory leak por nao-dispose | Baixo | `DatabaseService.CloseAsync()` nao chamado no exit |

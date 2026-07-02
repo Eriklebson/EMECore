@@ -1,6 +1,7 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using EMECore.Core.Models;
 using EMECore.WinUI.Theme;
 
@@ -16,6 +17,8 @@ public sealed partial class GameCard : UserControl
     private readonly TextBlock _playTimeLabel;
     private readonly TextBlock _lastPlayedLabel;
     private readonly TextBlock _platformBadge;
+    private readonly Image _coverImage;
+    private readonly FontIcon _coverPlaceholder;
 
     public GameCard()
     {
@@ -27,14 +30,32 @@ public sealed partial class GameCard : UserControl
         outerGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(160) });
         outerGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        // Cover area
         var coverBorder = new Border
         {
             Background = SteamColors.CardHoverBrush,
             CornerRadius = new CornerRadius(8, 8, 0, 0)
         };
         var coverGrid = new Grid();
-        coverGrid.Children.Add(new FontIcon { Glyph = "\uE7F3", FontSize = 48, Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0x33, 0x66, 0xc0, 0xf4)), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center });
+
+        _coverImage = new Image
+        {
+            Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Visibility = Visibility.Collapsed
+        };
+        coverGrid.Children.Add(_coverImage);
+
+        _coverPlaceholder = new FontIcon
+        {
+            Glyph = "\uE7F3",
+            FontSize = 48,
+            Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0x33, 0x66, 0xc0, 0xf4)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        coverGrid.Children.Add(_coverPlaceholder);
+
         _platformBadge = new TextBlock { FontSize = 10, Foreground = SteamColors.TextBrush, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold };
         var badgeBorder = new Border
         {
@@ -50,7 +71,6 @@ public sealed partial class GameCard : UserControl
         Grid.SetRow(coverBorder, 0);
         outerGrid.Children.Add(coverBorder);
 
-        // Info area
         var infoGrid = new Grid { Padding = new Thickness(12, 10, 12, 10) };
         infoGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         infoGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -87,7 +107,6 @@ public sealed partial class GameCard : UserControl
         Grid.SetRow(infoGrid, 1);
         outerGrid.Children.Add(infoGrid);
 
-        // Tap handler for the whole card
         var tapBorder = new Border { Child = outerGrid, Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Colors.Transparent) };
         tapBorder.Tapped += (_, _) => { if (_game != null) GameClicked?.Invoke(this, _game); };
 
@@ -109,5 +128,30 @@ public sealed partial class GameCard : UserControl
             : "";
 
         _platformBadge.Text = game.Platform.ToUpper();
+
+        if (!string.IsNullOrWhiteSpace(game.CoverImage) &&
+            Uri.TryCreate(game.CoverImage, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == "http" || uri.Scheme == "https" || uri.Scheme == "file"))
+        {
+            var bitmap = new BitmapImage();
+            bitmap.ImageOpened += (_, _) =>
+            {
+                _coverImage.Visibility = Visibility.Visible;
+                _coverPlaceholder.Visibility = Visibility.Collapsed;
+            };
+            bitmap.ImageFailed += (_, _) =>
+            {
+                _coverImage.Visibility = Visibility.Collapsed;
+                _coverPlaceholder.Visibility = Visibility.Visible;
+            };
+            bitmap.UriSource = uri;
+            _coverImage.Source = bitmap;
+        }
+        else
+        {
+            _coverImage.Source = null;
+            _coverImage.Visibility = Visibility.Collapsed;
+            _coverPlaceholder.Visibility = Visibility.Visible;
+        }
     }
 }

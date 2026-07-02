@@ -11,6 +11,8 @@ public partial class MainViewModel : ObservableObject
 {
     private readonly IDatabaseService _databaseService;
     private readonly IGameScannerService _gameScannerService;
+    private readonly ISteamStoreService _steamStoreService;
+    private static readonly SemaphoreSlim _steamApiSemaphore = new(3);
 
     [ObservableProperty] private string _currentPage = "library";
     [ObservableProperty] private Game? _selectedGame;
@@ -22,10 +24,11 @@ public partial class MainViewModel : ObservableObject
 
     public ObservableCollection<Game> Games { get; } = new();
 
-    public MainViewModel(IDatabaseService databaseService, IGameScannerService gameScannerService)
+    public MainViewModel(IDatabaseService databaseService, IGameScannerService gameScannerService, ISteamStoreService steamStoreService)
     {
         _databaseService = databaseService;
         _gameScannerService = gameScannerService;
+        _steamStoreService = steamStoreService;
     }
 
     public async Task InitializeAsync(string dbPath)
@@ -107,6 +110,8 @@ public partial class MainViewModel : ObservableObject
             }
             TotalGames = Games.Count;
             StatusText = added > 0 ? $"{added} jogos novos encontrados" : "Nenhum jogo novo encontrado";
+
+            await RefreshMissingCoversAsync();
         }
         catch (Exception ex)
         {
@@ -116,6 +121,39 @@ public partial class MainViewModel : ObservableObject
         {
             IsScanning = false;
         }
+    }
+
+    private async Task RefreshMissingCoversAsync()
+    {
+        var gamesWithoutCover = Games
+            .Where(g => !string.IsNullOrEmpty(g.SteamAppId) && string.IsNullOrEmpty(g.CoverImage))
+            .ToList();
+
+        if (gamesWithoutCover.Count == 0) return;
+
+        StatusText = $"Baixando {gamesWithoutCover.Count} capas...";
+
+        var tasks = gamesWithoutCover.Select(async game =>
+        {
+            await _steamApiSemaphore.WaitAsync();
+            try
+            {
+                var info = await _steamStoreService.GetStoreInfoAsync(game.SteamAppId);
+                if (info != null && !string.IsNullOrEmpty(info.HeaderImage))
+                {
+                    game.CoverImage = info.HeaderImage;
+                    await _databaseService.UpsertGameAsync(game);
+                }
+            }
+            catch { }
+            finally
+            {
+                _steamApiSemaphore.Release();
+            }
+        });
+
+        await Task.WhenAll(tasks);
+        StatusText = $"{TotalGames} jogos carregados";
     }
 
     [RelayCommand]
