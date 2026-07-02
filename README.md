@@ -119,6 +119,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.3.1.0 | 02/07/2026 | UI: barra de progresso corrigida, ScrollViewer, tradução conquistas PT-BR |
 | 2.3.0.0 | 02/07/2026 | UI: redesign cards de conquistas estilo Steam |
 | 2.2.4.0 | 02/07/2026 | Fix: deteccao de conquistas do Stellar Blade por nome |
 | 2.2.3.0 | 02/07/2026 | Performance: timer 2s, cache de hardware, pausa ao mover janela, fans otimizados |
