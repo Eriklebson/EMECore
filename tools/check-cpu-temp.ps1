@@ -62,5 +62,23 @@ foreach ($hw in $computer.Hardware) {
 $log += "CPU: $cpuName"
 $log += "CPU Temp: $cpuTemp"
 $log += "CPU Package: $cpuPackageTemp"
+
+foreach ($hw in $computer.Hardware) {
+    if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuNvidia -or $hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuAmd) {
+        foreach ($s in $hw.Sensors) {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Fan -and $s.Value -ne $null -and $s.Value -gt 0) {
+                $log += "FAN: GPU Fan=$([math]::Round($s.Value))"
+            }
+        }
+    }
+    foreach ($sub in $hw.SubHardware) {
+        foreach ($s in $sub.Sensors) {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Fan -and $s.Value -ne $null -and $s.Value -gt 0) {
+                $log += "FAN: $($s.Name)=$([math]::Round($s.Value))"
+            }
+        }
+    }
+}
+
 $log | Out-File $outFile
 $computer.Close()

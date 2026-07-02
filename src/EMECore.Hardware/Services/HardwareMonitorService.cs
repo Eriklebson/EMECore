@@ -185,7 +185,43 @@ public class HardwareMonitorService
         return 0;
     }
 
-    private static List<FanInfo> ReadFans() => new();
+    private static List<FanInfo> ReadFans()
+    {
+        var fans = new List<FanInfo>();
+        try
+        {
+            var f = Path.Combine(Path.GetTempPath(), "cpu-check-result.txt");
+            if (!File.Exists(f)) return fans;
+
+            foreach (var l in File.ReadAllLines(f))
+            {
+                if (l.StartsWith("FAN: "))
+                {
+                    var parts = l[5..].Split('=');
+                    if (parts.Length == 2 && double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var rpm))
+                        fans.Add(new FanInfo { Name = MapFanName(parts[0].Trim()), Rpm = rpm, DutyPercent = 0 });
+                }
+            }
+        }
+        catch { }
+        return fans;
+    }
+
+    private static string MapFanName(string raw)
+    {
+        return raw switch
+        {
+            "Fan #1" => "CHAN_1 (Gabinete)",
+            "Fan #2" => "CPU_FAN",
+            "Fan #3" => "CHAN_2 (Gabinete)",
+            "Fan #4" => "CHAN_3 (Gabinete)",
+            "Fan #5" => "OPT_CPU (Bomba WC)",
+            "Fan #6" => "OPT_CPU (Bomba WC)",
+            "Fan #7" => "OPT_CPU (Bomba WC)",
+            "GPU Fan" => "GPU Fan",
+            _ => raw
+        };
+    }
 
     private static string? FindToolsFile(string fn)
     {

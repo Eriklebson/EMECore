@@ -119,6 +119,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.2.2.0 | 02/07/2026 | Monitor: Tabler Icons, fans girando, ventoinhas funcional via LHM, grid 2 colunas |
 | 2.2.1.0 | 02/07/2026 | Monitor: layout reorganizado, temps inline nos cards, barras proporcionais, cores por nivel |
 | 2.2.0.0 | 02/07/2026 | Monitor de Hardware (CPU/GPU/RAM/temps/fans), conquistas Stellar Blade via save parser, pagina de detalhe redesenhada com glass cards, scan movido para biblioteca |
 | 2.1.0.0 | 02/07/2026 | Scanner movido para Biblioteca, parser Stellar Blade (conquistas via save), display de conquistas no detalhe do jogo |
