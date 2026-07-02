@@ -41,7 +41,7 @@ public sealed class AchievementPopup
             VerticalAlignment = VerticalAlignment.Bottom,
             Margin = new Thickness(0, 0, 20, 20),
             Visibility = Visibility.Collapsed,
-            Translation = new System.Numerics.Vector3(0, 100, 0)
+            Opacity = 0
         };
 
         var content = new Grid { ColumnSpacing = 12 };
@@ -111,25 +111,25 @@ public sealed class AchievementPopup
         _showAnimation = new Storyboard();
         var showAnim = new DoubleAnimation
         {
-            From = 100,
-            To = 0,
+            From = 0,
+            To = 1,
             Duration = new Duration(TimeSpan.FromMilliseconds(300)),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         };
         Storyboard.SetTarget(showAnim, _container);
-        Storyboard.SetTargetProperty(showAnim, "Translation.Y");
+        Storyboard.SetTargetProperty(showAnim, "Opacity");
         _showAnimation.Children.Add(showAnim);
 
         _hideAnimation = new Storyboard();
         var hideAnim = new DoubleAnimation
         {
-            From = 0,
-            To = 100,
+            From = 1,
+            To = 0,
             Duration = new Duration(TimeSpan.FromMilliseconds(300)),
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
         Storyboard.SetTarget(hideAnim, _container);
-        Storyboard.SetTargetProperty(hideAnim, "Translation.Y");
+        Storyboard.SetTargetProperty(hideAnim, "Opacity");
         _hideAnimation.Children.Add(hideAnim);
         _hideAnimation.Completed += (_, _) => _container.Visibility = Visibility.Collapsed;
     }
