@@ -17,6 +17,12 @@ public class HardwareStats
     public double UsedRam { get; set; }
     public int RamSpeed { get; set; }
 
+    public double FpsCurrent { get; set; }
+    public double FpsMin { get; set; }
+    public double FpsMax { get; set; }
+    public double FpsAvg { get; set; }
+    public string FpsSource { get; set; } = "Off";
+
     public double DiskReadSpeed { get; set; }
     public double DiskWriteSpeed { get; set; }
 

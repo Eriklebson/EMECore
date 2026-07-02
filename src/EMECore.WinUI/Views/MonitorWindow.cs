@@ -17,14 +17,23 @@ public sealed partial class MonitorWindow : Window
     private readonly DispatcherTimer _timer;
     private readonly TextBlock _cpuPct, _cpuCoreTemp, _cpuPkgTemp, _cpuModel,
         _gpuPct, _gpuCoreTemp, _gpuHotTemp, _gpuModel,
-        _ramPct, _ramInfo;
+        _ramPct, _ramInfo,
+        _fpsPct, _fpsInfo;
     private readonly Grid _cpuBar, _gpuBar, _ramBar;
     private readonly StackPanel _fansPanel;
+    private int _fanCount;
+    private bool _isMoving;
 
     public MonitorWindow()
     {
         Title = "Monitor de Hardware";
         _monitor = new HardwareMonitorService();
+
+        // Definir tamanho da janela
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+        var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+        appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 500, Height = 400 });
 
         var root = new Grid { Background = new SolidColorBrush(SteamColors.Darkest) };
         var scroll = new ScrollViewer { Padding = new Thickness(12, 40, 12, 12) };
@@ -54,9 +63,42 @@ public sealed partial class MonitorWindow : Window
         Grid.SetColumn(fc, 1); row2.Children.Add(fc);
         content.Children.Add(row2);
 
+        // FPS row
+        var fpsCard = new Border { Background = SteamColors.CardBrush, CornerRadius = new CornerRadius(8), Padding = new Thickness(14) };
+        var fpsStack = new StackPanel { Spacing = 6 };
+        var fpsHdr = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        fpsHdr.Children.Add(new FontIcon { Glyph = "\uec4d", FontSize = 16, Foreground = SteamColors.BlueBrush, FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons") });
+        fpsHdr.Children.Add(new TextBlock { Text = "FPS", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush });
+        fpsStack.Children.Add(fpsHdr);
+        _fpsInfo = new TextBlock { FontSize = 11, Foreground = SteamColors.TextSecondaryBrush };
+        fpsStack.Children.Add(_fpsInfo);
+        _fpsPct = new TextBlock { FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush };
+        fpsStack.Children.Add(_fpsPct);
+        fpsCard.Child = fpsStack;
+        content.Children.Add(fpsCard);
+
         scroll.Content = content; root.Children.Add(scroll); Content = root;
         Closed += (_, _) => { _timer.Stop(); _monitor.Dispose(); };
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        
+        var sizeChanged = false;
+        appWindow.Changed += (_, args) =>
+        {
+            if (args.DidPositionChange)
+            {
+                if (!_isMoving)
+                {
+                    _isMoving = true;
+                    _timer.Stop();
+                }
+            }
+            else if (_isMoving)
+            {
+                _isMoving = false;
+                _timer.Start();
+            }
+        };
+        
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
         _timer.Tick += (_, _) => Refresh();
         _timer.Start(); Refresh();
     }
@@ -125,48 +167,72 @@ public sealed partial class MonitorWindow : Window
             _ramPct.Text = $"{rp:F0}%"; _ramPct.Foreground = C(rp);
             SetBar(_ramBar, rp, C(rp));
 
-            _fansPanel.Children.Clear();
-            if (s.Fans.Count == 0) _fansPanel.Children.Add(new TextBlock { Text = "Nenhuma ventoinha", FontSize = 11, Foreground = SteamColors.TextSecondaryBrush });
-            else
+            if (s.Fans.Count != _fanCount)
             {
-                var fanGrid = new Grid { ColumnSpacing = 8 };
-                fanGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                fanGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                _fanCount = s.Fans.Count;
+                _fansPanel.Children.Clear();
+                if (s.Fans.Count == 0) _fansPanel.Children.Add(new TextBlock { Text = "Nenhuma ventoinha", FontSize = 11, Foreground = SteamColors.TextSecondaryBrush });
+                else
+                {
+                    var fanGrid = new Grid { ColumnSpacing = 8 };
+                    fanGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    fanGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    for (int i = 0; i < s.Fans.Count; i++)
+                    {
+                        var f = s.Fans[i];
+                        var fanRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 2, 0, 2) };
+                        var fanIcon = new FontIcon { Glyph = "\ueec4", FontSize = 18, Foreground = SteamColors.TextSecondaryBrush, FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons"), RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5) };
+                        var speed = Math.Max(0.3, Math.Min(3, f.Rpm / 500.0));
+                        fanIcon.Loaded += (_, _) =>
+                        {
+                            var visual = ElementCompositionPreview.GetElementVisual(fanIcon);
+                            visual.CenterPoint = new Vector3(9.5f, 15, 0);
+                            SpinForever(visual, speed);
+                        };
+                        fanRow.Children.Add(fanIcon);
+                        var fanInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+                        fanInfo.Children.Add(new TextBlock { Text = f.Name, FontSize = 11, Foreground = SteamColors.TextBrush });
+                        fanInfo.Children.Add(new TextBlock { Text = $"{f.Rpm:F0} RPM", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush, Name = $"fanRpm{i}" });
+                        fanRow.Children.Add(fanInfo);
+                        Grid.SetColumn(fanRow, i % 2);
+                        Grid.SetRow(fanRow, i / 2);
+                        fanGrid.Children.Add(fanRow);
+                    }
+                    for (int i = 0; i < (s.Fans.Count + 1) / 2; i++)
+                        fanGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                    _fansPanel.Children.Add(fanGrid);
+                }
+            }
+            else if (s.Fans.Count > 0 && _fansPanel.Children.Count > 0 && _fansPanel.Children[0] is Grid grid)
+            {
                 for (int i = 0; i < s.Fans.Count; i++)
                 {
-                    var f = s.Fans[i];
-                    var fanRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 2, 0, 2) };
-                    var fanIcon = new FontIcon { Glyph = "\ueec4", FontSize = 18, Foreground = SteamColors.TextSecondaryBrush, FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons"), RenderTransformOrigin = new Windows.Foundation.Point(0.5, 0.5) };
-                    var speed = Math.Max(0.3, Math.Min(3, f.Rpm / 500.0));
-                    fanIcon.Loaded += (_, _) =>
-                    {
-                        var visual = ElementCompositionPreview.GetElementVisual(fanIcon);
-                        visual.CenterPoint = new Vector3(9.5f, 15, 0);
-                        SpinForever(visual, speed);
-                    };
-                    fanRow.Children.Add(fanIcon);
-                    var fanInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-                    fanInfo.Children.Add(new TextBlock { Text = f.Name, FontSize = 11, Foreground = SteamColors.TextBrush });
-                    fanInfo.Children.Add(new TextBlock { Text = $"{f.Rpm:F0} RPM", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush });
-                    fanRow.Children.Add(fanInfo);
-                    Grid.SetColumn(fanRow, i % 2);
-                    Grid.SetRow(fanRow, i / 2);
-                    fanGrid.Children.Add(fanRow);
+                    var fanRow = grid.Children[i] as StackPanel;
+                    if (fanRow?.Children.Count > 1 && fanRow.Children[1] is StackPanel info && info.Children.Count > 1)
+                        ((TextBlock)info.Children[1]).Text = $"{s.Fans[i].Rpm:F0} RPM";
                 }
-                for (int i = 0; i < (s.Fans.Count + 1) / 2; i++)
-                    fanGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                _fansPanel.Children.Add(fanGrid);
+            }
+
+            if (s.FpsCurrent > 0)
+            {
+                _fpsPct.Text = $"{s.FpsCurrent:F0}";
+                _fpsPct.Foreground = FpsColor(s.FpsCurrent);
+                _fpsInfo.Text = $"MIN {s.FpsMin:F0} | AVG {s.FpsAvg:F0} | MAX {s.FpsMax:F0} | {s.FpsSource}";
+            }
+            else
+            {
+                _fpsPct.Text = "--";
+                _fpsPct.Foreground = SteamColors.TextSecondaryBrush;
+                _fpsInfo.Text = s.FpsSource != "Off" ? $"Aguardando... {s.FpsSource}" : "FPS: Nenhum jogo detectado";
             }
         }
         catch { }
     }
 
-    private static void SpinAngle(RotateTransform rt, double rpm)
-    {
-        var speed = Math.Max(0.3, Math.Min(3, rpm / 500.0));
-        var delta = 360.0 / speed;
-        rt.Angle = (rt.Angle + delta) % 360;
-    }
+    private static SolidColorBrush FpsColor(double fps) =>
+        fps >= 60 ? SteamColors.GreenBrush :
+        fps >= 30 ? new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xF0, 0xA5, 0x00)) :
+                    SteamColors.RedBrush;
 
     private static void SetBar(Grid bar, double pct, SolidColorBrush color)
     {

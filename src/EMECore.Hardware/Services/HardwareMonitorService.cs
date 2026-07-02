@@ -9,10 +9,19 @@ namespace EMECore.Hardware.Services;
 public class HardwareMonitorService
 {
     private readonly Computer _computer;
-    private double _psCpu, _psPkg;
+    private readonly FpsMonitorService _fpsMonitor = new();
+    private double _psCachedTemp, _psCachedPkgTemp;
     private DateTime _psCache = DateTime.MinValue;
     private bool _psRunning;
     private double _cpuPackageTemp;
+    private string? _lastDetectedGame;
+    
+    private string? _cachedCpuModel;
+    private string? _cachedGpuModel;
+    private int _cachedRamSpeed;
+    private List<FanInfo> _cachedFans = new();
+    private DateTime _fansCache = DateTime.MinValue;
+    private DateTime _gameDetectCache = DateTime.MinValue;
 
     public HardwareMonitorService()
     {
@@ -27,19 +36,37 @@ public class HardwareMonitorService
         try { foreach (var h in _computer.Hardware) { h.Update(); foreach (var z in h.SubHardware) z.Update(); } } catch { }
 
         s.CpuUsage = ReadCpuUsage();
-        s.CpuModel = ReadCpuModel();
+        s.CpuModel = _cachedCpuModel ??= ReadCpuModel();
         s.CpuTemp = ReadCpuTemp();
         s.CpuPackageTemp = _cpuPackageTemp;
 
         s.GpuUsage = ReadGpuUsage();
-        s.GpuModel = ReadGpuModel();
+        s.GpuModel = _cachedGpuModel ??= ReadGpuModel();
         s.GpuTemp = ReadGpuTemp();
         s.GpuHotspotTemp = ReadGpuHotspot();
 
         s.TotalRam = ReadTotalRamGb();
         s.UsedRam = ReadUsedRamGb();
-        s.RamSpeed = ReadRamSpeed();
-        s.Fans = ReadFans();
+        s.RamSpeed = _cachedRamSpeed != 0 ? _cachedRamSpeed : (_cachedRamSpeed = ReadRamSpeed());
+        
+        if ((DateTime.UtcNow - _fansCache).TotalSeconds > 5)
+        {
+            _cachedFans = ReadFans();
+            _fansCache = DateTime.UtcNow;
+        }
+        s.Fans = _cachedFans;
+
+        if ((DateTime.UtcNow - _gameDetectCache).TotalSeconds > 3)
+        {
+            DetectGame();
+            _gameDetectCache = DateTime.UtcNow;
+        }
+        s.FpsCurrent = _fpsMonitor.Current;
+        s.FpsMin = _fpsMonitor.Min;
+        s.FpsMax = _fpsMonitor.Max;
+        s.FpsAvg = _fpsMonitor.Avg;
+        s.FpsSource = _fpsMonitor.Source;
+
         return s;
     }
 
@@ -123,10 +150,10 @@ public class HardwareMonitorService
     {
         try
         {
-            if ((DateTime.UtcNow - _psCache).TotalSeconds < 2 && _psCpu > 0)
+            if ((DateTime.UtcNow - _psCache).TotalSeconds < 2 && _psCachedTemp > 0)
             {
-                _cpuPackageTemp = _psPkg > 0 ? _psPkg : _psCpu;
-                return _psCpu;
+                _cpuPackageTemp = _psCachedPkgTemp > 0 ? _psCachedPkgTemp : _psCachedTemp;
+                return _psCachedTemp;
             }
 
             if (!_psRunning)
@@ -147,12 +174,12 @@ public class HardwareMonitorService
                     if (l.StartsWith("CPU Temp: ") && cpu == null && double.TryParse(l[10..].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var tv) && tv > 0 && tv < 120) cpu = Math.Round(tv, 1);
                     if (l.StartsWith("CPU Package: ") && pkg == null && double.TryParse(l[13..].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var pv) && pv > 0 && pv < 120) pkg = Math.Round(pv, 1);
                 }
-                if (cpu.HasValue) { _psCpu = cpu.Value; _psPkg = pkg ?? cpu.Value; _psCache = DateTime.UtcNow; }
+                if (cpu.HasValue) { _psCachedTemp = cpu.Value; _psCachedPkgTemp = pkg ?? cpu.Value; _psCache = DateTime.UtcNow; }
             }
         }
         catch { }
-        _cpuPackageTemp = _psPkg > 0 ? _psPkg : _psCpu;
-        return _psCpu;
+        _cpuPackageTemp = _psCachedPkgTemp > 0 ? _psCachedPkgTemp : _psCachedTemp;
+        return _psCachedTemp;
     }
 
     private static string ReadCpuModel()
@@ -230,5 +257,52 @@ public class HardwareMonitorService
         return null;
     }
 
-    public void Dispose() { try { _computer.Close(); } catch { } }
+    private void DetectGame()
+    {
+        try
+        {
+            var p = Process.Start(new ProcessStartInfo("tasklist", "/FO CSV /NH")
+            { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true });
+            if (p == null) return;
+            var output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit(2000);
+
+            string? detected = null;
+            foreach (var line in output.Split('\n'))
+            {
+                var parts = line.Split(',');
+                if (parts.Length < 1) continue;
+                var name = parts[0].Trim('"', ' ');
+                if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    name = name[..^4];
+
+                if (name.Contains("SB-Win64-Shipping", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("forza", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("Minecraft", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("Subnautica", StringComparison.OrdinalIgnoreCase) ||
+                    name.Contains("Stellar", StringComparison.OrdinalIgnoreCase))
+                {
+                    detected = name;
+                    break;
+                }
+            }
+
+            if (detected != null && detected != _lastDetectedGame)
+            {
+                _lastDetectedGame = detected;
+                _fpsMonitor.Start(detected);
+            }
+            else if (detected == null && _lastDetectedGame != null)
+            {
+                _lastDetectedGame = null;
+                _fpsMonitor.Stop();
+            }
+        }
+        catch { }
+    }
+
+    public void Dispose() { try { _computer.Close(); } catch { } _fpsMonitor.Stop(); }
+
+    public void StartFpsMonitor(string processName) => _fpsMonitor.Start(processName);
+    public void StopFpsMonitor() => _fpsMonitor.Stop();
 }
