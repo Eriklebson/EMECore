@@ -94,7 +94,17 @@ public class StellarBladeParser
     public List<Achievement> ParseAchievements(string? savePath = null)
     {
         var data = ParseSave(savePath);
-        if (data == null) return new List<Achievement>();
+
+        if (data == null)
+        {
+            return TrophyMap.Select(t => new Achievement
+            {
+                Apiname = t.Key,
+                Name = t.Value,
+                Description = "Trophy nao iniciado",
+                Achieved = false
+            }).ToList();
+        }
 
         var achievements = new List<Achievement>();
 
@@ -164,19 +174,31 @@ public class StellarBladeParser
         foreach (var (name, steamAchievement) in TrophyMap)
         {
             var idx = text.IndexOf(name + '\0', StringComparison.Ordinal);
-            if (idx < 0) continue;
 
-            var searchStart = idx + name.Length + 1;
-            var bCompleted = ExtractBoolValue(buffer, searchStart);
-            var progressValue = ExtractUInt32Value(buffer, searchStart);
-
-            trophies.Add(new StellarBladeTrophy
+            if (idx >= 0)
             {
-                Name = name,
-                SteamAchievement = steamAchievement,
-                BCompleted = bCompleted,
-                ProgressValue = progressValue
-            });
+                var searchStart = idx + name.Length + 1;
+                var bCompleted = ExtractBoolValue(buffer, searchStart);
+                var progressValue = ExtractUInt32Value(buffer, searchStart);
+
+                trophies.Add(new StellarBladeTrophy
+                {
+                    Name = name,
+                    SteamAchievement = steamAchievement,
+                    BCompleted = bCompleted,
+                    ProgressValue = progressValue
+                });
+            }
+            else
+            {
+                trophies.Add(new StellarBladeTrophy
+                {
+                    Name = name,
+                    SteamAchievement = steamAchievement,
+                    BCompleted = false,
+                    ProgressValue = 0
+                });
+            }
         }
 
         return trophies;

@@ -1,99 +1,89 @@
-# Stellar Blade Save Parser - Documentação
+# Stellar Blade Save Parser - EMECore
 
-## Visão Geral
-O parser de save do Stellar Blade lê o arquivo binário do jogo para extrair informações de conquistas (achievements) sem precisar da Steam API. O parser **APENAS LE** o save — nunca modifica.
+## Visao Geral
+Parser C# que le o save binario do Stellar Blade (UE4) para extrair conquistas sem Steam API. **APENAS LEITURA.**
 
-## Localização do Save
+## Localizacao do Save
 ```
-C:\Users\{username}\AppData\Local\SB\Saved\SaveGames\{steamId}\StellarBladeSave00.sav
-```
-
-## Formato do Arquivo
-- **Engine**: Unreal Engine 4 (UE4) — Release 4.26
-- **Tamanho**: ~10 MB (10.052.406 bytes)
-- **Header**: "EVAS" (primeiros 4 bytes)
-- **Steam ID**: Armazenado como FString perto do final do arquivo (offset ~10.052.362), precedido por uint32 length=18
-
-## Estrutura de Propriedades UE4
-Cada propriedade segue o formato:
-```
-[NomeASCII\0] [TipoASCII\0] [Size(4 bytes LE)] [ArrayIndex(4 bytes LE)] [Valor...]
+%LOCALAPPDATA%\SB\Saved\SaveGames\{steamId}\StellarBladeSave00.sav
 ```
 
-### Tipos de Propriedade
-| Tipo | Offset do Valor | Descrição |
-|------|----------------|-----------|
-| `BoolProperty` | +21 bytes do nome | 1 byte: `0x00` = falso, `0x01` = verdadeiro |
-| `UInt32Property` | +23 bytes do nome | 4 bytes: inteiro sem sinal little-endian |
-| `StrProperty` | variável | FString: [length(4)] [ASCII] [null] |
+## Implementacao
 
-### Fórmula de Offset
-```
-BoolProperty:   offset_nome + 13 ("BoolProperty\0") + 4 (size) + 4 (arrayIndex) = +21
-UInt32Property: offset_nome + 15 ("UInt32Property\0") + 4 (size) + 4 (arrayIndex) = +23
-```
+### Modelos (`EMECore.Core.Models`)
+- `StellarBladeSaveData` — dados completos do save (steamId, trophies, endings, NG+)
+- `StellarBladeTrophy` — trophy individual (name, steamAchievement, bCompleted, progressValue)
+- `Achievement` — modelo de conquista para exibicao na UI
 
-## Trophy Flags → Steam Achievements
-O parser extrai 25 trophy flags do tipo `Trophy_*`. Cada flag contém:
-- `bCompleted` (BoolProperty): Se a conquista foi desbloqueada
-- `ProgressValue` (UInt32Property): Contador de progresso
+### Parser (`EMECore.Hardware.Services.StellarBladeParser`)
+- `FindSavePath()` — localiza o arquivo de save
+- `HasSave()` — verifica se o save existe
+- `ParseSave()` — parse completo do save binario
+- `ParseAchievements()` — extrai lista de `Achievement` para exibicao
 
-### Mapeamento Completo
-| Trophy Flag | Steam Achievement |
-|-------------|-------------------|
-| `Trophy_Platinum` | EVE Protocol |
-| `Trophy_Activate_FirstCamp` | Camp Preparation |
-| `Trophy_Activate_AllCamp` | Meticulous Explorer |
-| `Trophy_KillCharacter` | Cruel Liberator |
-| `Trophy_KillCharacter_Brute` | Brute |
-| `Trophy_KillCharacter_AllNative` | Naytiba Researcher |
-| `Trophy_Acquire_AllNanoSuit` | Nano Suit Collector |
-| `Trophy_Acquire_AllSkill` | Thorough Technician |
-| `Trophy_Acquire_AllSkill_v2` | Infinite Blade |
-| `Trophy_Acquire_AllCan` | Can Collector |
-| `Trophy_Acquire_AllRecords` | Records Collector |
-| `Trophy_Open_AllBox` | Box Hunter |
-| `Trophy_CompleteLevel_AltesLabor` | Altess Levoire |
-| `Trophy_LevelUpMax_AllExoSpine` | Perfect Exospine |
-| `Trophy_WeaponMaxUpgrade` | Perfect Blood Edge |
-| `Trophy_TumblerMaxUpgrade` | Perfect Rechargeable Tumbler |
-| `Trophy_BodyMaxUpgrade` | Perfect Physical Enhancement |
-| `Trophy_BetaMaxUpgrade` | Perfect Beta Energy Enhancement |
-| `Trophy_UseItem_Gold_At_Shop` | Shopper |
-| `Trophy_CharKill_BetaSkill` | Naytiba Hunter |
-| `Trophy_CharKill_BurstSkill` | Relentless Destroyer |
-| `Trophy_CharKill_RangeSkill` | Cold-blooded Sniper |
-| `Trophy_CharKill_AssassinationSkills` | Silent Executioner |
-| `Trophy_JustEvade` | Battlefield Martial Artist |
-| `Trophy_JustParry` | Agile Gladiator |
+### Service (`EMECore.Hardware.Services.AchievementService`)
+- `GetAchievementsAsync(Game)` — se SteamAppId == "3489700", chama o StellarBladeParser
 
-### Resultado do Usuário (6/25 completadas)
-```
-✓ Camp Preparation (Trophy_Activate_FirstCamp) progress: 256
-✓ Brute (Trophy_KillCharacter_Brute) progress: 256
-✓ Altess Levoire (Trophy_CompleteLevel_AltesLabor) progress: 256
-✓ Silent Executioner (Trophy_CharKill_AssassinationSkills) progress: 12800
-✓ Battlefield Martial Artist (Trophy_JustEvade) progress: 51200
-✓ Agile Gladiator (Trophy_JustParry) progress: 76800
-```
+### UI (`EMECore.WinUI.Views.GameDetailPage`)
+- `SetAchievements(List<Achievement>)` — exibe conquistas com barra de progresso
+
+## Estrutura do Arquivo UE4
+- Engine: Unreal Engine 4.26
+- Header: "EVAS" (4 bytes)
+- Tamanho: ~10 MB
+- Propriedades: `[Nome\0][Tipo\0][Size(4)][ArrayIndex(4)][Valor]`
+
+### Offsets
+| Tipo | Offset do valor |
+|------|----------------|
+| BoolProperty | nome + 21 bytes |
+| UInt32Property | nome + 23 bytes |
+
+## Trophy Flags → Achievements (25)
+| # | Trophy Flag | Achievement |
+|---|------------|-------------|
+| 1 | Trophy_Platinum | EVE Protocol |
+| 2 | Trophy_Activate_FirstCamp | Camp Preparation |
+| 3 | Trophy_Activate_AllCamp | Meticulous Explorer |
+| 4 | Trophy_KillCharacter | Cruel Liberator |
+| 5 | Trophy_KillCharacter_Brute | Brute |
+| 6 | Trophy_KillCharacter_AllNative | Naytiba Researcher |
+| 7 | Trophy_Acquire_AllNanoSuit | Nano Suit Collector |
+| 8 | Trophy_Acquire_AllSkill | Thorough Technician |
+| 9 | Trophy_Acquire_AllSkill_v2 | Infinite Blade |
+| 10 | Trophy_Acquire_AllCan | Can Collector |
+| 11 | Trophy_Acquire_AllRecords | Records Collector |
+| 12 | Trophy_Open_AllBox | Box Hunter |
+| 13 | Trophy_CompleteLevel_AltesLabor | Altess Levoire |
+| 14 | Trophy_LevelUpMax_AllExoSpine | Perfect Exospine |
+| 15 | Trophy_WeaponMaxUpgrade | Perfect Blood Edge |
+| 16 | Trophy_TumblerMaxUpgrade | Perfect Rechargeable Tumbler |
+| 17 | Trophy_BodyMaxUpgrade | Perfect Physical Enhancement |
+| 18 | Trophy_BetaMaxUpgrade | Perfect Beta Energy Enhancement |
+| 19 | Trophy_UseItem_Gold_At_Shop | Shopper |
+| 20 | Trophy_CharKill_BetaSkill | Naytiba Hunter |
+| 21 | Trophy_CharKill_BurstSkill | Relentless Destroyer |
+| 22 | Trophy_CharKill_RangeSkill | Cold-blooded Sniper |
+| 23 | Trophy_CharKill_AssassinationSkills | Silent Executioner |
+| 24 | Trophy_JustEvade | Battlefield Martial Artist |
+| 25 | Trophy_JustParry | Agile Gladiator |
 
 ## Endings
 | Flag | Achievement |
 |------|-------------|
-| `EndingTimeStamp_KillElder` | Making New Memories |
-| `EndingTimeStamp_KillLily` | Cost of Lost Memories |
-| `EndingTimeStamp_SaveLily` | Return to the Colony |
+| EndingTimeStamp_KillElder | Making New Memories |
+| EndingTimeStamp_KillLily | Cost of Lost Memories |
+| EndingTimeStamp_SaveLily | Return to the Colony |
 
-## Outros Dados Extraídos
-- **Quest Completions**: `Complete_Quest_*` → Beyond Fate, Sisterly Love, Beep!
-- **New Game Plus Count**: `NewGamePlusPlayCount` (UInt32)
+## Quests
+| Quest | Achievement |
+|-------|-------------|
+| Complete_Quest_Quest_Sub_032 | Beyond Fate |
+| Complete_Quest_Quest_Sub_033 | Sisterly Love |
+| Complete_Quest_Quest_Sub_043 | Beep! |
 
-## Como Usar
-1. O parser é chamado automaticamente quando o jogo Steam AppID 3489700 é detectado
-2. O componente React `StellarBladeAchievements.tsx` exibe os dados
-3. Dados são lidos em tempo real a cada clique em "Atualizar"
-
-## Segurança
-- **NUNCA** modifica o arquivo de save
-- **NUNCA** cria cópias ou backups (save original é preservado)
-- **APENAS** leitura binária via `fs.readFileSync()`
+## Fluxo de Execucao
+1. Usuario clica no jogo Stellar Blade na biblioteca
+2. `MainWindow.UpdatePageVisibility` chama `AchievementService.GetAchievementsAsync`
+3. Se SteamAppId == "3489700", o parser le o arquivo de save
+4. Conquistas sao exibidas na `GameDetailPage` com barra de progresso

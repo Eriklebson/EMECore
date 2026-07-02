@@ -71,6 +71,7 @@ public sealed partial class MainWindow : Window
 
         _sidebar = new Sidebar { Background = SteamColors.DarkerBrush };
         _sidebar.NavigationRequested += Sidebar_NavigationRequested;
+        _sidebar.MonitorRequested += Sidebar_MonitorRequested;
         contentGrid.Children.Add(_sidebar);
 
         var pageContainer = new Grid();
@@ -129,6 +130,7 @@ public sealed partial class MainWindow : Window
 
             appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 1400, Height = 900 });
 
+            appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
             var titleBarObj = appWindow.TitleBar;
             titleBarObj.BackgroundColor = ParseColor("#0e1621");
             titleBarObj.ButtonBackgroundColor = ParseColor("#0e1621");
@@ -231,6 +233,30 @@ public sealed partial class MainWindow : Window
     private void Sidebar_NavigationRequested(object? sender, string page)
     {
         ViewModel.NavigateToCommand.Execute(page);
+    }
+
+    private void Sidebar_MonitorRequested(object? sender, EventArgs e)
+    {
+        if (!IsRunningAsAdmin())
+        {
+            var exePath = Environment.ProcessPath ?? "";
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = exePath,
+                Arguments = "--monitor",
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+            return;
+        }
+        new MonitorWindow().Activate();
+    }
+
+    private static bool IsRunningAsAdmin()
+    {
+        using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+        var principal = new System.Security.Principal.WindowsPrincipal(identity);
+        return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
     }
 
     private async void LibraryPage_ScanRequested(object? sender, EventArgs e)

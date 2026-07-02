@@ -15,6 +15,14 @@ public partial class App : Application
     {
         SteamColors.ApplyToApplication(this);
 
+        var cmdLine = Environment.GetCommandLineArgs();
+        if (cmdLine.Contains("--monitor"))
+        {
+            m_window = new WinUI.Views.MonitorWindow();
+            m_window.Activate();
+            return;
+        }
+
         m_window = new WinUI.MainWindow();
         m_window.Activate();
     }
