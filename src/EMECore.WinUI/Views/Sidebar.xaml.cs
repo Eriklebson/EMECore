@@ -10,6 +10,7 @@ public sealed partial class Sidebar : UserControl
 {
     public event EventHandler<string>? NavigationRequested;
     public event EventHandler? MonitorRequested;
+    public event EventHandler? FishingMacroRequested;
 
     private readonly TextBlock _statusTextBlock;
     private readonly TextBlock _statsText;
@@ -47,6 +48,10 @@ public sealed partial class Sidebar : UserControl
         var monBtn = CreateSidebarButton("\uE9CA", "Monitor de Hardware");
         monBtn.Click += (_, _) => MonitorRequested?.Invoke(this, EventArgs.Empty);
         navPanel.Children.Add(monBtn);
+
+        var fishBtn = CreateSidebarButton("\uE8FB", "Macro de Pesca");
+        fishBtn.Click += (_, _) => FishingMacroRequested?.Invoke(this, EventArgs.Empty);
+        navPanel.Children.Add(fishBtn);
 
         var statusCard = new Border
         {

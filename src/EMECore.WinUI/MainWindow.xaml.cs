@@ -74,6 +74,7 @@ public sealed partial class MainWindow : Window
         _sidebar = new Sidebar { Background = SteamColors.DarkerBrush };
         _sidebar.NavigationRequested += Sidebar_NavigationRequested;
         _sidebar.MonitorRequested += Sidebar_MonitorRequested;
+        _sidebar.FishingMacroRequested += Sidebar_FishingMacroRequested;
         contentGrid.Children.Add(_sidebar);
 
         var pageContainer = new Grid();
@@ -278,6 +279,11 @@ public sealed partial class MainWindow : Window
         using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
         var principal = new System.Security.Principal.WindowsPrincipal(identity);
         return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+    }
+
+    private void Sidebar_FishingMacroRequested(object? sender, EventArgs e)
+    {
+        new FishingMacroWindow().Activate();
     }
 
     private async void LibraryPage_ScanRequested(object? sender, EventArgs e)
