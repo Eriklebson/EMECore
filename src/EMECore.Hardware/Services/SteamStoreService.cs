@@ -31,6 +31,19 @@ public class SteamStoreService : ISteamStoreService
                     HeaderImage = data.TryGetProperty("header_image", out var h) ? h.GetString() ?? "" : "",
                     Description = data.TryGetProperty("short_description", out var d) ? d.GetString() ?? "" : ""
                 };
+
+                if (data.TryGetProperty("screenshots", out var screenshots) &&
+                    screenshots.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var ss in screenshots.EnumerateArray())
+                    {
+                        var full = ss.TryGetProperty("path_full", out var pf) ? pf.GetString() ?? "" : "";
+                        var thumb = ss.TryGetProperty("path_thumbnail", out var pt) ? pt.GetString() ?? "" : "";
+                        if (!string.IsNullOrEmpty(full))
+                            info.Screenshots.Add(new SteamScreenshot { PathFull = full, PathThumbnail = thumb });
+                    }
+                }
+
                 _cache[appId] = (info, DateTime.UtcNow);
                 return info;
             }

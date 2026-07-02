@@ -1,6 +1,7 @@
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using EMECore.Core.Models;
 using EMECore.WinUI.Theme;
@@ -15,225 +16,193 @@ public sealed partial class GameDetailPage : UserControl
 
     private Game? _game;
     private readonly TextBlock _gameTitle;
-    private readonly TextBlock _platformText;
-    private readonly TextBlock _playTimeText;
-    private readonly TextBlock _lastPlayedText;
-    private readonly TextBlock _pathText;
-    private readonly Image _coverImage;
-    private readonly FontIcon _coverPlaceholder;
-    private readonly StackPanel _achievementsContainer;
+    private readonly TextBlock _developerText;
+    private readonly TextBlock _platformBadge;
+    private readonly TextBlock _playTimeValue;
+    private readonly TextBlock _lastPlayedValue;
+    private readonly TextBlock _pathValue;
     private readonly TextBlock _achievementsTitle;
+    private readonly StackPanel _achievementsContainer;
+    private readonly StackPanel _sessionsContainer;
+    private readonly Image _heroImage;
+    private readonly Border _coverThumb;
 
     public GameDetailPage()
     {
         var root = new Grid();
-        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var header = new Grid { Padding = new Thickness(24, 16, 24, 12), Background = SteamColors.DarkestBrush };
-        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        _heroImage = new Image { Stretch = Stretch.UniformToFill, Visibility = Visibility.Collapsed };
+        root.Children.Add(_heroImage);
+
+        var overlay = new Grid { Background = new LinearGradientBrush
+        {
+            StartPoint = new Windows.Foundation.Point(0, 0),
+            EndPoint = new Windows.Foundation.Point(0, 1),
+            GradientStops =
+            {
+                new GradientStop { Color = Windows.UI.Color.FromArgb(0xDD, 0x0e, 0x16, 0x21), Offset = 0 },
+                new GradientStop { Color = Windows.UI.Color.FromArgb(0xBB, 0x0e, 0x16, 0x21), Offset = 0.3 },
+                new GradientStop { Color = Windows.UI.Color.FromArgb(0xEE, 0x0e, 0x16, 0x21), Offset = 1 }
+            }
+        }};
+        root.Children.Add(overlay);
+
+        var scrollViewer = new ScrollViewer();
+        var contentRoot = new StackPanel();
+
+        // Header
+        var header = new Grid { Margin = new Thickness(24, 24, 24, 8) };
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var backButton = new Button
+        var backBtn = new Button
         {
             Content = new FontIcon { Glyph = "\uE72B", FontSize = 14 },
-            Width = 36,
-            Height = 36,
-            Padding = new Thickness(0),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            Background = new Microsoft.UI.Xaml.Media.SolidColorBrush(Colors.Transparent),
-            Foreground = SteamColors.TextBrush,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(4)
+            Width = 40, Height = 40, Padding = new Thickness(0),
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x55, 0x00, 0x00, 0x00)),
+            Foreground = new SolidColorBrush(Colors.White),
+            BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(20)
         };
-        backButton.Click += (_, _) => BackRequested?.Invoke(this, EventArgs.Empty);
-        header.Children.Add(backButton);
+        backBtn.Click += (_, _) => BackRequested?.Invoke(this, EventArgs.Empty);
 
-        var coverImageBorder = new Border
+        _coverThumb = new Border
         {
-            Width = 72,
-            Height = 45,
-            CornerRadius = new CornerRadius(4),
-            Background = SteamColors.CardHoverBrush,
-            Margin = new Thickness(12, 0, 0, 0),
-            Clip = new Microsoft.UI.Xaml.Media.RectangleGeometry
-            {
-                Rect = new Windows.Foundation.Rect(0, 0, 72, 45)
-            }
+            Width = 100, Height = 140, CornerRadius = new CornerRadius(8),
+            Child = new Image { Stretch = Stretch.UniformToFill }
         };
-        _coverImage = new Image
+        var titleBlock = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Spacing = 4, Margin = new Thickness(16, 0, 0, 0) };
+        _gameTitle = new TextBlock { FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.ExtraBlack, Foreground = new SolidColorBrush(Colors.White), TextWrapping = TextWrapping.Wrap };
+        titleBlock.Children.Add(_gameTitle);
+        _developerText = new TextBlock { FontSize = 14, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0xBB, 0xFF, 0xFF, 0xFF)) };
+        titleBlock.Children.Add(_developerText);
+        var badgeRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(0, 6, 0, 0) };
+        var badgeBorder = new Border { Background = SteamColors.BlueBrush, CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 4, 10, 4) };
+        _platformBadge = new TextBlock { FontSize = 11, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White) };
+        badgeBorder.Child = _platformBadge;
+        badgeRow.Children.Add(badgeBorder);
+        titleBlock.Children.Add(badgeRow);
+
+        var leftHeader = new StackPanel { Orientation = Orientation.Horizontal };
+        leftHeader.Children.Add(backBtn);
+        leftHeader.Children.Add(_coverThumb);
+        leftHeader.Children.Add(titleBlock);
+        Grid.SetColumn(leftHeader, 0);
+        header.Children.Add(leftHeader);
+
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Top };
+        var playBtn = new Button
         {
-            Stretch = Microsoft.UI.Xaml.Media.Stretch.UniformToFill,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-            Visibility = Visibility.Collapsed
+            Content = BtnContent("\uE768", "Jogar"),
+            Background = SteamColors.GreenBrush, Foreground = new SolidColorBrush(Colors.White),
+            FontWeight = Microsoft.UI.Text.FontWeights.Bold, CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(24, 10, 24, 10), FontSize = 15
         };
-        _coverPlaceholder = new FontIcon
+        playBtn.Click += (_, _) => { if (_game != null) LaunchRequested?.Invoke(this, _game); };
+        actions.Children.Add(playBtn);
+
+        var delBtn = new Button
         {
-            Glyph = "\uE7F3",
-            FontSize = 28,
-            Foreground = SteamColors.BlueBrush,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            Content = BtnContent("\uE74D", "Remover"),
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x33, 0xFF, 0x44, 0x44)),
+            Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0xFF, 0xFF, 0x66, 0x66)),
+            BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(16, 10, 16, 10)
         };
-        var coverGrid = new Grid();
-        coverGrid.Children.Add(_coverImage);
-        coverGrid.Children.Add(_coverPlaceholder);
-        coverImageBorder.Child = coverGrid;
-        Grid.SetColumn(coverImageBorder, 1);
-        header.Children.Add(coverImageBorder);
+        delBtn.Click += (_, _) => { if (_game != null) DeleteRequested?.Invoke(this, _game); };
+        actions.Children.Add(delBtn);
+        Grid.SetColumn(actions, 2);
+        header.Children.Add(actions);
 
-        var titlePanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(12, 0, 0, 0) };
-        _gameTitle = new TextBlock { FontSize = 22, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush, VerticalAlignment = VerticalAlignment.Center };
-        titlePanel.Children.Add(_gameTitle);
-        Grid.SetColumn(titlePanel, 2);
-        header.Children.Add(titlePanel);
+        contentRoot.Children.Add(header);
 
-        var actionsPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var launchBtn = new Button
-        {
-            Content = "Jogar",
-            Background = SteamColors.GreenBrush,
-            Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Colors.White),
-            FontWeight = Microsoft.UI.Text.FontWeights.Bold,
-            Padding = new Thickness(24, 8, 24, 8),
-            CornerRadius = new CornerRadius(4),
-            FontSize = 14
-        };
-        launchBtn.Click += (_, _) => { if (_game != null) LaunchRequested?.Invoke(this, _game); };
-        actionsPanel.Children.Add(launchBtn);
+        // Info strip
+        var infoStrip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Margin = new Thickness(24, 4, 24, 6) };
+        _playTimeValue = new TextBlock { FontSize = 13, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0xCC, 0xFF, 0xFF, 0xFF)) };
+        _pathValue = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF)), TextTrimming = TextTrimming.CharacterEllipsis };
+        infoStrip.Children.Add(_playTimeValue);
+        infoStrip.Children.Add(_pathValue);
+        contentRoot.Children.Add(infoStrip);
 
-        var deleteBtn = new Button
-        {
-            Content = "Remover",
-            Background = SteamColors.RedBrush,
-            Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Colors.White),
-            Padding = new Thickness(16, 8, 16, 8),
-            CornerRadius = new CornerRadius(4),
-            FontSize = 12
-        };
-        deleteBtn.Click += (_, _) => { if (_game != null) DeleteRequested?.Invoke(this, _game); };
-        actionsPanel.Children.Add(deleteBtn);
-        Grid.SetColumn(actionsPanel, 3);
-        header.Children.Add(actionsPanel);
+        // Content cards
+        var cardsStack = new StackPanel { Spacing = 14, Margin = new Thickness(24, 8, 24, 24) };
 
-        Grid.SetRow(header, 0);
-        root.Children.Add(header);
+        var achCard = new StackPanel { Spacing = 8 };
+        _achievementsTitle = new TextBlock { Text = "Conquistas (0/0)", FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush };
+        achCard.Children.Add(_achievementsTitle);
+        _achievementsContainer = new StackPanel { Spacing = 2 };
+        achCard.Children.Add(_achievementsContainer);
+        cardsStack.Children.Add(GlassCard(achCard));
 
-        var scrollViewer = new ScrollViewer { Padding = new Thickness(24) };
-        var contentStack = new StackPanel { Spacing = 20, MaxWidth = 800 };
+        var infoCard = new StackPanel { Spacing = 8 };
+        infoCard.Children.Add(SidebarTitle("Informacoes"));
+        _lastPlayedValue = InfoText(infoCard, "Ultima Vez", "Nunca");
+        cardsStack.Children.Add(GlassCard(infoCard));
 
-        var infoGrid = new Grid { ColumnSpacing = 16 };
-        infoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        infoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        infoGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var sessCard = new StackPanel { Spacing = 6 };
+        sessCard.Children.Add(SidebarTitle("Sessoes Recentes"));
+        _sessionsContainer = new StackPanel { Spacing = 4 };
+        _sessionsContainer.Children.Add(new TextBlock { Text = "Nenhuma sessao registrada", FontSize = 11, Foreground = SteamColors.TextSecondaryBrush });
+        sessCard.Children.Add(_sessionsContainer);
+        cardsStack.Children.Add(GlassCard(sessCard));
 
-        _platformText = new TextBlock { FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush };
-        infoGrid.Children.Add(CreateInfoCard("Plataforma", _platformText, 0));
-
-        _playTimeText = new TextBlock { FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.GreenBrush };
-        infoGrid.Children.Add(CreateInfoCard("Tempo de Jogo", _playTimeText, 1));
-
-        _lastPlayedText = new TextBlock { FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush };
-        infoGrid.Children.Add(CreateInfoCard("Ultima Vez", _lastPlayedText, 2));
-
-        contentStack.Children.Add(infoGrid);
-
-        _pathText = new TextBlock { FontSize = 12, Foreground = SteamColors.TextBrush, TextWrapping = TextWrapping.Wrap };
-        contentStack.Children.Add(CreateInfoCard("Caminho", _pathText, 0));
-
-        var sessionsStack = new StackPanel { Spacing = 8 };
-        sessionsStack.Children.Add(new TextBlock { Text = "Sessoes de Jogo", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush });
-        sessionsStack.Children.Add(new TextBlock { Text = "Nenhuma sessao registrada", FontSize = 12, Foreground = SteamColors.TextSecondaryBrush });
-        var sessionsCard = new Border
-        {
-            Background = SteamColors.CardBrush,
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(16),
-            Child = sessionsStack
-        };
-        contentStack.Children.Add(sessionsCard);
-
-        // Achievements
-        _achievementsTitle = new TextBlock { Text = "Conquistas", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush };
-        _achievementsContainer = new StackPanel { Spacing = 8 };
-        var achievementsStack = new StackPanel { Spacing = 8 };
-        achievementsStack.Children.Add(_achievementsTitle);
-        achievementsStack.Children.Add(_achievementsContainer);
-        var achievementsCard = new Border
-        {
-            Background = SteamColors.CardBrush,
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(16),
-            Child = achievementsStack
-        };
-        contentStack.Children.Add(achievementsCard);
-
-        scrollViewer.Content = contentStack;
-        Grid.SetRow(scrollViewer, 1);
+        contentRoot.Children.Add(cardsStack);
+        scrollViewer.Content = contentRoot;
         root.Children.Add(scrollViewer);
-
         Content = root;
     }
 
-    private static Border CreateInfoCard(string label, UIElement value, int column)
+    private static StackPanel BtnContent(string g, string t) => new()
     {
-        var stack = new StackPanel { Spacing = 4 };
-        stack.Children.Add(new TextBlock { Text = label, FontSize = 11, Foreground = SteamColors.TextSecondaryBrush });
-        stack.Children.Add(value);
-        var card = new Border
-        {
-            Background = SteamColors.CardBrush,
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(16),
-            Child = stack
-        };
-        Grid.SetColumn(card, column);
-        return card;
+        Orientation = Orientation.Horizontal, Spacing = 6,
+        Children = { new FontIcon { Glyph = g, FontSize = 14 }, new TextBlock { Text = t, VerticalAlignment = VerticalAlignment.Center } }
+    };
+
+    private static Border GlassCard(UIElement child) => new()
+    {
+        Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x99, 0x17, 0x2A, 0x40)),
+        CornerRadius = new CornerRadius(12), Padding = new Thickness(16),
+        BorderThickness = new Thickness(1),
+        BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF)),
+        Child = child
+    };
+
+    private static TextBlock SidebarTitle(string text) => new()
+    {
+        Text = text, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextSecondaryBrush
+    };
+
+    private static TextBlock InfoText(StackPanel parent, string label, string value)
+    {
+        var row = new StackPanel { Spacing = 1 };
+        row.Children.Add(new TextBlock { Text = label, FontSize = 11, Foreground = SteamColors.TextSecondaryBrush });
+        var val = new TextBlock { Text = value, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SteamColors.TextBrush };
+        row.Children.Add(val);
+        parent.Children.Add(row);
+        return val;
     }
 
     public void LoadGame(Game game)
     {
         _game = game;
         _gameTitle.Text = game.Name;
-        _platformText.Text = game.Platform.ToUpper();
+        _platformBadge.Text = game.Platform.ToUpper();
+        _developerText.Text = game.Platform == "steam" ? "Steam" : game.Platform == "xbox" ? "Xbox / Game Pass" : "Outro";
 
         var ts = TimeSpan.FromMinutes(game.PlayTime);
-        _playTimeText.Text = game.PlayTime > 0
-            ? (ts.TotalHours >= 1 ? $"{(int)ts.TotalHours}h {ts.Minutes}m" : $"{ts.Minutes}m")
-            : "Nunca jogado";
+        _playTimeValue.Text = game.PlayTime > 0 ? $"{(int)ts.TotalHours}h {ts.Minutes}m" : "Nunca jogado";
 
-        _lastPlayedText.Text = game.LastPlayed.HasValue
-            ? game.LastPlayed.Value.ToString("dd/MM/yyyy HH:mm")
-            : "Nunca";
+        _lastPlayedValue.Text = game.LastPlayed.HasValue ? game.LastPlayed.Value.ToString("dd/MM/yyyy HH:mm") : "Nunca";
 
-        _pathText.Text = game.ExecutablePath;
+        _pathValue.Text = game.ExecutablePath.Length > 80 ? "..." + game.ExecutablePath[^77..] : game.ExecutablePath;
 
         if (!string.IsNullOrWhiteSpace(game.CoverImage) &&
             Uri.TryCreate(game.CoverImage, UriKind.Absolute, out var uri) &&
             (uri.Scheme == "http" || uri.Scheme == "https" || uri.Scheme == "file"))
         {
-            var bitmap = new BitmapImage();
-            bitmap.ImageOpened += (_, _) =>
-            {
-                _coverImage.Visibility = Visibility.Visible;
-                _coverPlaceholder.Visibility = Visibility.Collapsed;
-            };
-            bitmap.ImageFailed += (_, _) =>
-            {
-                _coverImage.Visibility = Visibility.Collapsed;
-                _coverPlaceholder.Visibility = Visibility.Visible;
-            };
-            bitmap.UriSource = uri;
-            _coverImage.Source = bitmap;
-        }
-        else
-        {
-            _coverImage.Source = null;
-            _coverImage.Visibility = Visibility.Collapsed;
-            _coverPlaceholder.Visibility = Visibility.Visible;
+            _heroImage.Source = new BitmapImage(uri);
+            _heroImage.Visibility = Visibility.Visible;
+            ((Image)_coverThumb.Child).Source = new BitmapImage(uri);
         }
     }
 
@@ -243,53 +212,36 @@ public sealed partial class GameDetailPage : UserControl
 
         if (achievements.Count == 0)
         {
-            _achievementsContainer.Children.Add(new TextBlock
-            {
-                Text = "Nenhuma conquista encontrada",
-                FontSize = 12,
-                Foreground = SteamColors.TextSecondaryBrush
-            });
+            _achievementsContainer.Children.Add(new TextBlock { Text = "Nenhuma conquista", FontSize = 12, Foreground = SteamColors.TextSecondaryBrush });
             return;
         }
 
         var achieved = achievements.Count(a => a.Achieved);
         _achievementsTitle.Text = $"Conquistas ({achieved}/{achievements.Count})";
 
+        var barBg = new Border { Background = SteamColors.CardHoverBrush, CornerRadius = new CornerRadius(3), Height = 5, Margin = new Thickness(0, 2, 0, 2) };
+        var barFill = new Border { Background = SteamColors.BlueBrush, CornerRadius = new CornerRadius(3), Height = 5, Width = achievements.Count > 0 ? 400 * achieved / achievements.Count : 0, HorizontalAlignment = HorizontalAlignment.Left };
+        var bar = new Grid(); bar.Children.Add(barBg); bar.Children.Add(barFill);
+        _achievementsContainer.Children.Add(bar);
+
+        var pct = new TextBlock { Text = $"{achieved}/{achievements.Count} — {Math.Round(achievements.Count > 0 ? 100.0 * achieved / achievements.Count : 0, 0)}%", FontSize = 11, Foreground = SteamColors.TextSecondaryBrush, Margin = new Thickness(0, 2, 0, 4) };
+        _achievementsContainer.Children.Add(pct);
+
         foreach (var ach in achievements)
         {
-            var row = new Grid { ColumnSpacing = 10, Margin = new Thickness(0, 4, 0, 0) };
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            var checkIcon = new FontIcon
+            var done = ach.Achieved;
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(4, 3, 4, 3) };
+            row.Children.Add(new FontIcon
             {
-                Glyph = ach.Achieved ? "\uE8FB" : "\uE739",
-                FontSize = 14,
-                Foreground = ach.Achieved
-                    ? SteamColors.GreenBrush
-                    : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(0x66, 0x66, 0x66, 0x66))
-            };
-            Grid.SetColumn(checkIcon, 0);
-            row.Children.Add(checkIcon);
-
-            var details = new StackPanel();
-            details.Children.Add(new TextBlock
-            {
-                Text = ach.Name,
-                FontSize = 12,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                Foreground = SteamColors.TextBrush
+                Glyph = done ? "\uE8FB" : "\uE739", FontSize = 14,
+                Foreground = done ? SteamColors.BlueBrush : new SolidColorBrush(Windows.UI.Color.FromArgb(0x44, 0x66, 0x66, 0x66))
             });
-            details.Children.Add(new TextBlock
+            row.Children.Add(new TextBlock
             {
-                Text = ach.Description,
-                FontSize = 10,
-                Foreground = SteamColors.TextSecondaryBrush,
-                TextTrimming = TextTrimming.CharacterEllipsis
+                Text = ach.Name, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Foreground = done ? SteamColors.TextBrush : new SolidColorBrush(Windows.UI.Color.FromArgb(0x77, 0xC6, 0xD4, 0xDF)),
+                VerticalAlignment = VerticalAlignment.Center
             });
-            Grid.SetColumn(details, 1);
-            row.Children.Add(details);
-
             _achievementsContainer.Children.Add(row);
         }
     }
