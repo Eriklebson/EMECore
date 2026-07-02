@@ -119,6 +119,9 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| Versao | Data | Mudanca |
+|--------|------|---------|
+| 2.0.1 | 02/07/2026 | Correcao: icones da barra de titulo (minimizar, maximizar, fechar, voltar) e versao do app.manifest |
 | 2.0.0 | 02/07/2026 | Release inicial — rewrite completo de Electron/React para C# WinUI 3. Scanner Steam + Xbox + pastas, capas via Steam Store API, imagens locais fallback, filtro avancado de nao-jogos, tema Steam escuro, banco SQLite local |
 
 ---

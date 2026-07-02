@@ -27,7 +27,7 @@ public sealed partial class AddGamePage : UserControl
 
         var backButton = new Button
         {
-            Content = "\uE72B",
+            Content = new FontIcon { Glyph = "\uE72B", FontSize = 14 },
             Width = 36,
             Height = 36,
             Padding = new Thickness(0),

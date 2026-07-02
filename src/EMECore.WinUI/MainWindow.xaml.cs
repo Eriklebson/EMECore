@@ -104,13 +104,12 @@ public sealed partial class MainWindow : Window
     {
         var btn = new Button
         {
-            Content = glyph,
+            Content = new FontIcon { Glyph = glyph, FontSize = 10 },
             Width = 40,
             Height = 40,
             Background = new SolidColorBrush(Colors.Transparent),
             Foreground = SteamColors.TextBrush,
-            BorderThickness = new Thickness(0),
-            FontSize = 10
+            BorderThickness = new Thickness(0)
         };
         btn.Click += handler;
         return btn;
