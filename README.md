@@ -119,6 +119,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.5.0.0 | 02/07/2026 | Feature: notificação de conquista com som estilo Steam |
 | 2.4.0.0 | 02/07/2026 | Feature: macro de pesca automatica para Stellar Blade |
 | 2.3.4.0 | 02/07/2026 | Fix: popup conquista usa opacidade em vez de Translation |
 | 2.3.3.0 | 02/07/2026 | UI: botao teste popup conquista |
