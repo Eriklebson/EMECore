@@ -112,6 +112,12 @@ public class FishingMacroService
     {
         try
         {
+            // Test: Type "Teste" to verify macro is working
+            StatusChanged?.Invoke(this, "Testando macro...");
+            await Task.Delay(1000, ct);
+            TypeText("Teste");
+            await Task.Delay(2000, ct);
+
             // Calibrate baseline audio level
             StatusChanged?.Invoke(this, "Calibrando áudio...");
             await CalibrateAudio(ct);
@@ -176,6 +182,10 @@ public class FishingMacroService
         var levels = new List<float>();
         using var capture = new WasapiLoopbackCapture();
         var waveFormat = capture.WaveFormat;
+        bool isFloat = waveFormat.Encoding == WaveFormatEncoding.IeeeFloat;
+        int bytesPerSample = waveFormat.BitsPerSample / 8;
+
+        Log($"Audio format: {waveFormat.Encoding}, {waveFormat.BitsPerSample}bit, {waveFormat.Channels}ch, {waveFormat.SampleRate}Hz");
 
         capture.DataAvailable += (s, e) =>
         {
@@ -185,15 +195,27 @@ public class FishingMacroService
             {
                 for (int ch = 0; ch < waveFormat.Channels; ch++)
                 {
-                    int offset = i + ch * (waveFormat.BitsPerSample / 8);
-                    if (offset + 2 <= e.BytesRecorded)
+                    int offset = i + ch * bytesPerSample;
+                    if (offset + bytesPerSample <= e.BytesRecorded)
                     {
-                        float sample = Math.Abs(BitConverter.ToInt16(e.Buffer, offset) / 32768f);
+                        float sample;
+                        if (isFloat && bytesPerSample == 4)
+                        {
+                            sample = Math.Abs(BitConverter.ToSingle(e.Buffer, offset));
+                        }
+                        else if (bytesPerSample == 2)
+                        {
+                            sample = Math.Abs(BitConverter.ToInt16(e.Buffer, offset) / 32768f);
+                        }
+                        else
+                        {
+                            sample = Math.Abs(BitConverter.ToInt16(e.Buffer, offset) / 32768f);
+                        }
                         if (sample > maxSample) maxSample = sample;
                     }
                 }
             }
-            if (maxSample > 0.001f) levels.Add(maxSample);
+            if (maxSample > 0.001f && maxSample < 0.99f) levels.Add(maxSample);
         };
 
         capture.StartRecording();
@@ -208,9 +230,9 @@ public class FishingMacroService
         }
         else
         {
-            _baselineAudioLevel = 0.01f;
+            _baselineAudioLevel = 0.005f;
             _baselineCalibrated = true;
-            Log("No audio detected during calibration, using default baseline");
+            Log("No valid audio detected during calibration, using default baseline");
         }
     }
 
@@ -221,6 +243,8 @@ public class FishingMacroService
 
         using var capture = new WasapiLoopbackCapture();
         var waveFormat = capture.WaveFormat;
+        bool isFloat = waveFormat.Encoding == WaveFormatEncoding.IeeeFloat;
+        int bytesPerSample = waveFormat.BitsPerSample / 8;
 
         float maxLevelSinceCast = 0;
         int samplesSinceCast = 0;
@@ -235,10 +259,22 @@ public class FishingMacroService
             {
                 for (int ch = 0; ch < waveFormat.Channels; ch++)
                 {
-                    int offset = i + ch * (waveFormat.BitsPerSample / 8);
-                    if (offset + 2 <= e.BytesRecorded)
+                    int offset = i + ch * bytesPerSample;
+                    if (offset + bytesPerSample <= e.BytesRecorded)
                     {
-                        float sample = Math.Abs(BitConverter.ToInt16(e.Buffer, offset) / 32768f);
+                        float sample;
+                        if (isFloat && bytesPerSample == 4)
+                        {
+                            sample = Math.Abs(BitConverter.ToSingle(e.Buffer, offset));
+                        }
+                        else if (bytesPerSample == 2)
+                        {
+                            sample = Math.Abs(BitConverter.ToInt16(e.Buffer, offset) / 32768f);
+                        }
+                        else
+                        {
+                            sample = Math.Abs(BitConverter.ToInt16(e.Buffer, offset) / 32768f);
+                        }
                         if (sample > maxSample) maxSample = sample;
                     }
                 }
@@ -256,7 +292,7 @@ public class FishingMacroService
                 float avgRecent = recentLevels.Average();
                 float spikeRatio = avgRecent / Math.Max(_baselineAudioLevel, 0.001f);
 
-                if (spikeRatio > 3.0f && avgRecent > 0.02f)
+                if (spikeRatio > 3.0f && avgRecent > 0.01f)
                 {
                     Log($"Audio spike detected! Ratio: {spikeRatio:F1}, Level: {avgRecent:F4}, Baseline: {_baselineAudioLevel:F4}");
                     spikeDetected = true;
@@ -319,6 +355,30 @@ public class FishingMacroService
     {
         Log($"ReleaseKey: 0x{keyCode:X2}");
         keybd_event((byte)keyCode, 0, 2, UIntPtr.Zero);
+    }
+
+    private void TypeText(string text)
+    {
+        foreach (char c in text)
+        {
+            ushort vk = CharToVK(c);
+            if (vk != 0) PressKey(vk);
+            Thread.Sleep(50);
+        }
+    }
+
+    private static ushort CharToVK(char c)
+    {
+        if (c >= 'a' && c <= 'z') c = (char)(c - 32);
+        return c switch
+        {
+            'A' => 0x41, 'B' => 0x42, 'C' => 0x43, 'D' => 0x44, 'E' => 0x45,
+            'F' => 0x46, 'G' => 0x47, 'H' => 0x48, 'I' => 0x49, 'J' => 0x4A,
+            'K' => 0x4B, 'L' => 0x4C, 'M' => 0x4D, 'N' => 0x4E, 'O' => 0x4F,
+            'P' => 0x50, 'Q' => 0x51, 'R' => 0x52, 'S' => 0x53, 'T' => 0x54,
+            'U' => 0x55, 'V' => 0x56, 'W' => 0x57, 'X' => 0x58, 'Y' => 0x59,
+            'Z' => 0x5A, ' ' => 0x20, _ => 0x00
+        };
     }
 
     private static void Log(string message)
