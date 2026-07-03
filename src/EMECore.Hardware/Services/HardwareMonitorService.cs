@@ -30,8 +30,16 @@ public class HardwareMonitorService
     public HardwareMonitorService()
     {
         _computer = new Computer { IsCpuEnabled = true, IsGpuEnabled = true, IsMotherboardEnabled = true, IsMemoryEnabled = true };
-        try { _computer.Open(); foreach (var h in _computer.Hardware) { h.Update(); foreach (var z in h.SubHardware) z.Update(); } }
-        catch { }
+        try
+        {
+            _computer.Open();
+            foreach (var h in _computer.Hardware) { h.Update(); foreach (var z in h.SubHardware) z.Update(); }
+            Log("LibreHardwareMonitor initialized successfully");
+        }
+        catch (Exception ex)
+        {
+            Log($"LibreHardwareMonitor init error: {ex.Message}");
+        }
     }
 
     public HardwareStats Collect()
@@ -195,20 +203,36 @@ public class HardwareMonitorService
 
     private static string ReadCpuModel()
     {
-        try { using var s = new ManagementObjectSearcher("SELECT Name FROM Win32_Processor"); foreach (var o in s.Get()) return o["Name"]?.ToString()?.Trim() ?? "CPU"; } catch { }
-        return "CPU";
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT Name FROM Win32_Processor");
+            foreach (var o in s.Get()) return o["Name"]?.ToString()?.Trim() ?? "CPU";
+        }
+        catch (Exception ex) { Log($"ReadCpuModel WMI error: {ex.Message}"); }
+        // Fallback: PowerShell
+        return RunPowerShell("Get-CimInstance Win32_Processor | Select-Object -ExpandProperty Name", "CPU");
     }
 
     private static string ReadGpuModel()
     {
-        try { using var s = new ManagementObjectSearcher("SELECT Name FROM Win32_VideoController"); foreach (var o in s.Get()) return o["Name"]?.ToString()?.Trim() ?? "GPU"; } catch { }
-        return "GPU";
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT Name FROM Win32_VideoController");
+            foreach (var o in s.Get()) return o["Name"]?.ToString()?.Trim() ?? "GPU";
+        }
+        catch (Exception ex) { Log($"ReadGpuModel WMI error: {ex.Message}"); }
+        return RunPowerShell("Get-CimInstance Win32_VideoController | Select-Object -ExpandProperty Name", "GPU");
     }
 
     private static string ReadMotherboardModel()
     {
-        try { using var s = new ManagementObjectSearcher("SELECT Product FROM Win32_BaseBoard"); foreach (var o in s.Get()) return o["Product"]?.ToString()?.Trim() ?? "Motherboard"; } catch { }
-        return "Motherboard";
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT Product FROM Win32_BaseBoard");
+            foreach (var o in s.Get()) return o["Product"]?.ToString()?.Trim() ?? "Motherboard";
+        }
+        catch (Exception ex) { Log($"ReadMotherboardModel WMI error: {ex.Message}"); }
+        return RunPowerShell("Get-CimInstance Win32_BaseBoard | Select-Object -ExpandProperty Product", "Motherboard");
     }
 
     private double ReadMotherboardTemp()
@@ -271,20 +295,37 @@ public class HardwareMonitorService
 
     private static double ReadTotalRamGb()
     {
-        try { using var s = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem"); foreach (var o in s.Get()) return Math.Round(Convert.ToDouble(o["TotalVisibleMemorySize"]) / 1048576.0, 1); } catch { }
-        return 0;
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem");
+            foreach (var o in s.Get()) return Math.Round(Convert.ToDouble(o["TotalVisibleMemorySize"]) / 1048576.0, 1);
+        }
+        catch { }
+        var result = RunPowerShell("Get-CimInstance Win32_OperatingSystem | Select-Object -ExpandProperty TotalVisibleMemorySize", "0");
+        return double.TryParse(result, out var val) ? Math.Round(val / 1048576.0, 1) : 0;
     }
 
     private static double ReadUsedRamGb()
     {
-        try { using var s = new ManagementObjectSearcher("SELECT FreePhysicalMemory, TotalVisibleMemorySize FROM Win32_OperatingSystem"); foreach (var o in s.Get()) return Math.Round(Convert.ToDouble(o["TotalVisibleMemorySize"]) / 1048576.0 - Convert.ToDouble(o["FreePhysicalMemory"]) / 1048576.0, 1); } catch { }
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT FreePhysicalMemory, TotalVisibleMemorySize FROM Win32_OperatingSystem");
+            foreach (var o in s.Get()) return Math.Round(Convert.ToDouble(o["TotalVisibleMemorySize"]) / 1048576.0 - Convert.ToDouble(o["FreePhysicalMemory"]) / 1048576.0, 1);
+        }
+        catch { }
         return 0;
     }
 
     private static int ReadRamSpeed()
     {
-        try { using var s = new ManagementObjectSearcher("SELECT ConfiguredClockSpeed FROM Win32_PhysicalMemory"); foreach (var o in s.Get()) if (o["ConfiguredClockSpeed"] != null) return Convert.ToInt32(o["ConfiguredClockSpeed"]); } catch { }
-        return 0;
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT ConfiguredClockSpeed FROM Win32_PhysicalMemory");
+            foreach (var o in s.Get()) if (o["ConfiguredClockSpeed"] != null) return Convert.ToInt32(o["ConfiguredClockSpeed"]);
+        }
+        catch { }
+        var result = RunPowerShell("Get-CimInstance Win32_PhysicalMemory | Select-Object -First 1 -ExpandProperty ConfiguredClockSpeed", "0");
+        return int.TryParse(result, out var val) ? val : 0;
     }
 
     private static string ReadRamModel()
@@ -302,13 +343,19 @@ public class HardwareMonitorService
             }
         }
         catch { }
-        return "RAM";
+        return RunPowerShell("Get-CimInstance Win32_PhysicalMemory | Select-Object -First 1 | ForEach-Object { \"$($_.Manufacturer) $($_.PartNumber)\" }", "RAM");
     }
 
     private static int ReadRamModuleCount()
     {
-        try { using var s = new ManagementObjectSearcher("SELECT Capacity FROM Win32_PhysicalMemory"); return s.Get().Count; } catch { }
-        return 0;
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT Capacity FROM Win32_PhysicalMemory");
+            return s.Get().Count;
+        }
+        catch { }
+        var result = RunPowerShell("(Get-CimInstance Win32_PhysicalMemory).Count", "0");
+        return int.TryParse(result, out var val) ? val : 0;
     }
 
     private static double ReadRamModuleSize()
@@ -320,7 +367,8 @@ public class HardwareMonitorService
                 return Math.Round(Convert.ToDouble(o["Capacity"]) / 1073741824.0, 0);
         }
         catch { }
-        return 0;
+        var result = RunPowerShell("Get-CimInstance Win32_PhysicalMemory | Select-Object -First 1 -ExpandProperty Capacity", "0");
+        return double.TryParse(result, out var val) ? Math.Round(val / 1073741824.0, 0) : 0;
     }
 
     private static List<FanInfo> ReadFans()
@@ -416,4 +464,36 @@ public class HardwareMonitorService
 
     public void StartFpsMonitor(string processName) => _fpsMonitor.Start(processName);
     public void StopFpsMonitor() => _fpsMonitor.Stop();
+
+    private static void Log(string msg)
+    {
+        try
+        {
+            var f = Path.Combine(Path.GetTempPath(), "eme_hw_monitor.log");
+            File.AppendAllText(f, $"{DateTime.Now:HH:mm:ss} - {msg}{Environment.NewLine}");
+        }
+        catch { }
+    }
+
+    private static string RunPowerShell(string command, string fallback)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo("powershell", $"-NoProfile -Command \"{command}\"")
+            {
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var p = Process.Start(psi);
+            if (p != null)
+            {
+                var output = p.StandardOutput.ReadToEnd().Trim();
+                p.WaitForExit(5000);
+                if (!string.IsNullOrEmpty(output)) return output;
+            }
+        }
+        catch { }
+        return fallback;
+    }
 }
