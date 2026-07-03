@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Threading;
 using NAudio.CoreAudioApi;
@@ -18,6 +20,9 @@ public class FishingMacroService
     private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
 
     [DllImport("user32.dll")]
@@ -33,6 +38,12 @@ public class FishingMacroService
     private static extern short GetKeyState(int nVirtKey);
 
     private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left, Top, Right, Bottom;
+    }
 
     private const ushort VK_E = 0x45;
     private const int WH_KEYBOARD_LL = 13;
@@ -118,62 +129,122 @@ public class FishingMacroService
             TypeText("Teste");
             await Task.Delay(2000, ct);
 
-            // Calibrate baseline audio level
-            StatusChanged?.Invoke(this, "Calibrando áudio...");
-            await CalibrateAudio(ct);
-
+            int cycle = 0;
             while (!ct.IsCancellationRequested && _isFishing)
             {
+                cycle++;
+                Log($"=== Cycle {cycle} ===");
+
                 // Focus on game window
                 var gameHwnd = GetGameWindow();
                 if (gameHwnd != IntPtr.Zero)
                 {
                     SetForegroundWindow(gameHwnd);
-                    await Task.Delay(200, ct);
+                    await Task.Delay(300, ct);
                 }
 
                 // Cast fishing line
                 StatusChanged?.Invoke(this, "Lançando linha...");
                 PressKey(VK_E);
-                await Task.Delay(1500 + _random.Next(500, 1000), ct);
+                await Task.Delay(2000, ct);
 
-                // Wait for fish bite sound
+                // Save screenshot after casting
+                SaveScreenshot("after_cast");
+
+                // Wait for fish to bite (try pressing E periodically)
                 StatusChanged?.Invoke(this, "Esperando peixe morder...");
-                bool fishDetected = await WaitForFishBiteAudio(ct, 60000);
+                bool fishCaught = false;
 
-                if (ct.IsCancellationRequested || !_isFishing) break;
-
-                if (fishDetected)
+                for (int attempt = 0; attempt < 20 && !ct.IsCancellationRequested && _isFishing; attempt++)
                 {
-                    // Hook the fish
-                    StatusChanged?.Invoke(this, "Pescando!");
+                    await Task.Delay(1000, ct);
+                    SaveScreenshot($"wait_{attempt}");
+
+                    // Try to hook by pressing E
+                    Log($"Attempt {attempt + 1} - pressing E to hook");
                     PressKey(VK_E);
-                    await Task.Delay(300 + _random.Next(100, 200), ct);
+                    await Task.Delay(500, ct);
 
-                    // Reel in
-                    StatusChanged?.Invoke(this, "Recolhendo...");
-                    await ReelIn(ct);
+                    // Check if we're now in the reeling phase
+                    // (we'll just try to reel and see what happens)
+                    if (attempt >= 2) // After a few attempts, try reeling
+                    {
+                        StatusChanged?.Invoke(this, "Tentando recolher...");
+                        Log("Trying to reel in");
 
+                        // Try reeling
+                        HoldKey(VK_E);
+                        await Task.Delay(1500, ct);
+                        ReleaseKey(VK_E);
+                        await Task.Delay(500, ct);
+
+                        // More reel attempts
+                        for (int i = 0; i < 5; i++)
+                        {
+                            PressKey(VK_E);
+                            await Task.Delay(200, ct);
+                        }
+
+                        SaveScreenshot("after_reel");
+                        fishCaught = true;
+                        break;
+                    }
+                }
+
+                if (fishCaught)
+                {
                     StatusChanged?.Invoke(this, "Peixe pescado!");
                     FishCaught?.Invoke(this, 1);
-
-                    await Task.Delay(1500 + _random.Next(500, 1000), ct);
+                    Log("Fish caught!");
                 }
                 else
                 {
-                    StatusChanged?.Invoke(this, "Nenhum peixe detectado...");
-                    await Task.Delay(1000 + _random.Next(500, 1000), ct);
+                    StatusChanged?.Invoke(this, "Nenhum peixe, tentando novamente...");
+                    Log("No fish detected, retrying");
                 }
+
+                await Task.Delay(2000 + _random.Next(1000, 2000), ct);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception ex)
         {
             StatusChanged?.Invoke(this, $"Erro: {ex.Message}");
+            Log($"Error: {ex}");
         }
         finally
         {
             _isFishing = false;
+        }
+    }
+
+    private static void SaveScreenshot(string name)
+    {
+        try
+        {
+            var processes = Process.GetProcessesByName("SB-Win64-Shipping");
+            if (processes.Length == 0) return;
+
+            var hwnd = processes[0].MainWindowHandle;
+            if (hwnd == IntPtr.Zero) return;
+
+            RECT rect;
+            if (!GetWindowRect(hwnd, out rect)) return;
+
+            var width = rect.Right - rect.Left;
+            var height = rect.Bottom - rect.Top;
+
+            using var bitmap = new Bitmap(width, height);
+            using var graphics = Graphics.FromImage(bitmap);
+            graphics.CopyFromScreen(rect.Left, rect.Top, 0, 0, new System.Drawing.Size(width, height));
+
+            var path = Path.Combine(Path.GetTempPath(), $"eme_fishing_{name}.png");
+            bitmap.Save(path, ImageFormat.Png);
+            Log($"Screenshot saved: {path}");
+        }
+        catch (Exception ex)
+        {
+            Log($"Screenshot error: {ex.Message}");
         }
     }
 
