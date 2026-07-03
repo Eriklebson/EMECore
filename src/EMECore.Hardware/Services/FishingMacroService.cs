@@ -59,6 +59,7 @@ public class FishingMacroService
     public event EventHandler<int>? FishCaught;
     public event EventHandler? ToggleRequested;
     public bool IsRunning => _isFishing;
+    public bool IsLearning => _isLearning;
 
     public void InstallHook()
     {

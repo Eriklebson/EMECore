@@ -121,6 +121,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.5.3.0 | 03/07/2026 | Fix: erro de compilação LearnButton_Click (macro pesca funcional) |
 | 2.5.2.0 | 03/07/2026 | Pause: macro de pesca desabilitado (beta, aguardando revisão) |
 | 2.5.1.0 | 02/07/2026 | BETA: macro pesca com detecção de áudio (WASAPI) |
 | 2.5.0.0 | 02/07/2026 | Feature: notificação de conquista com som estilo Steam |

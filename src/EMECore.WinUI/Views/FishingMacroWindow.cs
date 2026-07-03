@@ -230,6 +230,18 @@ public sealed class FishingMacroWindow : Window
         _stopButton.IsEnabled = false;
     }
 
+    private void LearnButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_macroService.IsLearning)
+        {
+            _macroService.StopLearning();
+        }
+        else
+        {
+            _macroService.StartLearning();
+        }
+    }
+
     private void ToggleMacro()
     {
         if (_macroService.IsRunning)
