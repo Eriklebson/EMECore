@@ -16,17 +16,19 @@
 
 ## Funcionalidades
 
-| Recurso | Descricao |
-|---------|-----------|
-| **Scanner Automatico** | Detecta jogos Steam, Xbox/Game Pass e pastas comuns (`C:\Games`, etc.) |
-| **Biblioteca Visual** | Grid com capas reais, busca por nome e filtros |
-| **Capas Automáticas** | Steam Store API para jogos Steam + fallback de imagens locais para Xbox |
-| **Badge de Plataforma** | Identifica Steam, Xbox e Outros com cores especificas |
-| **Detalhe do Jogo** | Informacoes completas: plataforma, tempo, ultimo acesso, caminho |
-| **Play Time Tracking** | Registro de tempo de jogo por sessao (em breve) |
-| **Filtro Inteligente** | Ignora automaticamente uninstallers, redistributiveis, crash handlers e outros nao-jogos |
-| **100% Offline** | Banco SQLite local, sem dependencia de nuvem |
-| **Nativo Windows** | Aplicacao leve em C# WinUI 3, baixo consumo de RAM/CPU |
+| Recurso | Descricao | Status |
+|---------|-----------|--------|
+| **Scanner Automatico** | Detecta jogos Steam, Xbox/Game Pass e pastas comuns (`C:\Games`, etc.) | ✅ |
+| **Biblioteca Visual** | Grid com capas reais, busca por nome e filtros | ✅ |
+| **Capas Automáticas** | Steam Store API para jogos Steam + fallback de imagens locais para Xbox | ✅ |
+| **Badge de Plataforma** | Identifica Steam, Xbox e Outros com cores especificas | ✅ |
+| **Detalhe do Jogo** | Informacoes completas: plataforma, tempo, ultimo acesso, caminho | ✅ |
+| **Conquistas** | Parser de conquistas do Stellar Blade, cards estilo Steam, notificação com som | ✅ |
+| **Monitor de Hardware** | CPU, GPU, RAM, temperaturas, fans, FPS em tempo real | ✅ |
+| **Filtro Inteligente** | Ignora automaticamente uninstallers, redistributiveis, crash handlers e outros nao-jogos | ✅ |
+| **100% Offline** | Banco SQLite local, sem dependencia de nuvem | ✅ |
+| **Nativo Windows** | Aplicacao leve em C# WinUI 3, baixo consumo de RAM/CPU | ✅ |
+| **Macro de Pesca** | Macro automatico para pesca no Stellar Blade | ⏸️ Beta |
 
 ---
 
@@ -119,6 +121,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.5.2.0 | 03/07/2026 | Pause: macro de pesca desabilitado (beta, aguardando revisão) |
 | 2.5.1.0 | 02/07/2026 | BETA: macro pesca com detecção de áudio (WASAPI) |
 | 2.5.0.0 | 02/07/2026 | Feature: notificação de conquista com som estilo Steam |
 | 2.4.0.0 | 02/07/2026 | Feature: macro de pesca automatica para Stellar Blade |
