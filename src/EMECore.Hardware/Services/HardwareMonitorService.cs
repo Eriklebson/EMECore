@@ -18,6 +18,10 @@ public class HardwareMonitorService
     
     private string? _cachedCpuModel;
     private string? _cachedGpuModel;
+    private string? _cachedMotherboardModel;
+    private string? _cachedRamModel;
+    private int _cachedRamModuleCount;
+    private double _cachedRamModuleSize;
     private int _cachedRamSpeed;
     private List<FanInfo> _cachedFans = new();
     private DateTime _fansCache = DateTime.MinValue;
@@ -35,6 +39,10 @@ public class HardwareMonitorService
         var s = new HardwareStats();
         try { foreach (var h in _computer.Hardware) { h.Update(); foreach (var z in h.SubHardware) z.Update(); } } catch { }
 
+        s.MotherboardModel = _cachedMotherboardModel ??= ReadMotherboardModel();
+        s.MotherboardTemp = ReadMotherboardTemp();
+        s.MotherboardVrmTemp = ReadMotherboardVrmTemp();
+
         s.CpuUsage = ReadCpuUsage();
         s.CpuModel = _cachedCpuModel ??= ReadCpuModel();
         s.CpuTemp = ReadCpuTemp();
@@ -48,6 +56,9 @@ public class HardwareMonitorService
         s.TotalRam = ReadTotalRamGb();
         s.UsedRam = ReadUsedRamGb();
         s.RamSpeed = _cachedRamSpeed != 0 ? _cachedRamSpeed : (_cachedRamSpeed = ReadRamSpeed());
+        s.RamModel = _cachedRamModel ??= ReadRamModel();
+        s.RamModuleCount = _cachedRamModuleCount != 0 ? _cachedRamModuleCount : (_cachedRamModuleCount = ReadRamModuleCount());
+        s.RamModuleSize = _cachedRamModuleSize != 0 ? _cachedRamModuleSize : (_cachedRamModuleSize = ReadRamModuleSize());
         
         if ((DateTime.UtcNow - _fansCache).TotalSeconds > 5)
         {
@@ -194,6 +205,70 @@ public class HardwareMonitorService
         return "GPU";
     }
 
+    private static string ReadMotherboardModel()
+    {
+        try { using var s = new ManagementObjectSearcher("SELECT Product FROM Win32_BaseBoard"); foreach (var o in s.Get()) return o["Product"]?.ToString()?.Trim() ?? "Motherboard"; } catch { }
+        return "Motherboard";
+    }
+
+    private double ReadMotherboardTemp()
+    {
+        // Try direct LHM reading first
+        foreach (var h in _computer.Hardware)
+        {
+            if (h.HardwareType != HardwareType.Motherboard) continue;
+            foreach (var sn in h.Sensors)
+                if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0 && sn.Value < 120)
+                    return Math.Round(sn.Value.Value, 1);
+            foreach (var sub in h.SubHardware)
+                foreach (var sn in sub.Sensors)
+                    if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0 && sn.Value < 120)
+                        return Math.Round(sn.Value.Value, 1);
+        }
+        // Fallback: read from PowerShell output file
+        return ReadMotherboardTempFromFile("MB Temp");
+    }
+
+    private double ReadMotherboardVrmTemp()
+    {
+        // Try direct LHM reading first
+        foreach (var h in _computer.Hardware)
+        {
+            if (h.HardwareType != HardwareType.Motherboard) continue;
+            foreach (var sn in h.Sensors)
+                if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0 && sn.Value < 120 &&
+                    (sn.Name.Contains("VRM", StringComparison.OrdinalIgnoreCase) ||
+                     sn.Name.Contains("Voltage", StringComparison.OrdinalIgnoreCase) ||
+                     sn.Name.Contains("PWM", StringComparison.OrdinalIgnoreCase)))
+                    return Math.Round(sn.Value.Value, 1);
+            foreach (var sub in h.SubHardware)
+                foreach (var sn in sub.Sensors)
+                    if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0 && sn.Value < 120 &&
+                        (sn.Name.Contains("VRM", StringComparison.OrdinalIgnoreCase) ||
+                         sn.Name.Contains("Voltage", StringComparison.OrdinalIgnoreCase) ||
+                         sn.Name.Contains("PWM", StringComparison.OrdinalIgnoreCase)))
+                        return Math.Round(sn.Value.Value, 1);
+        }
+        // Fallback: read from PowerShell output file
+        return ReadMotherboardTempFromFile("MB VRM");
+    }
+
+    private static double ReadMotherboardTempFromFile(string prefix)
+    {
+        try
+        {
+            var f = Path.Combine(Path.GetTempPath(), "cpu-check-result.txt");
+            if (!File.Exists(f)) return 0;
+            foreach (var l in File.ReadAllLines(f))
+            {
+                if (l.StartsWith($"{prefix}: ") && double.TryParse(l[(prefix.Length + 2)..].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var tv) && tv > 0 && tv < 120)
+                    return Math.Round(tv, 1);
+            }
+        }
+        catch { }
+        return 0;
+    }
+
     private static double ReadTotalRamGb()
     {
         try { using var s = new ManagementObjectSearcher("SELECT TotalVisibleMemorySize FROM Win32_OperatingSystem"); foreach (var o in s.Get()) return Math.Round(Convert.ToDouble(o["TotalVisibleMemorySize"]) / 1048576.0, 1); } catch { }
@@ -209,6 +284,42 @@ public class HardwareMonitorService
     private static int ReadRamSpeed()
     {
         try { using var s = new ManagementObjectSearcher("SELECT ConfiguredClockSpeed FROM Win32_PhysicalMemory"); foreach (var o in s.Get()) if (o["ConfiguredClockSpeed"] != null) return Convert.ToInt32(o["ConfiguredClockSpeed"]); } catch { }
+        return 0;
+    }
+
+    private static string ReadRamModel()
+    {
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT Manufacturer, PartNumber FROM Win32_PhysicalMemory");
+            foreach (var o in s.Get())
+            {
+                var mfg = o["Manufacturer"]?.ToString()?.Trim() ?? "";
+                var part = o["PartNumber"]?.ToString()?.Trim() ?? "";
+                if (!string.IsNullOrEmpty(mfg) && !string.IsNullOrEmpty(part)) return $"{mfg} {part}";
+                if (!string.IsNullOrEmpty(part)) return part;
+                if (!string.IsNullOrEmpty(mfg)) return mfg;
+            }
+        }
+        catch { }
+        return "RAM";
+    }
+
+    private static int ReadRamModuleCount()
+    {
+        try { using var s = new ManagementObjectSearcher("SELECT Capacity FROM Win32_PhysicalMemory"); return s.Get().Count; } catch { }
+        return 0;
+    }
+
+    private static double ReadRamModuleSize()
+    {
+        try
+        {
+            using var s = new ManagementObjectSearcher("SELECT Capacity FROM Win32_PhysicalMemory");
+            foreach (var o in s.Get())
+                return Math.Round(Convert.ToDouble(o["Capacity"]) / 1073741824.0, 0);
+        }
+        catch { }
         return 0;
     }
 

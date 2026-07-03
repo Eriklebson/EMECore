@@ -63,6 +63,28 @@ $log += "CPU: $cpuName"
 $log += "CPU Temp: $cpuTemp"
 $log += "CPU Package: $cpuPackageTemp"
 
+# Motherboard temperatures
+$mbTemp = 0
+$mbVrmTemp = 0
+foreach ($hw in $computer.Hardware) {
+    if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::Motherboard) {
+        foreach ($sub in $hw.SubHardware) {
+            foreach ($s in $sub.Sensors) {
+                if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Temperature -and $s.Value -ne $null -and $s.Value -gt 0 -and $s.Value -lt 120) {
+                    if ($s.Name -like "*VRM*" -or $s.Name -like "*PWM*" -or $s.Name -like "*Voltage*") {
+                        if ($mbVrmTemp -eq 0) { $mbVrmTemp = [math]::Round($s.Value, 1) }
+                    }
+                    else {
+                        if ($mbTemp -eq 0) { $mbTemp = [math]::Round($s.Value, 1) }
+                    }
+                }
+            }
+        }
+    }
+}
+$log += "MB Temp: $mbTemp"
+$log += "MB VRM: $mbVrmTemp"
+
 foreach ($hw in $computer.Hardware) {
     if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuNvidia -or $hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuAmd) {
         foreach ($s in $hw.Sensors) {
