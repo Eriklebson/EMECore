@@ -31,6 +31,12 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         this.Title = "E.M.E Core";
+        
+        // Definir ícone da janela
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+        var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
+        appWindow.SetIcon("Assets/Logo/logo.ico");
 
         var databaseService = new DatabaseService();
         var steamStoreService = new SteamStoreService();
@@ -48,8 +54,20 @@ public sealed partial class MainWindow : Window
         titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var logoPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 12, 0) };
-        logoPanel.Children.Add(new FontIcon { Glyph = "\uE7F3", FontSize = 16, Foreground = SteamColors.BlueBrush, Margin = new Thickness(0, 0, 8, 0) });
-        logoPanel.Children.Add(new TextBlock { Text = "E.M.E Core", FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush });
+        
+        // Logo do projeto
+        var logoImage = new Microsoft.UI.Xaml.Controls.Image
+        {
+            Width = 24,
+            Height = 24,
+            Margin = new Thickness(0, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var logoBitmap = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri("ms-appx:///Assets/Logo/logo.png"));
+        logoImage.Source = logoBitmap;
+        logoPanel.Children.Add(logoImage);
+        
+        logoPanel.Children.Add(new TextBlock { Text = "E.M.E Core", FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush, VerticalAlignment = VerticalAlignment.Center });
         titleBar.Children.Add(logoPanel);
 
         _dragRegion = new Grid { Background = new SolidColorBrush(Colors.Transparent) };

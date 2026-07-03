@@ -2,6 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using EMECore.WinUI.Theme;
 
 namespace EMECore.WinUI.Views;
@@ -25,10 +26,21 @@ public sealed partial class Sidebar : UserControl
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var logoPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        logoPanel.Children.Add(new FontIcon { Glyph = "\uE7F3", FontSize = 24, Foreground = SteamColors.BlueBrush });
-        var logoTexts = new StackPanel();
+        
+        // Logo do projeto
+        var logoImage = new Image
+        {
+            Width = 32,
+            Height = 32,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var logoBitmap = new BitmapImage(new Uri("ms-appx:///Assets/Logo/logo.png"));
+        logoImage.Source = logoBitmap;
+        logoPanel.Children.Add(logoImage);
+        
+        var logoTexts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         logoTexts.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush });
-        logoTexts.Children.Add(new TextBlock { Text = "v2.5.3.0", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush });
+        logoTexts.Children.Add(new TextBlock { Text = "v2.5.4.0", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush });
         logoPanel.Children.Add(logoTexts);
         var logoBorder = new Grid { Padding = new Thickness(16, 20, 16, 12) };
         logoBorder.Children.Add(logoPanel);
