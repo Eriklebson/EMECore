@@ -121,6 +121,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.7.0.0 | 03/07/2026 | Feature: achievement progress bars with correct values from save |
 | 2.6.0.0 | 03/07/2026 | Feature: playtime tracker, achievement images, requirements per game, sidebar improvements |
 | 2.5.5.0 | 03/07/2026 | UI: layout redesenhado (Sidebar, Library, GameCard, GameDetail) |
 | 2.5.4.0 | 03/07/2026 | Feature: logo do projeto, ícone ICO, layout melhorado |

@@ -34,6 +34,22 @@ public class StellarBladeParser
         { "Trophy_JustParry", ("Agile Gladiator", "Gladiador Ágil", "Parou perfeitamente 300 ataques inimigos") },
     };
 
+    private static readonly Dictionary<string, int> TrophyMaxProgress = new()
+    {
+        { "Trophy_KillCharacter", 1500 },
+        { "Trophy_Acquire_AllNanoSuit", 30 },
+        { "Trophy_Acquire_AllCan", 49 },
+        { "Trophy_Acquire_AllRecords", 200 },
+        { "Trophy_Open_AllBox", 200 },
+        { "Trophy_LevelUpMax_AllExoSpine", 10 },
+        { "Trophy_CharKill_BetaSkill", 100 },
+        { "Trophy_CharKill_BurstSkill", 50 },
+        { "Trophy_CharKill_RangeSkill", 150 },
+        { "Trophy_CharKill_AssassinationSkills", 50 },
+        { "Trophy_JustEvade", 200 },
+        { "Trophy_JustParry", 300 },
+    };
+
     private static readonly Dictionary<string, string> QuestTranslations = new()
     {
         { "Complete_Quest_Quest_Sub_032", "Além do Destino" },
@@ -148,7 +164,9 @@ public class StellarBladeParser
                 Apiname = t.Key,
                 Name = t.Value.Item2,
                 Description = t.Value.Item3,
-                Achieved = false
+                Achieved = false,
+                Progress = 0,
+                MaxProgress = TrophyMaxProgress.GetValueOrDefault(t.Key, 0)
             }).ToList();
         }
 
@@ -157,12 +175,16 @@ public class StellarBladeParser
         foreach (var trophy in data.Trophies)
         {
             var trophyInfo = TrophyMap.GetValueOrDefault(trophy.Name, (trophy.SteamAchievement, trophy.SteamAchievement, $"Trophy: {trophy.Name}"));
+            var maxProgress = TrophyMaxProgress.GetValueOrDefault(trophy.Name, 0);
+            
             achievements.Add(new Achievement
             {
                 Apiname = trophy.Name,
                 Name = trophyInfo.Item2,
                 Description = trophyInfo.Item3,
-                Achieved = trophy.BCompleted
+                Achieved = trophy.BCompleted,
+                Progress = trophy.ProgressValue,
+                MaxProgress = maxProgress
             });
         }
 
@@ -174,19 +196,21 @@ public class StellarBladeParser
                 Apiname = quest,
                 Name = questName,
                 Description = $"Quest completada",
-                Achieved = true
+                Achieved = true,
+                Progress = 1,
+                MaxProgress = 1
             });
         }
 
         if (data.KillElderEnding)
-            achievements.Add(new Achievement { Apiname = "Ending_KillElder", Name = "Novas Memórias", Description = "Final: Mate o Elder", Achieved = true });
+            achievements.Add(new Achievement { Apiname = "Ending_KillElder", Name = "Novas Memórias", Description = "Final: Mate o Elder", Achieved = true, Progress = 1, MaxProgress = 1 });
         if (data.KillLilyEnding)
-            achievements.Add(new Achievement { Apiname = "Ending_KillLily", Name = "Custo das Memórias Perdidas", Description = "Final: Mate Lily", Achieved = true });
+            achievements.Add(new Achievement { Apiname = "Ending_KillLily", Name = "Custo das Memórias Perdidas", Description = "Final: Mate Lily", Achieved = true, Progress = 1, MaxProgress = 1 });
         if (data.SaveLilyEnding)
-            achievements.Add(new Achievement { Apiname = "Ending_SaveLily", Name = "Retorno à Colônia", Description = "Final: Salve Lily", Achieved = true });
+            achievements.Add(new Achievement { Apiname = "Ending_SaveLily", Name = "Retorno à Colônia", Description = "Final: Salve Lily", Achieved = true, Progress = 1, MaxProgress = 1 });
 
         if (data.NewGamePlusCount > 0)
-            achievements.Add(new Achievement { Apiname = "NewGamePlus", Name = "New Game+", Description = $"NG+ {data.NewGamePlusCount}x", Achieved = true });
+            achievements.Add(new Achievement { Apiname = "NewGamePlus", Name = "New Game+", Description = $"NG+ {data.NewGamePlusCount}x", Achieved = true, Progress = data.NewGamePlusCount, MaxProgress = 1 });
 
         return achievements;
     }
@@ -221,7 +245,15 @@ public class StellarBladeParser
             {
                 var searchStart = idx + name.Length + 1;
                 var bCompleted = ExtractBoolValue(buffer, searchStart);
-                var progressValue = ExtractUInt32Value(buffer, searchStart);
+                
+                // O offset do valor é: tamanho_do_nome + 47
+                var valueOffset = idx + name.Length + 47;
+                int progressValue = 0;
+                
+                if (valueOffset + 4 <= buffer.Length)
+                {
+                    progressValue = BitConverter.ToInt32(buffer, valueOffset);
+                }
 
                 trophies.Add(new StellarBladeTrophy
                 {
@@ -269,7 +301,8 @@ public class StellarBladeParser
         var idx = FindPatternAscii(buffer, "UInt32Property", searchStart);
         if (idx < 0 || idx > searchStart + 200) return 0;
 
-        var valueOffset = idx + 23;
+        // Estrutura: "UInt32Property" (14 bytes) + null (1) + size (4) + padding (4) + value (4)
+        var valueOffset = idx + 28;
         if (valueOffset + 4 > buffer.Length) return 0;
 
         return BitConverter.ToInt32(buffer, valueOffset);

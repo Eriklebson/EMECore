@@ -187,7 +187,7 @@ public sealed partial class MainWindow : Window
         {
             _detailPage.LoadGame(ViewModel.SelectedGame);
             var achievements = await _achievementService.GetAchievementsAsync(ViewModel.SelectedGame);
-            _detailPage.SetAchievements(achievements);
+            await _detailPage.SetAchievements(achievements);
             
             // Carregar requisitos do jogo
             if (!string.IsNullOrEmpty(ViewModel.SelectedGame.SteamAppId))

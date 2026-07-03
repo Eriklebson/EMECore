@@ -772,7 +772,49 @@ public sealed partial class GameDetailPage : UserControl
                 });
             }
 
-            if (done)
+            // Barra de progresso para conquistas com progresso
+            if (ach.HasProgress && !done)
+            {
+                var achProgressContainer = new StackPanel { Spacing = 4, Margin = new Thickness(0, 4, 0, 0) };
+                
+                var progressText = new TextBlock
+                {
+                    Text = $"{ach.Progress} / {ach.MaxProgress}",
+                    FontSize = 10,
+                    Foreground = SteamColors.TextSecondaryBrush
+                };
+                achProgressContainer.Children.Add(progressText);
+                
+                var progressPercent = ach.MaxProgress > 0 ? Math.Min(100, (double)ach.Progress / ach.MaxProgress * 100) : 0;
+                var remainingPercent = 100 - progressPercent;
+                
+                var progressBar = new Grid();
+                progressBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(progressPercent, GridUnitType.Star) });
+                progressBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(remainingPercent, GridUnitType.Star) });
+                
+                var progressFill = new Border
+                {
+                    Background = SteamColors.BlueBrush,
+                    CornerRadius = new CornerRadius(2, 0, 0, 2),
+                    Height = 4
+                };
+                
+                var progressBg = new Border
+                {
+                    Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x20, 0x66, 0xC0, 0xF4)),
+                    CornerRadius = new CornerRadius(0, 2, 2, 0),
+                    Height = 4
+                };
+                
+                Grid.SetColumn(progressFill, 0);
+                Grid.SetColumn(progressBg, 1);
+                progressBar.Children.Add(progressFill);
+                progressBar.Children.Add(progressBg);
+                achProgressContainer.Children.Add(progressBar);
+                
+                textStack.Children.Add(achProgressContainer);
+            }
+            else if (done)
             {
                 textStack.Children.Add(new TextBlock
                 {
