@@ -27,6 +27,11 @@ public class HardwareMonitorService
     private DateTime _fansCache = DateTime.MinValue;
     private DateTime _gameDetectCache = DateTime.MinValue;
 
+    // Network speed tracking
+    private long _lastBytesReceived;
+    private long _lastBytesSent;
+    private DateTime _lastNetworkCheck = DateTime.MinValue;
+
     public HardwareMonitorService()
     {
         _computer = new Computer { IsCpuEnabled = true, IsGpuEnabled = true, IsMotherboardEnabled = true, IsMemoryEnabled = true };
@@ -96,6 +101,22 @@ public class HardwareMonitorService
         s.RamModel = _cachedRamModel ??= ReadRamModel();
         s.RamModuleCount = _cachedRamModuleCount != 0 ? _cachedRamModuleCount : (_cachedRamModuleCount = ReadRamModuleCount());
         s.RamModuleSize = _cachedRamModuleSize != 0 ? _cachedRamModuleSize : (_cachedRamModuleSize = ReadRamModuleSize());
+
+        // Disk
+        s.DiskName = ReadDiskName();
+        var diskInfo = ReadDiskInfo();
+        s.DiskTotalGb = diskInfo.total;
+        s.DiskUsedGb = diskInfo.used;
+        s.DiskUsagePercent = diskInfo.percent;
+        var diskSpeed = ReadDiskSpeed();
+        s.DiskReadKbps = diskSpeed.readKbps;
+        s.DiskWriteKbps = diskSpeed.writeKbps;
+
+        // Network
+        s.NetworkName = ReadNetworkName();
+        var netSpeed = ReadNetworkSpeed();
+        s.NetworkDownloadSpeed = netSpeed.download;
+        s.NetworkUploadSpeed = netSpeed.upload;
         
         if ((DateTime.UtcNow - _fansCache).TotalSeconds > 5)
         {
@@ -542,6 +563,102 @@ public class HardwareMonitorService
 
     public void StartFpsMonitor(string processName) => _fpsMonitor.Start(processName);
     public void StopFpsMonitor() => _fpsMonitor.Stop();
+
+    // ===== DISK =====
+    private static string ReadDiskName()
+    {
+        try
+        {
+            var result = RunPowerShell("Get-PhysicalDisk | Select-Object -First 1 -ExpandProperty Model", "Disco");
+            return result;
+        }
+        catch { return "Disco"; }
+    }
+
+    private static (double total, double used, double percent) ReadDiskInfo()
+    {
+        try
+        {
+            var result = RunPowerShell("Get-CimInstance Win32_LogicalDisk | Where-Object { $_.DeviceID -eq 'C:' } | Select-Object Size, FreeSpace | ForEach-Object { Write-Output ($_.Size.ToString() + '|' + $_.FreeSpace.ToString()) }", "");
+            if (!string.IsNullOrEmpty(result))
+            {
+                var parts = result.Split('|');
+                if (parts.Length == 2 && double.TryParse(parts[0], out var total) && double.TryParse(parts[1], out var free))
+                {
+                    var totalGb = Math.Round(total / 1073741824.0, 1);
+                    var freeGb = Math.Round(free / 1073741824.0, 1);
+                    var usedGb = Math.Round(totalGb - freeGb, 1);
+                    var pct = totalGb > 0 ? Math.Round(usedGb / totalGb * 100, 1) : 0;
+                    return (totalGb, usedGb, pct);
+                }
+            }
+        }
+        catch { }
+        return (0, 0, 0);
+    }
+
+    private static (double readKbps, double writeKbps) ReadDiskSpeed()
+    {
+        try
+        {
+            var result = RunPowerShell("Get-CimInstance Win32_PerfFormattedData_PerfDisk_PhysicalDisk | Where-Object { $_.Name -eq '_Total' } | Select-Object DiskReadBytesPersec, DiskWriteBytesPersec | ForEach-Object { Write-Output ($_.DiskReadBytesPersec.ToString() + '|' + $_.DiskWriteBytesPersec.ToString()) }", "");
+            if (!string.IsNullOrEmpty(result))
+            {
+                var parts = result.Split('|');
+                if (parts.Length == 2 && double.TryParse(parts[0], out var read) && double.TryParse(parts[1], out var write))
+                {
+                    return (Math.Round(read / 1024.0, 1), Math.Round(write / 1024.0, 1));
+                }
+            }
+        }
+        catch { }
+        return (0, 0);
+    }
+
+    // ===== NETWORK =====
+    private static string ReadNetworkName()
+    {
+        try
+        {
+            var result = RunPowerShell("Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.InterfaceDescription -notmatch 'Loopback|Tunnel|VPN' } | Select-Object -First 1 -ExpandProperty InterfaceDescription", "Rede");
+            return result;
+        }
+        catch { return "Rede"; }
+    }
+
+    private (double download, double upload) ReadNetworkSpeed()
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            if ((now - _lastNetworkCheck).TotalMilliseconds < 500 && _lastNetworkCheck != DateTime.MinValue)
+                return (0, 0);
+
+            var result = RunPowerShell("Get-NetAdapterStatistics | Where-Object { $_.Name -notmatch 'Loopback|Tunnel|VPN' } | Select-Object -First 1 | ForEach-Object { Write-Output ($_.ReceivedBytes.ToString() + '|' + $_.SentBytes.ToString()) }", "");
+            if (!string.IsNullOrEmpty(result))
+            {
+                var parts = result.Split('|');
+                if (parts.Length == 2 && long.TryParse(parts[0], out var received) && long.TryParse(parts[1], out var sent))
+                {
+                    var elapsed = (now - _lastNetworkCheck).TotalSeconds;
+                    if (_lastNetworkCheck != DateTime.MinValue && elapsed > 0)
+                    {
+                        var downloadSpeed = (received - _lastBytesReceived) / elapsed / 1024.0; // KB/s
+                        var uploadSpeed = (sent - _lastBytesSent) / elapsed / 1024.0; // KB/s
+                        _lastBytesReceived = received;
+                        _lastBytesSent = sent;
+                        _lastNetworkCheck = now;
+                        return (Math.Max(0, downloadSpeed), Math.Max(0, uploadSpeed));
+                    }
+                    _lastBytesReceived = received;
+                    _lastBytesSent = sent;
+                    _lastNetworkCheck = now;
+                }
+            }
+        }
+        catch { }
+        return (0, 0);
+    }
 
     private static void Log(string msg)
     {

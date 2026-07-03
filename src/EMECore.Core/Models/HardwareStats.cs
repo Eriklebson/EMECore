@@ -32,6 +32,16 @@ public class HardwareStats
 
     public double DiskReadSpeed { get; set; }
     public double DiskWriteSpeed { get; set; }
+    public string DiskName { get; set; } = "";
+    public double DiskUsedGb { get; set; }
+    public double DiskTotalGb { get; set; }
+    public double DiskUsagePercent { get; set; }
+    public double DiskReadKbps { get; set; }
+    public double DiskWriteKbps { get; set; }
+
+    public double NetworkDownloadSpeed { get; set; }
+    public double NetworkUploadSpeed { get; set; }
+    public string NetworkName { get; set; } = "";
 
     public List<FanInfo> Fans { get; set; } = new();
 }

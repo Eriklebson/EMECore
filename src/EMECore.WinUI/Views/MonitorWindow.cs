@@ -40,6 +40,13 @@ public sealed partial class MonitorWindow : Window
     private readonly List<double> _gpuHistory = new();
     private readonly StackPanel _gpuFansPanel;
 
+    // Disk
+    private readonly TextBlock _diskName, _diskPct, _diskInfo, _diskRead, _diskWrite;
+    private readonly Grid _diskBar;
+
+    // Network
+    private readonly TextBlock _netName, _netDown, _netUp;
+
     // FPS
     private readonly TextBlock _fpsValue, _fpsInfo, _fpsLabel;
     private readonly Border _fpsCard;
@@ -52,6 +59,8 @@ public sealed partial class MonitorWindow : Window
     private static readonly SolidColorBrush RamColor = new(ColorFromHex("#C084FC"));
     private static readonly SolidColorBrush CpuColor = new(ColorFromHex("#4ADE80"));
     private static readonly SolidColorBrush GpuColor = new(ColorFromHex("#60A5FA"));
+    private static readonly SolidColorBrush DiskColor = new(ColorFromHex("#FBBF24"));
+    private static readonly SolidColorBrush NetColor = new(ColorFromHex("#34D399"));
     private static readonly SolidColorBrush FpsColor = new(ColorFromHex("#FB923C"));
     private static readonly SolidColorBrush CardBg = new(ColorFromHex("#111827"));
     private static readonly SolidColorBrush CardBorder = new(ColorFromHex("#1F2937"));
@@ -87,8 +96,6 @@ public sealed partial class MonitorWindow : Window
         sidebarStack.Children.Add(CreateNavItem("\uE9F5", "Hardware", true, CpuColor));
         sidebarStack.Children.Add(CreateNavItem("\uE7F4", "Monitores", false, SubtleText));
         sidebarStack.Children.Add(CreateNavItem("\uE771", "Periféricos", false, SubtleText));
-        sidebarStack.Children.Add(CreateNavItem("\uE8B0", "Rede", false, SubtleText));
-        sidebarStack.Children.Add(CreateNavItem("\uE713", "Configurações", false, SubtleText));
         sidebar.Child = sidebarStack;
         Grid.SetColumn(sidebar, 0);
         root.Children.Add(sidebar);
@@ -253,7 +260,93 @@ public sealed partial class MonitorWindow : Window
         row2.Children.Add(gpuCard);
         contentStack.Children.Add(row2);
 
-        // ===== ROW 3: FPS =====
+        // ===== ROW 3: Disk + Network =====
+        var row3 = new Grid { ColumnSpacing = 16 };
+        row3.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row3.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        // Disk Card
+        var diskCard = CreateCard();
+        var diskStack = new StackPanel { Spacing = 12 };
+        diskStack.Children.Add(CreateCardHeader("\uEDA2", "DISCO", DiskColor));
+        _diskName = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
+        diskStack.Children.Add(_diskName);
+
+        var diskMetricsGrid = new Grid { ColumnSpacing = 24 };
+        diskMetricsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        diskMetricsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var diskUsageStack = new StackPanel { Spacing = 2 };
+        diskUsageStack.Children.Add(new TextBlock { Text = "USO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50 });
+        _diskPct = new TextBlock { FontSize = 32, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = DiskColor };
+        diskUsageStack.Children.Add(_diskPct);
+        diskMetricsGrid.Children.Add(diskUsageStack);
+
+        var diskInfoStack = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+        _diskInfo = new TextBlock { FontSize = 13, Foreground = new SolidColorBrush(Colors.White), HorizontalAlignment = HorizontalAlignment.Right };
+        diskInfoStack.Children.Add(_diskInfo);
+        Grid.SetColumn(diskInfoStack, 1);
+        diskMetricsGrid.Children.Add(diskInfoStack);
+
+        diskStack.Children.Add(diskMetricsGrid);
+        diskStack.Children.Add(CreateBar(out _diskBar, DiskColor));
+
+        // Disk Read/Write speeds
+        var diskSpeedGrid = new Grid { ColumnSpacing = 24, Margin = new Thickness(0, 4, 0, 0) };
+        diskSpeedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        diskSpeedGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var readStack = new StackPanel { Spacing = 2 };
+        readStack.Children.Add(new TextBlock { Text = "LEITURA", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50 });
+        _diskRead = new TextBlock { FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White) };
+        readStack.Children.Add(_diskRead);
+        diskSpeedGrid.Children.Add(readStack);
+
+        var writeStack = new StackPanel { Spacing = 2 };
+        writeStack.Children.Add(new TextBlock { Text = "ESCRITA", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50 });
+        _diskWrite = new TextBlock { FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = DiskColor };
+        writeStack.Children.Add(_diskWrite);
+        Grid.SetColumn(writeStack, 1);
+        diskSpeedGrid.Children.Add(writeStack);
+
+        diskStack.Children.Add(diskSpeedGrid);
+
+        diskCard.Child = diskStack;
+        Grid.SetColumn(diskCard, 0);
+        row3.Children.Add(diskCard);
+
+        // Network Card
+        var netCard = CreateCard();
+        var netStack = new StackPanel { Spacing = 12 };
+        netStack.Children.Add(CreateCardHeader("\uE8B0", "REDE", NetColor));
+        _netName = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
+        netStack.Children.Add(_netName);
+
+        var netGrid = new Grid { ColumnSpacing = 24 };
+        netGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        netGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var downStack = new StackPanel { Spacing = 2 };
+        downStack.Children.Add(new TextBlock { Text = "DOWNLOAD", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50 });
+        _netDown = new TextBlock { FontSize = 24, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = NetColor };
+        downStack.Children.Add(_netDown);
+        netGrid.Children.Add(downStack);
+
+        var upStack = new StackPanel { Spacing = 2 };
+        upStack.Children.Add(new TextBlock { Text = "UPLOAD", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50 });
+        _netUp = new TextBlock { FontSize = 24, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Colors.White) };
+        upStack.Children.Add(_netUp);
+        Grid.SetColumn(upStack, 1);
+        netGrid.Children.Add(upStack);
+
+        netStack.Children.Add(netGrid);
+
+        netCard.Child = netStack;
+        Grid.SetColumn(netCard, 1);
+        row3.Children.Add(netCard);
+        contentStack.Children.Add(row3);
+
+        // ===== ROW 4: FPS =====
         _fpsCard = CreateCard();
         var fpsStack = new StackPanel { Spacing = 12 };
         fpsStack.Children.Add(CreateCardHeader("\uec4d", "FPS", FpsColor));
@@ -399,6 +492,20 @@ public sealed partial class MonitorWindow : Window
             _gpuCoreTemp.Foreground = TempColor(s.GpuTemp);
             _gpuHistory.Add(s.GpuUsage);
             if (_gpuHistory.Count > 60) _gpuHistory.RemoveAt(0);
+
+            // Disk
+            _diskName.Text = s.DiskName;
+            _diskPct.Text = s.DiskUsagePercent > 0 ? $"{s.DiskUsagePercent:F0}%" : "--";
+            _diskPct.Foreground = UsageColor(s.DiskUsagePercent, DiskColor);
+            SetBar(_diskBar, s.DiskUsagePercent, UsageColor(s.DiskUsagePercent, DiskColor));
+            _diskInfo.Text = s.DiskTotalGb > 0 ? $"{s.DiskUsedGb:F1} / {s.DiskTotalGb:F1} GB" : "--";
+            _diskRead.Text = s.DiskReadKbps > 0 ? FormatSpeed(s.DiskReadKbps) : "--";
+            _diskWrite.Text = s.DiskWriteKbps > 0 ? FormatSpeed(s.DiskWriteKbps) : "--";
+
+            // Network
+            _netName.Text = s.NetworkName;
+            _netDown.Text = s.NetworkDownloadSpeed > 0 ? FormatSpeed(s.NetworkDownloadSpeed) : "--";
+            _netUp.Text = s.NetworkUploadSpeed > 0 ? FormatSpeed(s.NetworkUploadSpeed) : "--";
 
             // Fans - distribuir para cada card
             if (s.Fans.Count != _fanCount)
@@ -637,4 +744,10 @@ public sealed partial class MonitorWindow : Window
     }
 
     private static string FmtSize(double gb) => gb >= 1024 ? $"{gb / 1024:F0}TB" : $"{gb:F0}GB";
+
+    private static string FormatSpeed(double kbps)
+    {
+        if (kbps >= 1024) return $"{kbps / 1024:F1} MB/s";
+        return $"{kbps:F0} KB/s";
+    }
 }

@@ -121,6 +121,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.9.0.0 | 03/07/2026 | Feature: disk and network monitoring, removed unused sidebar items |
 | 2.8.2.0 | 03/07/2026 | Fix: RAM usage fallback, PowerShell encoding, admin script for temps/fans |
 | 2.8.1.0 | 03/07/2026 | Fix: WMI fallback via PowerShell for hardware detection |
 | 2.8.0.0 | 03/07/2026 | Feature: motherboard card, fans per component, RAM module info |
