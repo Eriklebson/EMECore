@@ -49,8 +49,9 @@ public sealed partial class Sidebar : UserControl
         monBtn.Click += (_, _) => MonitorRequested?.Invoke(this, EventArgs.Empty);
         navPanel.Children.Add(monBtn);
 
-        var fishBtn = CreateSidebarButton("\uE8FB", "Macro de Pesca");
-        fishBtn.Click += (_, _) => FishingMacroRequested?.Invoke(this, EventArgs.Empty);
+        var fishBtn = CreateSidebarButton("\uE8FB", "Macro de Pesca (Beta)");
+        fishBtn.IsEnabled = false;
+        fishBtn.Opacity = 0.5;
         navPanel.Children.Add(fishBtn);
 
         var statusCard = new Border

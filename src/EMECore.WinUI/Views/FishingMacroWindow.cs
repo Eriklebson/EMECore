@@ -121,11 +121,13 @@ public sealed class FishingMacroWindow : Window
         // Hotkey info
         var hotkeyInfo = new TextBlock
         {
-            Text = "Atalho: Ctrl+E para iniciar/parar",
-            FontSize = 12,
+            Text = "Ctrl+E: Iniciar/Parar | Ctrl+Shift+F: Marcar mordida (modo aprender)",
+            FontSize = 11,
             Foreground = SteamColors.TextSecondaryBrush,
             HorizontalAlignment = HorizontalAlignment.Center,
-            Margin = new Thickness(0, 10, 0, 0)
+            Margin = new Thickness(0, 10, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+            TextAlignment = Microsoft.UI.Xaml.TextAlignment.Center
         };
         mainContent.Children.Add(hotkeyInfo);
 
@@ -167,6 +169,19 @@ public sealed class FishingMacroWindow : Window
         };
         _stopButton.Click += StopButton_Click;
         buttonPanel.Children.Add(_stopButton);
+
+        var learnButton = new Button
+        {
+            Content = CreateButtonContent("\uE8FB", "Aprender"),
+            Background = SteamColors.BlueBrush,
+            Foreground = new SolidColorBrush(Colors.White),
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(24, 12, 24, 12),
+            MinWidth = 150
+        };
+        learnButton.Click += LearnButton_Click;
+        buttonPanel.Children.Add(learnButton);
 
         Grid.SetRow(buttonPanel, 2);
         root.Children.Add(buttonPanel);
