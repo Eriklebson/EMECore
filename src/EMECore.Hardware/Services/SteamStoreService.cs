@@ -44,6 +44,21 @@ public class SteamStoreService : ISteamStoreService
                     }
                 }
 
+                // Buscar requisitos do sistema
+                if (data.TryGetProperty("pc_requirements", out var pcReq))
+                {
+                    var requirements = new SteamRequirements();
+                    
+                    if (pcReq.TryGetProperty("minimum", out var min))
+                        requirements.Minimum = min.GetString() ?? "";
+                    
+                    if (pcReq.TryGetProperty("recommended", out var rec))
+                        requirements.Recommended = rec.GetString() ?? "";
+                    
+                    if (!string.IsNullOrEmpty(requirements.Minimum) || !string.IsNullOrEmpty(requirements.Recommended))
+                        info.Requirements = requirements;
+                }
+
                 _cache[appId] = (info, DateTime.UtcNow);
                 return info;
             }

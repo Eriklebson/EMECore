@@ -121,6 +121,8 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.6.0.0 | 03/07/2026 | Feature: playtime tracker, achievement images, requirements per game, sidebar improvements |
+| 2.5.5.0 | 03/07/2026 | UI: layout redesenhado (Sidebar, Library, GameCard, GameDetail) |
 | 2.5.4.0 | 03/07/2026 | Feature: logo do projeto, ícone ICO, layout melhorado |
 | 2.5.3.0 | 03/07/2026 | Fix: erro de compilação LearnButton_Click (macro pesca funcional) |
 | 2.5.2.0 | 03/07/2026 | Pause: macro de pesca desabilitado (beta, aguardando revisão) |

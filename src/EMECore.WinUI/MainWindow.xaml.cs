@@ -51,7 +51,6 @@ public sealed partial class MainWindow : Window
         var titleBar = new Grid { Background = new SolidColorBrush(SteamColors.Darkest) };
         titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        titleBar.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var logoPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 12, 0) };
         
@@ -74,13 +73,6 @@ public sealed partial class MainWindow : Window
         Grid.SetColumn(_dragRegion, 1);
         titleBar.Children.Add(_dragRegion);
 
-        var windowButtons = new StackPanel { Orientation = Orientation.Horizontal };
-        windowButtons.Children.Add(CreateTitleBarButton("\uE921", MinimizeButton_Click));
-        windowButtons.Children.Add(CreateTitleBarButton("\uE922", MaximizeButton_Click));
-        windowButtons.Children.Add(CreateTitleBarButton("\uE8BB", CloseButton_Click));
-        Grid.SetColumn(windowButtons, 2);
-        titleBar.Children.Add(windowButtons);
-
         Grid.SetRow(titleBar, 0);
         rootGrid.Children.Add(titleBar);
 
@@ -92,6 +84,7 @@ public sealed partial class MainWindow : Window
         _sidebar.NavigationRequested += Sidebar_NavigationRequested;
         _sidebar.MonitorRequested += Sidebar_MonitorRequested;
         _sidebar.FishingMacroRequested += Sidebar_FishingMacroRequested;
+        _sidebar.TestAchievementRequested += Sidebar_TestAchievementRequested;
         contentGrid.Children.Add(_sidebar);
 
         var pageContainer = new Grid();
@@ -105,7 +98,6 @@ public sealed partial class MainWindow : Window
         _detailPage.BackRequested += DetailPage_BackRequested;
         _detailPage.LaunchRequested += DetailPage_LaunchRequested;
         _detailPage.DeleteRequested += DetailPage_DeleteRequested;
-        _detailPage.TestAchievementRequested += DetailPage_TestAchievementRequested;
         pageContainer.Children.Add(_detailPage);
 
         _addGamePage = new AddGamePage { Visibility = Visibility.Collapsed };
@@ -122,21 +114,6 @@ public sealed partial class MainWindow : Window
         Content = rootGrid;
 
         this.Activated += MainWindow_Activated;
-    }
-
-    private static Button CreateTitleBarButton(string glyph, RoutedEventHandler handler)
-    {
-        var btn = new Button
-        {
-            Content = new FontIcon { Glyph = glyph, FontSize = 10 },
-            Width = 40,
-            Height = 40,
-            Background = new SolidColorBrush(Colors.Transparent),
-            Foreground = SteamColors.TextBrush,
-            BorderThickness = new Thickness(0)
-        };
-        btn.Click += handler;
-        return btn;
     }
 
     private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -157,7 +134,8 @@ public sealed partial class MainWindow : Window
             titleBarObj.ButtonBackgroundColor = ParseColor("#0e1621");
             titleBarObj.ButtonHoverBackgroundColor = ParseColor("#1b2838");
             titleBarObj.ButtonPressedBackgroundColor = ParseColor("#2a475e");
-
+            
+            // Definir área de arrastar
             SetTitleBar(_dragRegion);
 
             var dbPath = Path.Combine(
@@ -211,6 +189,18 @@ public sealed partial class MainWindow : Window
             var achievements = await _achievementService.GetAchievementsAsync(ViewModel.SelectedGame);
             _detailPage.SetAchievements(achievements);
             
+            // Carregar requisitos do jogo
+            if (!string.IsNullOrEmpty(ViewModel.SelectedGame.SteamAppId))
+            {
+                var steamStoreService = new SteamStoreService();
+                var storeInfo = await steamStoreService.GetStoreInfoAsync(ViewModel.SelectedGame.SteamAppId);
+                _detailPage.SetRequirements(storeInfo?.Requirements, ViewModel.SelectedGame.Platform);
+            }
+            else
+            {
+                _detailPage.SetRequirements(null, ViewModel.SelectedGame.Platform);
+            }
+            
             // Verificar novas conquistas desbloqueadas
             if (_lastAchievements != null)
             {
@@ -235,35 +225,6 @@ public sealed partial class MainWindow : Window
             byte.Parse(hex[..2], System.Globalization.NumberStyles.HexNumber),
             byte.Parse(hex[2..4], System.Globalization.NumberStyles.HexNumber),
             byte.Parse(hex[4..6], System.Globalization.NumberStyles.HexNumber));
-    }
-
-    private void MinimizeButton_Click(object sender, RoutedEventArgs e)
-    {
-        var hwnd = WindowNative.GetWindowHandle(this);
-        ShowWindow(hwnd, 6);
-    }
-
-    [DllImport("user32.dll")]
-    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    private void MaximizeButton_Click(object sender, RoutedEventArgs e)
-    {
-        var hwnd = WindowNative.GetWindowHandle(this);
-        var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-        var appWindow = AppWindow.GetFromWindowId(windowId);
-
-        if (appWindow.Presenter is OverlappedPresenter presenter)
-        {
-            if (presenter.State == OverlappedPresenterState.Maximized)
-                presenter.Restore();
-            else
-                presenter.Maximize();
-        }
-    }
-
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        this.Close();
     }
 
     private void Sidebar_NavigationRequested(object? sender, string page)
@@ -300,6 +261,19 @@ public sealed partial class MainWindow : Window
         new FishingMacroWindow().Activate();
     }
 
+    private void Sidebar_TestAchievementRequested(object? sender, EventArgs e)
+    {
+        var testAchievement = new Achievement
+        {
+            Apiname = "Test_Achievement",
+            Name = "Protocolo EVE",
+            Description = "Adquira todos os troféus",
+            Achieved = true
+        };
+        var notification = new AchievementNotificationWindow();
+        notification.Show(testAchievement);
+    }
+
     private async void LibraryPage_ScanRequested(object? sender, EventArgs e)
     {
         await ViewModel.ScanGamesCommand.ExecuteAsync(null);
@@ -309,6 +283,18 @@ public sealed partial class MainWindow : Window
     private void LibraryPage_GameSelected(object? sender, Game game)
     {
         ViewModel.SelectGameCommand.Execute(game);
+        
+        // Atualizar visibilidade do botão de macro de pesca baseado no processo
+        var isStellarBlade = game.Name.Contains("Stellar Blade", StringComparison.OrdinalIgnoreCase);
+        var isProcessRunning = false;
+        
+        if (isStellarBlade && !string.IsNullOrEmpty(game.ExecutablePath))
+        {
+            var processName = System.IO.Path.GetFileNameWithoutExtension(game.ExecutablePath);
+            isProcessRunning = System.Diagnostics.Process.GetProcessesByName(processName).Length > 0;
+        }
+        
+        _sidebar.UpdateFishingMacroVisibility(isStellarBlade && isProcessRunning);
     }
 
     private async void LibraryPage_GameLaunchRequested(object? sender, Game game)
@@ -344,18 +330,5 @@ public sealed partial class MainWindow : Window
     {
         _addGamePage.ClearForm();
         ViewModel.NavigateToCommand.Execute("library");
-    }
-
-    private void DetailPage_TestAchievementRequested(object? sender, EventArgs e)
-    {
-        var testAchievement = new Achievement
-        {
-            Apiname = "Test_Achievement",
-            Name = "Protocolo EVE",
-            Description = "Adquira todos os troféus",
-            Achieved = true
-        };
-        var notification = new AchievementNotificationWindow();
-        notification.Show(testAchievement);
     }
 }

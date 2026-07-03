@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using EMECore.Core.Models;
 using EMECore.Core.Services;
 using EMECore.Core.Helpers;
+using EMECore.Hardware.Services;
 
 namespace EMECore.WinUI.ViewModels;
 
@@ -12,6 +13,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IDatabaseService _databaseService;
     private readonly IGameScannerService _gameScannerService;
     private readonly ISteamStoreService _steamStoreService;
+    private readonly PlayTimeTrackerService _playTimeTracker;
     private static readonly SemaphoreSlim _steamApiSemaphore = new(3);
 
     [ObservableProperty] private string _currentPage = "library";
@@ -29,6 +31,7 @@ public partial class MainViewModel : ObservableObject
         _databaseService = databaseService;
         _gameScannerService = gameScannerService;
         _steamStoreService = steamStoreService;
+        _playTimeTracker = new PlayTimeTrackerService((DatabaseService)databaseService);
     }
 
     public async Task InitializeAsync(string dbPath)
@@ -188,7 +191,11 @@ public partial class MainViewModel : ObservableObject
             System.Diagnostics.Process.Start(psi);
 
             game.LastPlayed = DateTime.UtcNow;
+            game.LastSessionStart = DateTime.UtcNow;
             await _databaseService.UpsertGameAsync(game);
+            
+            _playTimeTracker.StartTracking(game);
+            
             StatusText = $"{game.Name} iniciado";
         }
         catch (Exception ex)
