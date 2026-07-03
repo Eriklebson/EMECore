@@ -59,7 +59,7 @@ public sealed partial class Sidebar : UserControl
         });
         logoTexts.Children.Add(new TextBlock 
         { 
-            Text = "v2.8.1.0", 
+            Text = "v2.8.2.0", 
             FontSize = 10, 
             Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0x66, 0x8B, 0x9B, 0xB4)),
             FontFamily = new FontFamily("Consolas")

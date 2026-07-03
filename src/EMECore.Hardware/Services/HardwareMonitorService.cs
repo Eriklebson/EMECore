@@ -47,6 +47,35 @@ public class HardwareMonitorService
         var s = new HardwareStats();
         try { foreach (var h in _computer.Hardware) { h.Update(); foreach (var z in h.SubHardware) z.Update(); } } catch { }
 
+        // Run PowerShell script periodically for temps and fans
+        if (!_psRunning)
+        {
+            _psRunning = true;
+            var sp = FindToolsFile("check-cpu-temp.ps1");
+            if (sp != null)
+            {
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        var psi = new ProcessStartInfo("powershell.exe")
+                        {
+                            Arguments = $"-ExecutionPolicy Bypass -File \"{sp}\"",
+                            UseShellExecute = true,
+                            Verb = "runas",
+                            CreateNoWindow = true,
+                            WindowStyle = ProcessWindowStyle.Hidden
+                        };
+                        var p = Process.Start(psi);
+                        p?.WaitForExit(15000);
+                    }
+                    catch { }
+                    _psRunning = false;
+                });
+            }
+            else _psRunning = false;
+        }
+
         s.MotherboardModel = _cachedMotherboardModel ??= ReadMotherboardModel();
         s.MotherboardTemp = ReadMotherboardTemp();
         s.MotherboardVrmTemp = ReadMotherboardVrmTemp();
@@ -101,8 +130,9 @@ public class HardwareMonitorService
                 if (sn.SensorType == SensorType.Load && sn.Value.HasValue)
                     return Math.Round(sn.Value.Value, 1);
         }
-        try { using var sr = new ManagementObjectSearcher("SELECT PercentProcessorTime FROM Win32_PerfFormattedData_PerfOS_Processor WHERE Name='_Total'"); foreach (var o in sr.Get()) return Math.Round(Convert.ToDouble(o["PercentProcessorTime"]), 1); } catch { }
-        return 0;
+        // PowerShell fallback
+        var result = RunPowerShell("(Get-CimInstance Win32_Processor | Select-Object -First 1).LoadPercentage", "0");
+        return double.TryParse(result, out var val) ? val : 0;
     }
 
     private double ReadCpuTemp()
@@ -128,7 +158,9 @@ public class HardwareMonitorService
             if (h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)
                 foreach (var sn in h.Sensors)
                     if (sn.SensorType == SensorType.Load && sn.Value.HasValue && sn.Value > 0) return Math.Round(sn.Value.Value, 1);
-        return 0;
+        // PowerShell fallback
+        var result = RunPowerShell("(Get-CimInstance Win32_VideoController | Select-Object -First 1).LoadPercentage", "0");
+        return double.TryParse(result, out var val) ? val : 0;
     }
 
     private double ReadGpuTemp()
@@ -139,7 +171,9 @@ public class HardwareMonitorService
                 foreach (var sn in h.Sensors)
                     if (sn.SensorType == SensorType.Temperature && sn.Value.HasValue && sn.Value > 0 && !sn.Name.Contains("Hot"))
                         return Math.Round(sn.Value.Value, 1);
-        return 0;
+        // PowerShell fallback
+        var result = RunPowerShell("Get-CimInstance Win32_TemperatureSensor | Select-Object -First 1 | ForEach-Object { [math]::Round($_.CurrentTemperature, 1) }", "0");
+        return double.TryParse(result, out var val) ? val : 0;
     }
 
     private double ReadGpuHotspot()
@@ -313,6 +347,11 @@ public class HardwareMonitorService
             foreach (var o in s.Get()) return Math.Round(Convert.ToDouble(o["TotalVisibleMemorySize"]) / 1048576.0 - Convert.ToDouble(o["FreePhysicalMemory"]) / 1048576.0, 1);
         }
         catch { }
+        // PowerShell fallback
+        var totalResult = RunPowerShell("(Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize", "0");
+        var freeResult = RunPowerShell("(Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory", "0");
+        if (double.TryParse(totalResult, out var total) && double.TryParse(freeResult, out var free) && total > 0)
+            return Math.Round(total / 1048576.0 - free / 1048576.0, 1);
         return 0;
     }
 
@@ -343,7 +382,8 @@ public class HardwareMonitorService
             }
         }
         catch { }
-        return RunPowerShell("Get-CimInstance Win32_PhysicalMemory | Select-Object -First 1 | ForEach-Object { \"$($_.Manufacturer) $($_.PartNumber)\" }", "RAM");
+        // PowerShell fallback - using simpler command
+        return RunPowerShell("(Get-CimInstance Win32_PhysicalMemory | Select-Object -First 1).Manufacturer + ' ' + (Get-CimInstance Win32_PhysicalMemory | Select-Object -First 1).PartNumber", "RAM");
     }
 
     private static int ReadRamModuleCount()
@@ -377,15 +417,53 @@ public class HardwareMonitorService
         try
         {
             var f = Path.Combine(Path.GetTempPath(), "cpu-check-result.txt");
-            if (!File.Exists(f)) return fans;
-
-            foreach (var l in File.ReadAllLines(f))
+            if (File.Exists(f))
             {
-                if (l.StartsWith("FAN: "))
+                foreach (var l in File.ReadAllLines(f))
                 {
-                    var parts = l[5..].Split('=');
-                    if (parts.Length == 2 && double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var rpm))
-                        fans.Add(new FanInfo { Name = MapFanName(parts[0].Trim()), Rpm = rpm, DutyPercent = 0 });
+                    if (l.StartsWith("FAN: "))
+                    {
+                        var parts = l[5..].Split('=');
+                        if (parts.Length == 2 && double.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var rpm))
+                            fans.Add(new FanInfo { Name = MapFanName(parts[0].Trim()), Rpm = rpm, DutyPercent = 0 });
+                    }
+                }
+            }
+
+            // If no fans found from file, try PowerShell
+            if (fans.Count == 0)
+            {
+                fans = ReadFansViaPowerShell();
+            }
+        }
+        catch { }
+        return fans;
+    }
+
+    private static List<FanInfo> ReadFansViaPowerShell()
+    {
+        var fans = new List<FanInfo>();
+        try
+        {
+            // Try to get fan info from WMI (works on some systems)
+            var result = RunPowerShell("Get-CimInstance Win32_Fan | Select-Object Name, DesiredSpeed | ForEach-Object { Write-Output ($_.Name + '=' + $_.DesiredSpeed) }", "");
+            if (!string.IsNullOrEmpty(result))
+            {
+                foreach (var line in result.Split('\n'))
+                {
+                    var parts = line.Trim().Split('=');
+                    if (parts.Length == 2 && double.TryParse(parts[1].Trim(), out var rpm) && rpm > 0)
+                        fans.Add(new FanInfo { Name = MapFanName(parts[0].Trim()), Rpm = rpm });
+                }
+            }
+
+            // If still no fans, try thermal zone
+            if (fans.Count == 0)
+            {
+                var thermalResult = RunPowerShell("Get-CimInstance MSAcpi_ThermalZoneTemperature -Namespace 'root/wmi' | Select-Object -First 1 | ForEach-Object { [math]::Round(($_.CurrentTemperature - 2732) / 10.0, 1) }", "0");
+                if (double.TryParse(thermalResult, out var temp) && temp > 0)
+                {
+                    fans.Add(new FanInfo { Name = "Thermal Zone", Rpm = 0 });
                 }
             }
         }
@@ -479,18 +557,22 @@ public class HardwareMonitorService
     {
         try
         {
-            var psi = new ProcessStartInfo("powershell", $"-NoProfile -Command \"{command}\"")
+            var psi = new ProcessStartInfo("powershell.exe")
             {
+                Arguments = $"-NoProfile -NonInteractive -Command \"{command}\"",
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
-                CreateNoWindow = true
+                CreateNoWindow = true,
+                StandardOutputEncoding = System.Text.Encoding.UTF8
             };
             using var p = Process.Start(psi);
             if (p != null)
             {
                 var output = p.StandardOutput.ReadToEnd().Trim();
                 p.WaitForExit(5000);
-                if (!string.IsNullOrEmpty(output)) return output;
+                if (!string.IsNullOrEmpty(output) && !output.Contains("CategoryInfo"))
+                    return output;
             }
         }
         catch { }
