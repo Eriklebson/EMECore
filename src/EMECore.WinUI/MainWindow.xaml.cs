@@ -26,7 +26,6 @@ public sealed partial class MainWindow : Window
     private readonly GameDetailPage _detailPage;
     private readonly AddGamePage _addGamePage;
     private readonly AchievementService _achievementService;
-    private readonly AchievementPopup _achievementPopup;
     private List<Achievement>? _lastAchievements;
 
     public MainWindow()
@@ -101,10 +100,6 @@ public sealed partial class MainWindow : Window
 
         Grid.SetRow(contentGrid, 1);
         rootGrid.Children.Add(contentGrid);
-
-        // Achievement popup
-        _achievementPopup = new AchievementPopup();
-        rootGrid.Children.Add(_achievementPopup.Element);
 
         Content = rootGrid;
 
@@ -206,7 +201,8 @@ public sealed partial class MainWindow : Window
                 
                 foreach (var ach in newAchievements.Take(3)) // Máximo 3 popups
                 {
-                    _achievementPopup.Show(ach);
+                    var notification = new AchievementNotificationWindow();
+                    notification.Show(ach);
                     await Task.Delay(500); // Delay entre popups
                 }
             }
@@ -341,6 +337,7 @@ public sealed partial class MainWindow : Window
             Description = "Adquira todos os troféus",
             Achieved = true
         };
-        _achievementPopup.Show(testAchievement);
+        var notification = new AchievementNotificationWindow();
+        notification.Show(testAchievement);
     }
 }
