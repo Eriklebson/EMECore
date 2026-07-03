@@ -246,13 +246,38 @@ public class FishingMacroService
         bool isFloat = waveFormat.Encoding == WaveFormatEncoding.IeeeFloat;
         int bytesPerSample = waveFormat.BitsPerSample / 8;
 
+        Log($"Monitor audio: {waveFormat.Encoding}, {waveFormat.BitsPerSample}bit, {waveFormat.Channels}ch, {waveFormat.SampleRate}Hz");
+
         float maxLevelSinceCast = 0;
         int samplesSinceCast = 0;
         var recentLevels = new Queue<float>();
 
+        // Save audio to WAV file for analysis
+        var audioBuffer = new MemoryStream();
+        var waveWriter = new BinaryWriter(audioBuffer);
+        // Write WAV header (will be updated later)
+        waveWriter.Write(new char[] { 'R', 'I', 'F', 'F' });
+        waveWriter.Write(0); // file size placeholder
+        waveWriter.Write(new char[] { 'W', 'A', 'V', 'E' });
+        waveWriter.Write(new char[] { 'f', 'm', 't', ' ' });
+        waveWriter.Write(16); // chunk size
+        waveWriter.Write((short)1); // PCM format
+        waveWriter.Write((short)waveFormat.Channels);
+        waveWriter.Write(waveFormat.SampleRate);
+        waveWriter.Write(waveFormat.AverageBytesPerSecond);
+        waveWriter.Write((short)waveFormat.BlockAlign);
+        waveWriter.Write((short)waveFormat.BitsPerSample);
+        waveWriter.Write(new char[] { 'd', 'a', 't', 'a' });
+        waveWriter.Write(0); // data size placeholder
+
         capture.DataAvailable += (s, e) =>
         {
-            if (e.BytesRecorded == 0 || spikeDetected) return;
+            if (e.BytesRecorded == 0) return;
+
+            // Save audio data
+            waveWriter.Write(e.Buffer, 0, e.BytesRecorded);
+
+            if (spikeDetected) return;
 
             float maxSample = 0;
             for (int i = 0; i < e.BytesRecorded; i += waveFormat.BlockAlign)
@@ -286,6 +311,12 @@ public class FishingMacroService
             recentLevels.Enqueue(maxSample);
             if (recentLevels.Count > 10) recentLevels.Dequeue();
 
+            // Log audio level periodically
+            if (samplesSinceCast % 20 == 0)
+            {
+                Log($"Audio level: {maxSample:F4}, avg: {recentLevels.Average():F4}, baseline: {_baselineAudioLevel:F4}");
+            }
+
             // Detect sudden spike: current level is much higher than baseline
             if (_baselineCalibrated && samplesSinceCast > 5)
             {
@@ -307,14 +338,43 @@ public class FishingMacroService
             if (spikeDetected)
             {
                 capture.StopRecording();
+                // Save WAV file
+                SaveWavFile(audioBuffer, waveWriter, waveFormat);
                 return true;
             }
             await Task.Delay(50, ct);
         }
 
         capture.StopRecording();
+        // Save WAV file even on timeout for analysis
+        SaveWavFile(audioBuffer, waveWriter, waveFormat);
         Log($"Audio wait timeout. Max level: {maxLevelSinceCast:F4}, Samples: {samplesSinceCast}");
         return false;
+    }
+
+    private static void SaveWavFile(MemoryStream audioBuffer, BinaryWriter waveWriter, WaveFormat waveFormat)
+    {
+        try
+        {
+            waveWriter.Flush();
+            var wavPath = Path.Combine(Path.GetTempPath(), "eme_fishing_audio.wav");
+            using var fs = new FileStream(wavPath, FileMode.Create, FileAccess.Write);
+            audioBuffer.Position = 0;
+            audioBuffer.CopyTo(fs);
+
+            // Update WAV header with correct sizes
+            fs.Position = 4;
+            var writer = new BinaryWriter(fs);
+            writer.Write((int)(fs.Length - 8));
+            fs.Position = 40;
+            writer.Write((int)(fs.Length - 44));
+
+            Log($"Audio saved to {wavPath}");
+        }
+        catch (Exception ex)
+        {
+            Log($"Error saving audio: {ex.Message}");
+        }
     }
 
     private async Task ReelIn(CancellationToken ct)
