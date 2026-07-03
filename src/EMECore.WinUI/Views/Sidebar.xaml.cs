@@ -28,7 +28,7 @@ public sealed partial class Sidebar : UserControl
         logoPanel.Children.Add(new FontIcon { Glyph = "\uE7F3", FontSize = 24, Foreground = SteamColors.BlueBrush });
         var logoTexts = new StackPanel();
         logoTexts.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = SteamColors.TextBrush });
-        logoTexts.Children.Add(new TextBlock { Text = "v2.5.0.0", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush });
+        logoTexts.Children.Add(new TextBlock { Text = "v2.5.1.0-beta", FontSize = 10, Foreground = SteamColors.TextSecondaryBrush });
         logoPanel.Children.Add(logoTexts);
         var logoBorder = new Grid { Padding = new Thickness(16, 20, 16, 12) };
         logoBorder.Children.Add(logoPanel);

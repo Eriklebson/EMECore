@@ -82,7 +82,7 @@ public sealed class FishingMacroWindow : Window
         });
         _statusText = new TextBlock
         {
-            Text = "Pronto para iniciar",
+            Text = "Pronto - Pressione Ctrl+E para iniciar",
             FontSize = 14,
             Foreground = SteamColors.TextBrush,
             TextWrapping = TextWrapping.Wrap
@@ -117,6 +117,17 @@ public sealed class FishingMacroWindow : Window
         fishStack.Children.Add(_fishCountText);
         fishCard.Child = fishStack;
         mainContent.Children.Add(fishCard);
+
+        // Hotkey info
+        var hotkeyInfo = new TextBlock
+        {
+            Text = "Atalho: Ctrl+E para iniciar/parar",
+            FontSize = 12,
+            Foreground = SteamColors.TextSecondaryBrush,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Margin = new Thickness(0, 10, 0, 0)
+        };
+        mainContent.Children.Add(hotkeyInfo);
 
         Grid.SetRow(mainContent, 1);
         root.Children.Add(mainContent);
@@ -165,8 +176,15 @@ public sealed class FishingMacroWindow : Window
         // Subscribe to events
         _macroService.StatusChanged += MacroService_StatusChanged;
         _macroService.FishCaught += MacroService_FishCaught;
+        _macroService.ToggleRequested += (_, _) => DispatcherQueue.TryEnqueue(ToggleMacro);
 
-        Closed += (_, _) => _macroService.Dispose();
+        // Install keyboard hook
+        _macroService.InstallHook();
+
+        Closed += (_, _) =>
+        {
+            _macroService.Dispose();
+        };
     }
 
     private static StackPanel CreateButtonContent(string glyph, string text)
@@ -195,6 +213,18 @@ public sealed class FishingMacroWindow : Window
         _macroService.StopFishing();
         _startButton.IsEnabled = true;
         _stopButton.IsEnabled = false;
+    }
+
+    private void ToggleMacro()
+    {
+        if (_macroService.IsRunning)
+        {
+            StopButton_Click(this!, new RoutedEventArgs());
+        }
+        else
+        {
+            StartButton_Click(this!, new RoutedEventArgs());
+        }
     }
 
     private void MacroService_StatusChanged(object? sender, string status)
