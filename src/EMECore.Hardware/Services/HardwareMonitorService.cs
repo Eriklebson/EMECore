@@ -54,9 +54,9 @@ public class HardwareMonitorService
         }
         else { Log("hw-collector.ps1 NOT FOUND"); }
 
-        // Start temperature collector (runs periodically)
+        // Start temperature collector (runs periodically, needs admin)
         var ts = FindToolsFile("check-cpu-temp.ps1");
-        if (ts != null)
+        if (ts != null && IsRunningAsAdmin())
         {
             Log($"Starting temp collector from {ts}");
             Task.Run(async () =>
@@ -79,7 +79,19 @@ public class HardwareMonitorService
                 }
             });
         }
-        else { Log("check-cpu-temp.ps1 NOT FOUND"); }
+        else if (ts == null) { Log("check-cpu-temp.ps1 NOT FOUND"); }
+        else { Log("Not admin, skipping temp collector"); }
+    }
+
+    private static bool IsRunningAsAdmin()
+    {
+        try
+        {
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            var principal = new System.Security.Principal.WindowsPrincipal(identity);
+            return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch { return false; }
     }
 
     public HardwareStats Collect()
@@ -178,9 +190,12 @@ public class HardwareMonitorService
                 _cacheDoc?.Dispose();
                 _cacheDoc = JsonDocument.Parse(json);
                 _lastCacheRead = DateTime.UtcNow;
+                var cpu = GetCacheDouble("cpuLoad", -1);
+                var ram = GetCacheDouble("ramUsed", -1);
+                Log($"Cache OK - cpuLoad:{cpu} ramUsed:{ram}");
             }
         }
-        catch { }
+        catch (Exception ex) { Log($"Cache error: {ex.Message}"); }
     }
 
     private string GetCacheString(string key, string fallback)
