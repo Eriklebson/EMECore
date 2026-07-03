@@ -19,22 +19,22 @@ public sealed partial class MonitorWindow : Window
     private readonly DispatcherTimer _graphTimer;
 
     // Motherboard
-    private readonly TextBlock _mbModel, _mbTemp, _mbVrmTemp;
+    private readonly TextBlock _mbModel, _mbTemp, _mbVrmTemp, _mbVoltage;
     private readonly StackPanel _mbFansPanel;
 
     // RAM
-    private readonly TextBlock _ramPct, _ramInfo, _ramModel;
+    private readonly TextBlock _ramPct, _ramInfo, _ramModel, _ramVoltage;
     private readonly Grid _ramBar;
 
     // CPU
-    private readonly TextBlock _cpuPct, _cpuCoreTemp, _cpuPkgTemp, _cpuModel;
+    private readonly TextBlock _cpuPct, _cpuCoreTemp, _cpuPkgTemp, _cpuModel, _cpuVoltage;
     private readonly Grid _cpuBar;
     private readonly Canvas _cpuGraph;
     private readonly List<double> _cpuHistory = new();
     private readonly StackPanel _cpuFansPanel;
 
     // GPU
-    private readonly TextBlock _gpuPct, _gpuCoreTemp, _gpuModel;
+    private readonly TextBlock _gpuPct, _gpuCoreTemp, _gpuModel, _gpuVoltage;
     private readonly Grid _gpuBar;
     private readonly Canvas _gpuGraph;
     private readonly List<double> _gpuHistory = new();
@@ -46,6 +46,10 @@ public sealed partial class MonitorWindow : Window
 
     // Network
     private readonly TextBlock _netName, _netDown, _netUp;
+    private readonly Canvas _netDownGraph, _netUpGraph;
+    private readonly List<double> _netDownHistory = new();
+    private readonly List<double> _netUpHistory = new();
+    private double _lastNetDown, _lastNetUp;
 
     // FPS
     private readonly TextBlock _fpsValue, _fpsInfo, _fpsLabel;
@@ -117,7 +121,11 @@ public sealed partial class MonitorWindow : Window
         // Motherboard Card
         var mbCard = CreateCard();
         var mbStack = new StackPanel { Spacing = 12 };
-        mbStack.Children.Add(CreateCardHeader("\uE9F5", "PLACA MÃE", MbColor));
+        var mbHeader = CreateCardHeaderGrid("\uE950", "PLACA MÃE", MbColor);
+        _mbVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(_mbVoltage, 1);
+        ((Grid)mbHeader).Children.Add(_mbVoltage);
+        mbStack.Children.Add(mbHeader);
         _mbModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         mbStack.Children.Add(_mbModel);
 
@@ -150,7 +158,11 @@ public sealed partial class MonitorWindow : Window
         // RAM Card
         var ramCard = CreateCard();
         var ramStack = new StackPanel { Spacing = 12 };
-        ramStack.Children.Add(CreateCardHeader("\uf515", "RAM", RamColor));
+        var ramHeader = CreateCardHeaderGrid("\uf515", "RAM", RamColor);
+        _ramVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(_ramVoltage, 1);
+        ((Grid)ramHeader).Children.Add(_ramVoltage);
+        ramStack.Children.Add(ramHeader);
         _ramModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         ramStack.Children.Add(_ramModel);
         var ramMetricsGrid = new Grid { ColumnSpacing = 24 };
@@ -181,7 +193,11 @@ public sealed partial class MonitorWindow : Window
         // CPU Card
         var cpuCard = CreateCard();
         var cpuStack = new StackPanel { Spacing = 12 };
-        cpuStack.Children.Add(CreateCardHeader("\uef8e", "CPU", CpuColor));
+        var cpuHeader = CreateCardHeaderGrid("\uef8e", "CPU", CpuColor);
+        _cpuVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(_cpuVoltage, 1);
+        ((Grid)cpuHeader).Children.Add(_cpuVoltage);
+        cpuStack.Children.Add(cpuHeader);
         _cpuModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         cpuStack.Children.Add(_cpuModel);
 
@@ -225,7 +241,11 @@ public sealed partial class MonitorWindow : Window
         // GPU Card
         var gpuCard = CreateCard();
         var gpuStack = new StackPanel { Spacing = 12 };
-        gpuStack.Children.Add(CreateCardHeader("\uea89", "GPU", GpuColor));
+        var gpuHeader = CreateCardHeaderGrid("\uea89", "GPU", GpuColor);
+        _gpuVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(_gpuVoltage, 1);
+        ((Grid)gpuHeader).Children.Add(_gpuVoltage);
+        gpuStack.Children.Add(gpuHeader);
         _gpuModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         gpuStack.Children.Add(_gpuModel);
 
@@ -341,6 +361,24 @@ public sealed partial class MonitorWindow : Window
 
         netStack.Children.Add(netGrid);
 
+        // Network graphs
+        var netGraphGrid = new Grid { ColumnSpacing = 8, Margin = new Thickness(0, 4, 0, 0), Height = 50 };
+        netGraphGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        netGraphGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var downGraphBg = new Border { Background = new SolidColorBrush(ColorFromHex("#0B1120")), CornerRadius = new CornerRadius(6), Padding = new Thickness(4), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
+        _netDownGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+        downGraphBg.Child = _netDownGraph;
+        netGraphGrid.Children.Add(downGraphBg);
+
+        var upGraphBg = new Border { Background = new SolidColorBrush(ColorFromHex("#0B1120")), CornerRadius = new CornerRadius(6), Padding = new Thickness(4), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
+        _netUpGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+        upGraphBg.Child = _netUpGraph;
+        Grid.SetColumn(upGraphBg, 1);
+        netGraphGrid.Children.Add(upGraphBg);
+
+        netStack.Children.Add(netGraphGrid);
+
         netCard.Child = netStack;
         Grid.SetColumn(netCard, 1);
         row3.Children.Add(netCard);
@@ -421,6 +459,19 @@ public sealed partial class MonitorWindow : Window
         return stack;
     }
 
+    private static Grid CreateCardHeaderGrid(string icon, string title, SolidColorBrush accentColor)
+    {
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        
+        var hdr = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        hdr.Children.Add(new FontIcon { Glyph = icon, FontSize = 18, Foreground = accentColor, FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons") });
+        hdr.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
+        grid.Children.Add(hdr);
+        return grid;
+    }
+
     private static Grid CreateBar(out Grid bar, SolidColorBrush color)
     {
         var fill = new Border { Background = color, CornerRadius = new CornerRadius(4), Height = 6 };
@@ -462,10 +513,12 @@ public sealed partial class MonitorWindow : Window
             _mbTemp.Foreground = TempColor(s.MotherboardTemp);
             _mbVrmTemp.Text = s.MotherboardVrmTemp > 0 ? $"{s.MotherboardVrmTemp:F0}°C" : "--";
             _mbVrmTemp.Foreground = TempColor(s.MotherboardVrmTemp);
+            _mbVoltage.Text = s.MotherboardVoltage > 0 ? $"{s.MotherboardVoltage:F2}V" : "";
 
             // RAM
             var rp = s.TotalRam > 0 ? s.UsedRam / s.TotalRam * 100 : 0;
             _ramModel.Text = s.RamModuleCount > 0 ? $"{s.RamModuleCount}x{FmtSize(s.RamModuleSize)} {s.RamModel} @ {s.RamSpeed} MHz" : $"{s.RamModel} @ {s.RamSpeed} MHz";
+            _ramVoltage.Text = s.RamVoltage > 0 ? $"{s.RamVoltage:F1}V" : "";
             _ramInfo.Text = $"{s.UsedRam:F1} / {s.TotalRam:F1} GB";
             _ramPct.Text = $"{rp:F0}%";
             _ramPct.Foreground = UsageColor(rp, RamColor);
@@ -473,6 +526,9 @@ public sealed partial class MonitorWindow : Window
 
             // CPU
             _cpuModel.Text = s.CpuModel;
+            var cpuPowerStr = s.CpuVoltage > 0 ? $"{s.CpuVoltage:F3}V" : "";
+            if (s.CpuPower > 0) cpuPowerStr += $" | {s.CpuPower:F0}W";
+            _cpuVoltage.Text = cpuPowerStr;
             _cpuPct.Text = $"{s.CpuUsage:F0}%";
             _cpuPct.Foreground = UsageColor(s.CpuUsage, CpuColor);
             SetBar(_cpuBar, s.CpuUsage, UsageColor(s.CpuUsage, CpuColor));
@@ -485,6 +541,9 @@ public sealed partial class MonitorWindow : Window
 
             // GPU
             _gpuModel.Text = s.GpuModel;
+            var gpuPowerStr = s.GpuVoltage > 0 ? $"{s.GpuVoltage:F3}V" : "";
+            if (s.GpuPower > 0) gpuPowerStr += $" | {s.GpuPower:F0}W";
+            _gpuVoltage.Text = gpuPowerStr;
             _gpuPct.Text = $"{s.GpuUsage:F0}%";
             _gpuPct.Foreground = UsageColor(s.GpuUsage, GpuColor);
             SetBar(_gpuBar, s.GpuUsage, UsageColor(s.GpuUsage, GpuColor));
@@ -492,8 +551,6 @@ public sealed partial class MonitorWindow : Window
             _gpuCoreTemp.Foreground = TempColor(s.GpuTemp);
             _gpuHistory.Add(s.GpuUsage);
             if (_gpuHistory.Count > 60) _gpuHistory.RemoveAt(0);
-
-            // Disk
             _diskName.Text = s.DiskName;
             _diskPct.Text = s.DiskUsagePercent > 0 ? $"{s.DiskUsagePercent:F0}%" : "--";
             _diskPct.Foreground = UsageColor(s.DiskUsagePercent, DiskColor);
@@ -502,10 +559,18 @@ public sealed partial class MonitorWindow : Window
             _diskRead.Text = s.DiskReadKbps > 0 ? FormatSpeed(s.DiskReadKbps) : "--";
             _diskWrite.Text = s.DiskWriteKbps > 0 ? FormatSpeed(s.DiskWriteKbps) : "--";
 
-            // Network
+            // Network (with anti-flicker - cache last value)
             _netName.Text = s.NetworkName;
-            _netDown.Text = s.NetworkDownloadSpeed > 0 ? FormatSpeed(s.NetworkDownloadSpeed) : "--";
-            _netUp.Text = s.NetworkUploadSpeed > 0 ? FormatSpeed(s.NetworkUploadSpeed) : "--";
+            var netDown = s.NetworkDownloadSpeed > 0 ? s.NetworkDownloadSpeed : _lastNetDown;
+            var netUp = s.NetworkUploadSpeed > 0 ? s.NetworkUploadSpeed : _lastNetUp;
+            _lastNetDown = netDown;
+            _lastNetUp = netUp;
+            _netDown.Text = netDown > 0 ? FormatSpeed(netDown) : "--";
+            _netUp.Text = netUp > 0 ? FormatSpeed(netUp) : "--";
+            _netDownHistory.Add(netDown);
+            _netUpHistory.Add(netUp);
+            if (_netDownHistory.Count > 60) _netDownHistory.RemoveAt(0);
+            if (_netUpHistory.Count > 60) _netUpHistory.RemoveAt(0);
 
             // Fans - distribuir para cada card
             if (s.Fans.Count != _fanCount)
@@ -669,11 +734,13 @@ public sealed partial class MonitorWindow : Window
 
     private void UpdateGraphs()
     {
-        DrawGraph(_cpuGraph, _cpuHistory, CpuColor);
-        DrawGraph(_gpuGraph, _gpuHistory, GpuColor);
+        DrawGraph(_cpuGraph, _cpuHistory, CpuColor, 100);
+        DrawGraph(_gpuGraph, _gpuHistory, GpuColor, 100);
+        DrawGraph(_netDownGraph, _netDownHistory, NetColor, 1024);
+        DrawGraph(_netUpGraph, _netUpHistory, new SolidColorBrush(Colors.White), 1024);
     }
 
-    private static void DrawGraph(Canvas canvas, List<double> data, SolidColorBrush color)
+    private static void DrawGraph(Canvas canvas, List<double> data, SolidColorBrush color, double maxVal)
     {
         canvas.Children.Clear();
         if (data.Count < 2) return;
@@ -685,14 +752,14 @@ public sealed partial class MonitorWindow : Window
         var fillGeometry = new PathGeometry();
         var fillFigure = new PathFigure { IsClosed = true };
         fillFigure.StartPoint = new Windows.Foundation.Point(0, h);
-        for (int i = 0; i < data.Count; i++) fillFigure.Segments.Add(new LineSegment { Point = new Windows.Foundation.Point(i * stepX, h - (data[i] / 100.0 * h)) });
+        for (int i = 0; i < data.Count; i++) fillFigure.Segments.Add(new LineSegment { Point = new Windows.Foundation.Point(i * stepX, h - (data[i] / maxVal * h)) });
         fillFigure.Segments.Add(new LineSegment { Point = new Windows.Foundation.Point((data.Count - 1) * stepX, h) });
         fillGeometry.Figures.Add(fillFigure); fillPath.Data = fillGeometry; canvas.Children.Add(fillPath);
 
         var linePath = new Microsoft.UI.Xaml.Shapes.Path { Stroke = color, StrokeThickness = 2, StrokeLineJoin = PenLineJoin.Round };
         var lineGeometry = new PathGeometry();
-        var lineFigure = new PathFigure { StartPoint = new Windows.Foundation.Point(0, h - (data[0] / 100.0 * h)) };
-        for (int i = 1; i < data.Count; i++) lineFigure.Segments.Add(new LineSegment { Point = new Windows.Foundation.Point(i * stepX, h - (data[i] / 100.0 * h)) });
+        var lineFigure = new PathFigure { StartPoint = new Windows.Foundation.Point(0, h - (data[0] / maxVal * h)) };
+        for (int i = 1; i < data.Count; i++) lineFigure.Segments.Add(new LineSegment { Point = new Windows.Foundation.Point(i * stepX, h - (data[i] / maxVal * h)) });
         lineGeometry.Figures.Add(lineFigure); linePath.Data = lineGeometry; canvas.Children.Add(linePath);
     }
 

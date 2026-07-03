@@ -85,6 +85,45 @@ foreach ($hw in $computer.Hardware) {
 $log += "MB Temp: $mbTemp"
 $log += "MB VRM: $mbVrmTemp"
 
+# GPU and Voltage/Power data
+$cpuPower = 0
+$gpuPower = 0
+foreach ($hw in $computer.Hardware) {
+    if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::Cpu) {
+        foreach ($s in $hw.Sensors) {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Power -and $s.Value -ne $null -and $s.Value -gt 0 -and $s.Name -like "*Package*") {
+                $cpuPower = [math]::Round($s.Value, 1)
+                $log += "CPU Power: $cpuPower"
+                break
+            }
+        }
+    }
+    if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuNvidia -or $hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuAmd) {
+        foreach ($s in $hw.Sensors) {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Voltage -and $s.Value -ne $null -and $s.Value -gt 0) {
+                $log += "GPU Core Voltage: $([math]::Round($s.Value,3))"
+                break
+            }
+        }
+        foreach ($s in $hw.Sensors) {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Power -and $s.Value -ne $null -and $s.Value -gt 0 -and $s.Name -like "*GPU*") {
+                $gpuPower = [math]::Round($s.Value, 1)
+                $log += "GPU Power: $gpuPower"
+                break
+            }
+        }
+    }
+    if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::Motherboard) {
+        foreach ($sub in $hw.SubHardware) {
+            foreach ($s in $sub.Sensors) {
+                if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Voltage -and $s.Value -ne $null -and $s.Value -gt 0 -and $s.Name -eq "Vcore") {
+                    $log += "Vcore: $([math]::Round($s.Value,3))"
+                }
+            }
+        }
+    }
+}
+
 foreach ($hw in $computer.Hardware) {
     if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuNvidia -or $hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuAmd) {
         foreach ($s in $hw.Sensors) {
