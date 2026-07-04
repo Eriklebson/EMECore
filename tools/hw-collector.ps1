@@ -15,22 +15,22 @@ while ($true) {
         # GPU
         $gpu = Get-CimInstance Win32_VideoController | Select-Object -First 1
         $data.gpuName = $gpu.Name
-        
-        # GPU data via nvidia-smi (works without admin)
         $data.gpuLoad = 0
         $data.gpuTemp = 0
-        try {
-            $job = Start-Job -ScriptBlock { 
-                param($path)
-                & $path --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader 2>&1
-            } -ArgumentList "$env:SystemRoot\System32\nvidia-smi.exe"
-            $gpuData = Wait-Job $job -Timeout 2 | Receive-Job
-            Remove-Job $job -Force
-            if ($gpuData -and $gpuData -match '(\d+) %, (\d+)') {
-                $data.gpuLoad = [int]$Matches[1]
-                $data.gpuTemp = [int]$Matches[2]
-            }
-        } catch { }
+        
+        # GPU usage via WMI (works on any GPU)
+        if ($gpu.LoadPercentage) { $data.gpuLoad = [int]$gpu.LoadPercentage }
+        
+        # GPU temp via nvidia-smi (NVIDIA only, fails silently otherwise)
+        if ($gpu.Name -match "NVIDIA") {
+            try {
+                $smi = & "$env:SystemRoot\System32\nvidia-smi.exe" --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader 2>$null
+                if ($smi -match '(\d+) %, (\d+)') {
+                    $data.gpuLoad = [int]$Matches[1]
+                    $data.gpuTemp = [int]$Matches[2]
+                }
+            } catch { }
+        }
 
         # RAM
         $os = Get-CimInstance Win32_OperatingSystem

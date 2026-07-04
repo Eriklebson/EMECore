@@ -358,6 +358,10 @@ public class HardwareMonitorService
                     s.GpuVoltage = Math.Round(gv, 3);
                 if (l.StartsWith("CPU Power: ") && s.CpuPower == 0 && double.TryParse(l[11..].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var cp) && cp > 0)
                     s.CpuPower = Math.Round(cp, 1);
+                if (l.StartsWith("GPU Temp: ") && s.GpuTemp == 0 && double.TryParse(l[10..].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var gt) && gt > 0 && gt < 120)
+                    s.GpuTemp = Math.Round(gt, 1);
+                if (l.StartsWith("GPU Load: ") && s.GpuUsage == 0 && double.TryParse(l[10..].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var gl) && gl > 0 && gl <= 100)
+                    s.GpuUsage = Math.Round(gl, 1);
                 if (l.StartsWith("GPU Power: ") && s.GpuPower == 0 && double.TryParse(l[11..].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var gp) && gp > 0)
                     s.GpuPower = Math.Round(gp, 1);
             }

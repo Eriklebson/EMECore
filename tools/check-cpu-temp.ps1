@@ -99,14 +99,36 @@ foreach ($hw in $computer.Hardware) {
         }
     }
     if ($hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuNvidia -or $hw.HardwareType -eq [LibreHardwareMonitor.Hardware.HardwareType]::GpuAmd) {
+        # Log ALL GPU sensors for debugging
+        foreach ($s in $hw.Sensors) {
+            if ($s.Value -ne $null) {
+                $log += "GPU: $($s.SensorType):$($s.Name)=$([math]::Round($s.Value,1))"
+            }
+        }
+        # GPU Temperature - first temp sensor
+        foreach ($s in $hw.Sensors) {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Temperature -and $s.Value -ne $null -and $s.Value -gt 0 -and $s.Value -lt 120) {
+                $log += "GPU Temp: $([math]::Round($s.Value,1))"
+                break
+            }
+        }
+        # GPU Load - first load sensor
+        foreach ($s in $hw.Sensors) {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Load -and $s.Value -ne $null -and $s.Value -gt 0 -and $s.Value -le 100) {
+                $log += "GPU Load: $([math]::Round($s.Value,1))"
+                break
+            }
+        }
+        # GPU Voltage
         foreach ($s in $hw.Sensors) {
             if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Voltage -and $s.Value -ne $null -and $s.Value -gt 0) {
                 $log += "GPU Core Voltage: $([math]::Round($s.Value,3))"
                 break
             }
         }
+        # GPU Power
         foreach ($s in $hw.Sensors) {
-            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Power -and $s.Value -ne $null -and $s.Value -gt 0 -and $s.Name -like "*GPU*") {
+            if ($s.SensorType -eq [LibreHardwareMonitor.Hardware.SensorType]::Power -and $s.Value -ne $null -and $s.Value -gt 0) {
                 $gpuPower = [math]::Round($s.Value, 1)
                 $log += "GPU Power: $gpuPower"
                 break
