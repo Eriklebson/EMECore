@@ -1,0 +1,3 @@
+<Project>
+  <!-- Unpackaged app: WindowsPackageType=None enables Bootstrap auto-init to load WindowsAppSDK via DynamicDependency -->
+</Project>

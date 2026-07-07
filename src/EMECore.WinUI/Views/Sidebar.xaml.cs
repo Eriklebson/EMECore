@@ -1,0 +1,119 @@
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using EMECore.WinUI.Controls;
+using EMECore.WinUI.Theme;
+
+namespace EMECore.WinUI.Views;
+
+public sealed partial class Sidebar : UserControl
+{
+    public event EventHandler<string>? NavigationRequested;
+    public event EventHandler? MonitorRequested;
+    public event EventHandler? FishingMacroRequested;
+    public event EventHandler? TestAchievementRequested;
+    public event EventHandler<string>? CategoryRequested;
+    public event EventHandler<bool>? CollapseChanged;
+    public event EventHandler? SettingsRequested;
+
+    private bool _collapsed;
+    private readonly Grid _root;
+    private readonly StackPanel _logo, _nav;
+    private readonly Border _logoBox;
+    private readonly TextBlock _navLbl, _utilLbl;
+    private readonly Border _indicator;
+    private readonly SidebarItem _libraryBtn;
+    private readonly List<SidebarItem> _items = new();
+
+    public Sidebar()
+    {
+        _root = new Grid { Background = Design.C.SideB, BorderThickness = new Thickness(0, 0, 1, 0), BorderBrush = Design.C.BorB };
+        _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        _root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var logoRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.MD };
+        var logoBox = new Border { Width=40, Height=40, CornerRadius=Design.R.XL, Background=Design.C.Pri10B, BorderThickness=new Thickness(1), BorderBrush=new SolidColorBrush(Design.C.PriRing), VerticalAlignment=VerticalAlignment.Center, Child=new TextBlock{Text="EME",FontSize=11,FontWeight=Microsoft.UI.Text.FontWeights.Bold,CharacterSpacing=-50,Foreground=Design.C.PriB,FontFamily=new("Consolas"),HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center} };
+        _logoBox = logoBox;
+        logoRow.Children.Add(logoBox);
+        _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
+        _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
+        _logo.Children.Add(new TextBlock { Text = "v2.14.0.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        logoRow.Children.Add(_logo);
+        var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
+        Grid.SetRow(lb, 0); _root.Children.Add(lb);
+
+        var collapseBtn = new Button
+        {
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.SM, Children = { new FontIcon { Glyph = "\uE76B", FontSize = 14, FontFamily = new FontFamily("Segoe MDL2 Assets"), Foreground = Design.C.MutedB }, new TextBlock { Text = "Recolher", FontSize = 11, Foreground = Design.C.MutedB, VerticalAlignment = VerticalAlignment.Center, CharacterSpacing = 30 } } },
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(Design.S.MD, 6, Design.S.MD, 6), Margin = new Thickness(Design.S.MD, 0, Design.S.MD, Design.S.LG),
+            CornerRadius = Design.R.MD
+        };
+        collapseBtn.Click += (_, _) =>
+        {
+            _collapsed = !_collapsed;
+            ((FontIcon)((StackPanel)collapseBtn.Content).Children[0]).Glyph = _collapsed ? "\uE76C" : "\uE76B";
+            ((TextBlock)((StackPanel)collapseBtn.Content).Children[1]).Text = _collapsed ? "" : "Recolher";
+            collapseBtn.HorizontalContentAlignment = _collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+            _logoBox.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
+            _logo.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
+            _navLbl.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
+            _utilLbl.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
+            _indicator.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
+            foreach (var i in _items) i.SetCollapsed(_collapsed);
+            CollapseChanged?.Invoke(this, _collapsed);
+        };
+        Grid.SetRow(collapseBtn, 1); _root.Children.Add(collapseBtn);
+
+        _nav = new StackPanel();
+        _navLbl = SectionLabel("Navegação"); _nav.Children.Add(_navLbl);
+
+        _libraryBtn = AddItem("\uE80F", "Jogos");
+        _libraryBtn.Click += (_, _) => { Activate(_libraryBtn); CategoryRequested?.Invoke(this, "game"); };
+        var toolsBtn = AddItem("\uE70F", "Ferramentas");
+        toolsBtn.Click += (_, _) => { Activate(toolsBtn); CategoryRequested?.Invoke(this, "tool"); };
+        var trainBtn = AddItem("\uE9D9", "Treinamento");
+        trainBtn.Click += (_, _) => { Activate(trainBtn); CategoryRequested?.Invoke(this, "training"); };
+        var settBtn = AddItem("\uE713", "Configurações");
+        settBtn.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+
+        var divC = new Grid { Height = Design.S.LG, Margin = new Thickness(Design.S.XL, Design.S.MD, Design.S.XL, Design.S.MD) };
+        divC.Children.Add(new Border { Background = Design.C.BorB, Width = 1, HorizontalAlignment = HorizontalAlignment.Center });
+        _nav.Children.Add(divC);
+
+        _utilLbl = SectionLabel("Utilitários EME"); _nav.Children.Add(_utilLbl);
+
+        var monBtn = AddItem("\uE9CA", "Monitor de Hardware");
+        monBtn.Click += (_, _) => MonitorRequested?.Invoke(this, EventArgs.Empty);
+        var achBtn = AddItem("\uE8FB", "Testar Conquista");
+        achBtn.Click += (_, _) => TestAchievementRequested?.Invoke(this, EventArgs.Empty);
+
+        _indicator = new Border { Width=3, HorizontalAlignment=HorizontalAlignment.Left, CornerRadius=new CornerRadius(0,3,3,0), Background=new LinearGradientBrush{StartPoint=new(0,0),EndPoint=new(0,1),GradientStops={new(){Color=Design.C.Pri,Offset=0},new(){Color=Design.C.Pri,Offset=1}}}, VerticalAlignment=VerticalAlignment.Top };
+        var nc = new Grid(); nc.Children.Add(_indicator); nc.Children.Add(_nav);
+        Grid.SetRow(nc, 2); _root.Children.Add(nc);
+
+        var addPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.SM };
+        addPanel.Children.Add(new FontIcon { Glyph = "\uE710", FontSize = 18, Foreground = Design.C.PriB });
+        addPanel.Children.Add(new TextBlock { Text = "Adicionar Jogo", VerticalAlignment = VerticalAlignment.Center, FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+        var addBtn = new Button { Content=addPanel, Background=Design.C.Pri10B, Foreground=Design.C.PriB, HorizontalContentAlignment=HorizontalAlignment.Left, HorizontalAlignment=HorizontalAlignment.Stretch, Padding=new Thickness(Design.S.MD,10,Design.S.MD,10), CornerRadius=Design.R.LG, BorderThickness=new Thickness(1), BorderBrush=new SolidColorBrush(Design.C.PriRing) };
+        addBtn.Click += (_, _) => NavigationRequested?.Invoke(this, "addgame");
+        addBtn.PointerEntered += (_, _) => { addBtn.Background = Design.C.PriB; addBtn.Foreground = Design.C.BgB; };
+        addBtn.PointerExited += (_, _) => { addBtn.Background = Design.C.Pri10B; addBtn.Foreground = Design.C.PriB; };
+        var fb = new Border { Background = Design.C.InsetB, Child = addBtn, Padding = new Thickness(Design.S.MD), BorderThickness = new Thickness(0, 1, 0, 0), BorderBrush = Design.C.BorB };
+        Grid.SetRow(fb, 3); _root.Children.Add(fb);
+
+        Content = _root;
+        Activate(_libraryBtn);
+    }
+
+    private SidebarItem AddItem(string g, string l) { var i = new SidebarItem(g, l); _items.Add(i); _nav.Children.Add(i); return i; }
+    private void Activate(SidebarItem item) { foreach (var i in _items) i.IsActive = false; item.IsActive = true; var t = item.TransformToVisual(_nav); _indicator.Margin = new Thickness(0, (int)(t.TransformPoint(new Windows.Foundation.Point(0, 0)).Y + 6), 0, 0); }
+    private static TextBlock SectionLabel(string t) => new() { Text = t, FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.Muted70B, Padding = new Thickness(Design.S.XL, 0, Design.S.XL, 0), Margin = new Thickness(0, 0, 0, Design.S.SM), CharacterSpacing = 180 };
+    public void UpdateStats(string s, string t, string st) { }
+    public void UpdateFishingMacroVisibility(bool v) { }
+    public void RefreshTheme() { _root.Background = new SolidColorBrush(ThemeManager.Current.Surface); }
+}

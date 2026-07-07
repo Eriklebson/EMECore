@@ -1,0 +1,103 @@
+{
+  "architectures": {
+    "AMD_Ryzen_5000": {
+      "match": { "NameContains": ["Ryzen 5 5", "Ryzen 7 5", "Ryzen 9 5"] },
+      "sensors": {
+        "TempSensor": "Core (Tctl/Tdie)",
+        "VoltageSensor": "Core (SVI2 TFN)",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["CCD", "CPU Package"]
+      }
+    },
+    "AMD_Ryzen_7000": {
+      "match": { "NameContains": ["Ryzen 5 7", "Ryzen 7 7", "Ryzen 9 7"] },
+      "sensors": {
+        "TempSensor": "Core (Tctl/Tdie)",
+        "VoltageSensor": "Core (SVI2 TFN)",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["CCD", "CPU"]
+      }
+    },
+    "AMD_Ryzen_9000": {
+      "match": { "NameContains": ["Ryzen 5 9", "Ryzen 7 9", "Ryzen 9 9"] },
+      "sensors": {
+        "TempSensor": "Core (Tctl/Tdie)",
+        "VoltageSensor": "Core (SVI2 TFN)",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["CCD", "CPU"]
+      }
+    },
+    "AMD_Ryzen_3000": {
+      "match": { "NameContains": ["Ryzen 5 3", "Ryzen 7 3", "Ryzen 9 3"] },
+      "sensors": {
+        "TempSensor": "Core (Tctl/Tdie)",
+        "VoltageSensor": "Core (SVI2 TFN)",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["CCD"]
+      }
+    },
+    "Intel_14th_Gen": {
+      "match": { "NameContains": ["i5-14", "i7-14", "i9-14", "i3-14"] },
+      "sensors": {
+        "TempSensor": "CPU",
+        "VoltageSensor": "Vcore",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["Core #0", "Core Average"]
+      }
+    },
+    "Intel_13th_Gen": {
+      "match": { "NameContains": ["i5-13", "i7-13", "i9-13", "i3-13"] },
+      "sensors": {
+        "TempSensor": "CPU",
+        "VoltageSensor": "Vcore",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["Core #0", "Core Average"]
+      }
+    },
+    "Intel_12th_Gen": {
+      "match": { "NameContains": ["i5-12", "i7-12", "i9-12", "i3-12"] },
+      "sensors": {
+        "TempSensor": "CPU",
+        "VoltageSensor": "Vcore",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["Core #0", "Core Average"]
+      }
+    },
+    "Intel_11th_Gen": {
+      "match": { "NameContains": ["i5-11", "i7-11", "i9-11", "i3-11"] },
+      "sensors": {
+        "TempSensor": "CPU Package",
+        "VoltageSensor": "Vcore",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["Core #0"]
+      }
+    },
+    "Intel_10th_Gen": {
+      "match": { "NameContains": ["i5-10", "i7-10", "i9-10", "i3-10"] },
+      "sensors": {
+        "TempSensor": "CPU Package",
+        "VoltageSensor": "Vcore",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["Core #0"]
+      }
+    },
+    "AMD_Generic": {
+      "match": { "NameContains": ["AMD", "Ryzen"] },
+      "sensors": {
+        "TempSensor": "CPU",
+        "VoltageSensor": "Core (SVI2 TFN)",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["Core (Tctl/Tdie)", "CCD"]
+      }
+    },
+    "Intel_Generic": {
+      "match": { "NameContains": ["Intel", "Core"] },
+      "sensors": {
+        "TempSensor": "CPU",
+        "VoltageSensor": "Vcore",
+        "PowerSensor": "CPU Package",
+        "TempFallback": ["Core #0", "CPU Package"]
+      }
+    }
+  }
+}

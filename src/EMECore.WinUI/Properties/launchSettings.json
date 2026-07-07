@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "EMECore (Unpackaged)": {
+      "commandName": "Project"
+    },
+    "EMECore (Package)": {
+      "commandName": "MsixPackage"
+    }
+  }
+}

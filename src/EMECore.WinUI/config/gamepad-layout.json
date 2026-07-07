@@ -1,0 +1,20 @@
+{
+  "ImageWidth": 360,
+  "ImageHeight": 256,
+  "Buttons": {
+    "DPadUp":      { "X": 0.358, "Y": 0.449, "Radius": 0.035 },
+    "DPadDown":    { "X": 0.358, "Y": 0.574, "Radius": 0.035 },
+    "DPadLeft":    { "X": 0.286, "Y": 0.512, "Radius": 0.035 },
+    "DPadRight":   { "X": 0.428, "Y": 0.512, "Radius": 0.035 },
+    "A":           { "X": 0.756, "Y": 0.383, "Radius": 0.043 },
+    "B":           { "X": 0.817, "Y": 0.277, "Radius": 0.043 },
+    "X":           { "X": 0.678, "Y": 0.277, "Radius": 0.043 },
+    "Y":           { "X": 0.772, "Y": 0.203, "Radius": 0.043 },
+    "LeftStick":   { "X": 0.214, "Y": 0.305, "Radius": 0.063 },
+    "RightStick":  { "X": 0.619, "Y": 0.602, "Radius": 0.063 },
+    "Start":       { "X": 0.547, "Y": 0.293, "Radius": 0.027 },
+    "Back":        { "X": 0.433, "Y": 0.293, "Radius": 0.027 },
+    "LeftShoulder":  { "X": 0.169, "Y": 0.078, "Radius": 0.050 },
+    "RightShoulder": { "X": 0.831, "Y": 0.074, "Radius": 0.050 }
+  }
+}
