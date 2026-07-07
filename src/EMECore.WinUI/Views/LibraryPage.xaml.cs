@@ -2,6 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using CommunityToolkit.WinUI.Controls;
 using EMECore.Core.Models;
 using EMECore.Hardware.Services;
 using EMECore.WinUI.Theme;
@@ -16,7 +17,7 @@ public sealed partial class LibraryPage : UserControl
 
     private List<Game> _allGames = new();
     private string _category = "game";
-    private readonly GridView _grid;
+    private readonly WrapPanel _grid;
     private readonly TextBox _search;
     private readonly TextBlock _count;
 
@@ -48,7 +49,6 @@ public sealed partial class LibraryPage : UserControl
         _search.TextChanged += (_, _) => Refresh();
         sr.Children.Add(_search); sb.Child=sr;
         Grid.SetColumn(sb, 2); hg.Children.Add(sb);
-
         hdr.Child=hg; Grid.SetRow(hdr,0); root.Children.Add(hdr);
 
         var cg = new StackPanel { Margin=new Thickness(Design.S.XX,Design.S.MD,Design.S.XX,Design.S.XX) };
@@ -57,25 +57,10 @@ public sealed partial class LibraryPage : UserControl
         _count = new TextBlock { Text="0 de 0", FontSize=13, Foreground=Design.C.MutedB, FontFamily=new("Consolas") };
         cr.Children.Add(_count); cg.Children.Add(cr);
 
-        _grid = new GridView { SelectionMode=ListViewSelectionMode.None, IsItemClickEnabled=false };
-        _grid.ContainerContentChanging += (_, args) =>
-        {
-            if (args.ItemContainer is GridViewItem gvi)
-            {
-                gvi.BorderThickness = new Thickness(0);
-                gvi.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
-                gvi.Margin = new Thickness(0);
-                gvi.Padding = new Thickness(0);
-                gvi.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-                // Disable all visual state groups (kills hover/reveal effects)
-                foreach (var group in VisualStateManager.GetVisualStateGroups(gvi))
-                    foreach (var state in group.States)
-                        foreach (var setter in state.Setters)
-                            if (setter is Setter s && (s.Property == BorderBrushProperty || s.Property == BorderThicknessProperty || s.Property == BackgroundProperty))
-                                s.Value = null;
-            }
-        };
-        cg.Children.Add(_grid);
+        // 🔥 WrapPanel from CommunityToolkit — sem bordas de hover do GridView!
+        _grid = new WrapPanel { Orientation=Microsoft.UI.Xaml.Controls.Orientation.Horizontal, HorizontalSpacing=12, VerticalSpacing=12 };
+        var scroll = new ScrollViewer { Content=_grid, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled, VerticalScrollBarVisibility=ScrollBarVisibility.Auto };
+        cg.Children.Add(scroll);
         Grid.SetRow(cg,1); root.Children.Add(cg);
         Content=root;
     }
@@ -89,8 +74,8 @@ public sealed partial class LibraryPage : UserControl
     {
         var f = _allGames.Where(g => GameScannerService.GetGameCategory(g.Name) == _category).ToList();
         if (!string.IsNullOrWhiteSpace(_search.Text)) f = f.Where(g => g.Name.Contains(_search.Text, StringComparison.OrdinalIgnoreCase)).ToList();
-        _grid.Items.Clear();
-        foreach (var g in f) { var c = new GameCard(); c.SetGame(g); c.GameClicked += (_, gm) => GameSelected?.Invoke(this, gm); c.PlayRequested += (_, gm) => GameLaunchRequested?.Invoke(this, gm); _grid.Items.Add(c); }
+        _grid.Children.Clear();
+        foreach (var g in f) { var c = new GameCard(); c.SetGame(g); c.GameClicked += (_, gm) => GameSelected?.Invoke(this, gm); c.PlayRequested += (_, gm) => GameLaunchRequested?.Invoke(this, gm); _grid.Children.Add(c); }
         _count.Text = $"{f.Count} de {_allGames.Count}";
     }
 }

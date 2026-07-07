@@ -129,15 +129,13 @@ public sealed partial class MainWindow : Window
 
     private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
     {
-        if (args.WindowActivationState == WindowActivationState.CodeActivated)
-        {
-            this.Activated -= MainWindow_Activated;
+        this.Activated -= MainWindow_Activated;
 
-            var hwnd = WindowNative.GetWindowHandle(this);
-            var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-            var appWindow = AppWindow.GetFromWindowId(windowId);
+        var hwnd = WindowNative.GetWindowHandle(this);
+        var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
+        var appWindow = AppWindow.GetFromWindowId(windowId);
 
-            appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 1400, Height = 900 });
+        appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 1400, Height = 900 });
 
             appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
             var titleBarObj = appWindow.TitleBar;
@@ -149,38 +147,38 @@ public sealed partial class MainWindow : Window
             // Definir área de arrastar
             SetTitleBar(_dragRegion);
 
-            var dbPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "EMECore", "eme_core.db");
-            await ViewModel.InitializeAsync(dbPath);
+        var dbPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "EMECore", "eme_core.db");
+        await ViewModel.InitializeAsync(dbPath);
 
-            _libraryPage.LoadGames(ViewModel.Games);
-            ViewModel.PropertyChanged += ViewModel_PropertyChanged;
+        _libraryPage.LoadGames(ViewModel.Games);
+        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
-            _sidebar.UpdateStats(
-                $"{ViewModel.TotalGames} jogos",
-                $"{ViewModel.TotalPlayTime} jogado",
-                ViewModel.StatusText);
+        _sidebar.UpdateStats(
+            $"{ViewModel.TotalGames} jogos",
+            $"{ViewModel.TotalPlayTime} jogado",
+            ViewModel.StatusText);
 
-            ViewModel.PropertyChanged += (_, e) =>
+        ViewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.StatusText))
             {
-                if (e.PropertyName == nameof(MainViewModel.StatusText))
+                DispatcherQueue.TryEnqueue(() =>
                 {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        _sidebar.UpdateStats(
-                            $"{ViewModel.TotalGames} jogos",
-                            $"{ViewModel.TotalPlayTime} jogado",
-                            ViewModel.StatusText);
-                        _libraryPage.SetScanning(ViewModel.IsScanning);
-                    });
-                }
-            };
+                    _sidebar.UpdateStats(
+                        $"{ViewModel.TotalGames} jogos",
+                        $"{ViewModel.TotalPlayTime} jogado",
+                        ViewModel.StatusText);
+                    _libraryPage.SetScanning(ViewModel.IsScanning);
+                    _libraryPage.LoadGames(ViewModel.Games);
+                });
+            }
+        };
 
-            _saveMonitor.OnAchievementUnlocked += OnAchievementUnlocked;
-            _saveMonitor.StartMonitoring();
-            _gameProcessTimer.Start();
-        }
+        _saveMonitor.OnAchievementUnlocked += OnAchievementUnlocked;
+        _saveMonitor.StartMonitoring();
+        _gameProcessTimer.Start();
 
         Closed += (_, _) =>
         {

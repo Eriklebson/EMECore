@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
+using CommunityToolkit.WinUI.Controls;
 using EMECore.Core.Models;
 using EMECore.Hardware.Services;
 using EMECore.WinUI.Theme;
@@ -16,7 +17,7 @@ public sealed partial class GameDetailPage : UserControl
     public event EventHandler<Game>? DeleteRequested;
 
     private Game? _game;
-    private readonly TextBlock _title, _playTime, _lastPlayed, _origin, _category, _path;
+    private readonly TextBlock _title, _playTime, _lastPlayed, _origin, _category, _path, _genreBadge;
     private readonly StackPanel _achievePanel, _reqPanel;
     private readonly Image _hero;
     private readonly Border _cover;
@@ -47,7 +48,8 @@ public sealed partial class GameDetailPage : UserControl
         var platTag = new Border { Background=new SolidColorBrush(Design.C.OtherBg), CornerRadius=Design.R.SM, Padding=new Thickness(6,2,6,2), BorderThickness=new Thickness(1), BorderBrush=Design.C.BorB, Child=Design.T.Badge() };
         ((TextBlock)platTag.Child).Foreground=Design.C.MutedB;
         badgeRow.Children.Add(platTag);
-        badgeRow.Children.Add(new TextBlock{Text="Sem categoria",FontSize=12,Foreground=Design.C.MutedB,VerticalAlignment=VerticalAlignment.Center});
+        _genreBadge = new TextBlock{Text="",FontSize=12,Foreground=Design.C.MutedB,VerticalAlignment=VerticalAlignment.Center};
+        badgeRow.Children.Add(_genreBadge);
         info.Children.Add(badgeRow);
 
         _title = Design.T.H1(); info.Children.Add(_title);
@@ -154,7 +156,8 @@ public sealed partial class GameDetailPage : UserControl
         _playTime.Text=game.PlayTime>0?$"{(int)ts.TotalHours}h {ts.Minutes}m":"Nunca jogado";
         _lastPlayed.Text=game.LastPlayed.HasValue?game.LastPlayed.Value.ToString("dd/MM/yyyy HH:mm"):"Nunca";
         _origin.Text=game.Platform.ToUpper();
-        _category.Text="Sem categoria";
+        _category.Text=!string.IsNullOrEmpty(game.Genre)?game.Genre:"Sem categoria";
+        _genreBadge.Text=!string.IsNullOrEmpty(game.Genre)?game.Genre:"";
         _path.Text=game.ExecutablePath.Length>80?"..."+game.ExecutablePath[^77..]:game.ExecutablePath;
         if(!string.IsNullOrWhiteSpace(game.CoverImage)&&Uri.TryCreate(game.CoverImage,UriKind.Absolute,out var u)&&(u.Scheme=="http"||u.Scheme=="https"||u.Scheme=="file"))
         {_hero.Source=new BitmapImage(u);_hero.Visibility=Visibility.Visible;((Image)_cover.Child).Source=new BitmapImage(u);}
@@ -167,7 +170,22 @@ public sealed partial class GameDetailPage : UserControl
         if(!string.IsNullOrEmpty(r.Minimum)){var s=new StackPanel{Spacing=Design.S.SM};s.Children.Add(new TextBlock{Text="Mínimos",FontSize=12,FontWeight=Microsoft.UI.Text.FontWeights.SemiBold,Foreground=Design.C.FgB});s.Children.Add(new TextBlock{Text=Clean(r.Minimum),FontSize=11,Foreground=Design.C.FgB,TextWrapping=TextWrapping.Wrap});_reqPanel.Children.Add(s);}
         if(!string.IsNullOrEmpty(r.Recommended)){var s=new StackPanel{Spacing=Design.S.SM};s.Children.Add(new TextBlock{Text="Recomendados",FontSize=12,FontWeight=Microsoft.UI.Text.FontWeights.SemiBold,Foreground=Design.C.FgB});s.Children.Add(new TextBlock{Text=Clean(r.Recommended),FontSize=11,Foreground=Design.C.FgB,TextWrapping=TextWrapping.Wrap});_reqPanel.Children.Add(s);}
     }
-    private static string Clean(string h){var c=System.Text.RegularExpressions.Regex.Replace(h,"<[^>]*>","");return System.Text.RegularExpressions.Regex.Replace(c,@"\s+"," ").Trim();}
+    private static string Clean(string h)
+    {
+        if (string.IsNullOrWhiteSpace(h)) return "";
+        // 1. <br> → newline
+        h = System.Text.RegularExpressions.Regex.Replace(h, @"<br\s*/?>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        // 2. <li> → bullet, </li> → newline
+        h = System.Text.RegularExpressions.Regex.Replace(h, @"<li[^>]*>", "  \u2022 ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        h = System.Text.RegularExpressions.Regex.Replace(h, @"</li>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        // 3. Strip all other HTML tags
+        h = System.Text.RegularExpressions.Regex.Replace(h, @"<[^>]*>", "");
+        // 4. Decode common HTML entities
+        h = System.Net.WebUtility.HtmlDecode(h);
+        // 5. Clean up whitespace per line
+        var lines = h.Split('\n').Select(l => System.Text.RegularExpressions.Regex.Replace(l, @"\s+", " ").Trim());
+        return string.Join("\n", lines).Trim();
+    }
 
     public async Task SetAchievements(List<Achievement> achievements)
     {
@@ -196,9 +214,8 @@ public sealed partial class GameDetailPage : UserControl
         // Separator
         _achievePanel.Children.Add(new Border{Background=Design.C.BorB,Height=1,Margin=new Thickness(0,0,0,Design.S.MD)});
 
-        var grid=new Grid{ColumnSpacing=Design.S.MD,RowSpacing=Design.S.SM};
-        grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
-        grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
+        // UniformGrid from CommunityToolkit — auto 2 columns
+        var grid=new UniformGrid{Columns=2,ColumnSpacing=Design.S.MD,RowSpacing=Design.S.SM};
         for(int i=0;i<achievements.Count;i++)
         {
             var a=achievements[i];var d=a.Achieved;
@@ -242,9 +259,8 @@ public sealed partial class GameDetailPage : UserControl
             else
                 ts.Children.Add(new TextBlock{Text=d?"Desbloqueado":"Bloqueado",FontSize=10,FontWeight=Microsoft.UI.Text.FontWeights.SemiBold,Foreground=d?Design.C.PriB:Design.C.Muted70B});
             Grid.SetColumn(ts,1);ac.Children.Add(ts);card.Child=ac;
-            Grid.SetColumn(card,i%2);Grid.SetRow(card,i/2);grid.Children.Add(card);
+            grid.Children.Add(card);
         }
-        for(int i=0;i<(achievements.Count+1)/2;i++)grid.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
         _achievePanel.Children.Add(grid);
     }
 }

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using EMECore.Core.Models;
 using EMECore.Core.Services;
+using EMECore.Hardware.Services;
 using EMECore.Core.Helpers;
 using EMECore.Hardware.Services;
 
@@ -120,6 +121,7 @@ public partial class MainViewModel : ObservableObject
                         Platform = s.Platform,
                         SteamAppId = s.SteamAppId,
                         CoverImage = s.CoverImage,
+                        Genre = s.Genre,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
@@ -130,6 +132,9 @@ public partial class MainViewModel : ObservableObject
             }
             TotalGames = Games.Count;
             StatusText = added > 0 ? $"{added} jogos novos encontrados" : "Nenhum jogo novo encontrado";
+
+            // Buscar gêneros via RAWG (não bloqueia o scan se falhar)
+            try { var genreSvc = new GenreService(); await genreSvc.FetchGenresAsync(Games.ToList()); foreach (var g in Games.Where(g => !string.IsNullOrEmpty(g.Genre))) await _databaseService.UpsertGameAsync(g); } catch { }
 
             await RefreshMissingCoversAsync();
         }
@@ -168,6 +173,7 @@ public partial class MainViewModel : ObservableObject
                     Platform = s.Platform,
                     SteamAppId = s.SteamAppId,
                     CoverImage = s.CoverImage,
+                    Genre = s.Genre,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -177,6 +183,8 @@ public partial class MainViewModel : ObservableObject
             }
             TotalGames = Games.Count;
             StatusText = added > 0 ? $"{added} jogos encontrados" : "Nenhum jogo encontrado";
+
+            try { var genreSvc = new GenreService(); await genreSvc.FetchGenresAsync(Games.ToList()); foreach (var g in Games.Where(g => !string.IsNullOrEmpty(g.Genre))) await _databaseService.UpsertGameAsync(g); } catch { }
 
             await RefreshMissingCoversAsync();
         }

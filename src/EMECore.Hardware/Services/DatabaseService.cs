@@ -20,12 +20,14 @@ public class DatabaseService : IDatabaseService
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
             PRAGMA journal_mode=WAL;
+            PRAGMA wal_checkpoint(TRUNCATE);
             PRAGMA foreign_keys=ON;
             CREATE TABLE IF NOT EXISTS games (
                 id TEXT PRIMARY KEY, name TEXT NOT NULL, executable_path TEXT NOT NULL,
                 cover_image TEXT, platform TEXT NOT NULL DEFAULT 'other',
                 last_played TEXT, play_time INTEGER NOT NULL DEFAULT 0,
                 last_session_start TEXT, steam_app_id TEXT,
+                genre TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             );
@@ -45,6 +47,8 @@ public class DatabaseService : IDatabaseService
                 FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
             );";
         await cmd.ExecuteNonQueryAsync();
+
+        try { using var m = _connection!.CreateCommand(); m.CommandText = "ALTER TABLE games ADD COLUMN genre TEXT NOT NULL DEFAULT ''"; await m.ExecuteNonQueryAsync(); } catch { }
     }
 
     public async Task<List<Game>> GetGamesAsync()
@@ -65,8 +69,9 @@ public class DatabaseService : IDatabaseService
                 PlayTime = reader.GetInt32(6),
                 LastSessionStart = reader.IsDBNull(7) ? null : DateTime.Parse(reader.GetString(7)),
                 SteamAppId = reader.IsDBNull(8) ? "" : reader.GetString(8),
+                Genre = reader.IsDBNull(10) ? "" : reader.GetString(10),
                 CreatedAt = DateTime.Parse(reader.GetString(9)),
-                UpdatedAt = DateTime.Parse(reader.GetString(10))
+                UpdatedAt = DateTime.Parse(reader.GetString(11))
             });
         }
         return games;
@@ -90,8 +95,9 @@ public class DatabaseService : IDatabaseService
                 PlayTime = reader.GetInt32(6),
                 LastSessionStart = reader.IsDBNull(7) ? null : DateTime.Parse(reader.GetString(7)),
                 SteamAppId = reader.IsDBNull(8) ? "" : reader.GetString(8),
+                Genre = reader.IsDBNull(10) ? "" : reader.GetString(10),
                 CreatedAt = DateTime.Parse(reader.GetString(9)),
-                UpdatedAt = DateTime.Parse(reader.GetString(10))
+                UpdatedAt = DateTime.Parse(reader.GetString(11))
             };
         }
         return null;
@@ -101,8 +107,8 @@ public class DatabaseService : IDatabaseService
     {
         using var cmd = _connection!.CreateCommand();
         cmd.CommandText = @"INSERT OR REPLACE INTO games
-            (id, name, executable_path, cover_image, platform, last_played, play_time, last_session_start, steam_app_id, created_at, updated_at)
-            VALUES (@id, @name, @exe, @cover, @platform, @lp, @pt, @lss, @steam, @ca, @ua)";
+            (id, name, executable_path, cover_image, platform, last_played, play_time, last_session_start, steam_app_id, genre, created_at, updated_at)
+            VALUES (@id, @name, @exe, @cover, @platform, @lp, @pt, @lss, @steam, @genre, @ca, @ua)";
         cmd.Parameters.AddWithValue("@id", game.Id);
         cmd.Parameters.AddWithValue("@name", game.Name);
         cmd.Parameters.AddWithValue("@exe", game.ExecutablePath);
@@ -112,6 +118,7 @@ public class DatabaseService : IDatabaseService
         cmd.Parameters.AddWithValue("@pt", game.PlayTime);
         cmd.Parameters.AddWithValue("@lss", (object?)game.LastSessionStart?.ToString("o") ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@steam", game.SteamAppId);
+        cmd.Parameters.AddWithValue("@genre", game.Genre);
         cmd.Parameters.AddWithValue("@ca", game.CreatedAt.ToString("o"));
         cmd.Parameters.AddWithValue("@ua", DateTime.UtcNow.ToString("o"));
         await cmd.ExecuteNonQueryAsync();
