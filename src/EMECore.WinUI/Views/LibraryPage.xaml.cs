@@ -51,16 +51,17 @@ public sealed partial class LibraryPage : UserControl
         Grid.SetColumn(sb, 2); hg.Children.Add(sb);
         hdr.Child=hg; Grid.SetRow(hdr,0); root.Children.Add(hdr);
 
-        var cg = new StackPanel { Margin=new Thickness(Design.S.XX,Design.S.MD,Design.S.XX,Design.S.XX) };
+        var cg = new Grid { Margin=new Thickness(Design.S.XX,Design.S.MD,Design.S.XX,Design.S.XX) };
+        cg.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        cg.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         var cr = new StackPanel { Orientation=Orientation.Horizontal, Spacing=Design.S.SM, Margin=new Thickness(0,0,0,Design.S.MD) };
         cr.Children.Add(new TextBlock { Text="Biblioteca", FontSize=16, FontWeight=Microsoft.UI.Text.FontWeights.SemiBold, Foreground=Design.C.FgB });
         _count = new TextBlock { Text="0 de 0", FontSize=13, Foreground=Design.C.MutedB, FontFamily=new("Consolas") };
-        cr.Children.Add(_count); cg.Children.Add(cr);
+        cr.Children.Add(_count); cg.Children.Add(cr); Grid.SetRow(cr,0);
 
-        // 🔥 WrapPanel from CommunityToolkit — sem bordas de hover do GridView!
         _grid = new WrapPanel { Orientation=Microsoft.UI.Xaml.Controls.Orientation.Horizontal, HorizontalSpacing=12, VerticalSpacing=12 };
         var scroll = new ScrollViewer { Content=_grid, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled, VerticalScrollBarVisibility=ScrollBarVisibility.Auto };
-        cg.Children.Add(scroll);
+        cg.Children.Add(scroll); Grid.SetRow(scroll,1);
         Grid.SetRow(cg,1); root.Children.Add(cg);
         Content=root;
     }
