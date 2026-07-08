@@ -28,7 +28,7 @@ public sealed partial class MainWindow : Window
     private readonly AddGamePage _addGamePage;
     private readonly AchievementService _achievementService;
     private readonly SaveMonitorService _saveMonitor;
-    private readonly DispatcherTimer _gameProcessTimer;
+
     private List<Achievement>? _lastAchievements;
     private MonitorWindow? _monitorWindow;
 
@@ -48,9 +48,6 @@ public sealed partial class MainWindow : Window
         ViewModel = new MainViewModel(databaseService, gameScannerService, steamStoreService);
         _achievementService = new AchievementService();
         _saveMonitor = new SaveMonitorService();
-
-        _gameProcessTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-        _gameProcessTimer.Tick += GameProcessTimer_Tick;
 
         var rootGrid = new Grid { Background = new SolidColorBrush(SteamColors.Dark) };
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
@@ -93,7 +90,6 @@ public sealed partial class MainWindow : Window
         _sidebar.NavigationRequested += Sidebar_NavigationRequested;
         _sidebar.CategoryRequested += Sidebar_CategoryRequested;
         _sidebar.MonitorRequested += Sidebar_MonitorRequested;
-        _sidebar.FishingMacroRequested += Sidebar_FishingMacroRequested;
         _sidebar.TestAchievementRequested += Sidebar_TestAchievementRequested;
         _sidebar.CollapseChanged += Sidebar_CollapseChanged;
         contentGrid.Children.Add(_sidebar);
@@ -126,7 +122,6 @@ public sealed partial class MainWindow : Window
 
         Closed += (_, _) =>
         {
-            _gameProcessTimer.Stop();
             _saveMonitor.Dispose();
             _monitorWindow?.Close();
             try { ViewModel.CloseDatabaseSync(); } catch { }
@@ -193,7 +188,6 @@ public sealed partial class MainWindow : Window
 
         _saveMonitor.OnAchievementUnlocked += OnAchievementUnlocked;
         _saveMonitor.StartMonitoring();
-        _gameProcessTimer.Start();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -300,11 +294,6 @@ public sealed partial class MainWindow : Window
         _monitorWindow.Activate();
     }
 
-    private void Sidebar_FishingMacroRequested(object? sender, EventArgs e)
-    {
-        new FishingMacroWindow().Activate();
-    }
-
     private void Sidebar_TestAchievementRequested(object? sender, EventArgs e)
     {
         var testAchievement = new Achievement
@@ -328,18 +317,6 @@ public sealed partial class MainWindow : Window
         });
     }
 
-    private void GameProcessTimer_Tick(object? sender, object e)
-    {
-        var isRunning = IsStellarBladeRunning();
-        _sidebar.UpdateFishingMacroVisibility(isRunning);
-    }
-
-    private static bool IsStellarBladeRunning()
-    {
-        var processes = System.Diagnostics.Process.GetProcessesByName("StellarBlade");
-        return processes.Length > 0;
-    }
-
     private async void LibraryPage_ScanRequested(object? sender, EventArgs e)
     {
         await ViewModel.ScanGamesCommand.ExecuteAsync(null);
@@ -348,18 +325,6 @@ public sealed partial class MainWindow : Window
     private void LibraryPage_GameSelected(object? sender, Game game)
     {
         ViewModel.SelectGameCommand.Execute(game);
-        
-        // Atualizar visibilidade do botão de macro de pesca baseado no processo
-        var isStellarBlade = game.Name.Contains("Stellar Blade", StringComparison.OrdinalIgnoreCase);
-        var isProcessRunning = false;
-        
-        if (isStellarBlade && !string.IsNullOrEmpty(game.ExecutablePath))
-        {
-            var processName = System.IO.Path.GetFileNameWithoutExtension(game.ExecutablePath);
-            isProcessRunning = System.Diagnostics.Process.GetProcessesByName(processName).Length > 0;
-        }
-        
-        _sidebar.UpdateFishingMacroVisibility(isStellarBlade && isProcessRunning);
     }
 
     private async void LibraryPage_GameLaunchRequested(object? sender, Game game)

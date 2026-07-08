@@ -11,7 +11,6 @@ public sealed partial class Sidebar : UserControl
 {
     public event EventHandler<string>? NavigationRequested;
     public event EventHandler? MonitorRequested;
-    public event EventHandler? FishingMacroRequested;
     public event EventHandler? TestAchievementRequested;
     public event EventHandler<string>? CategoryRequested;
     public event EventHandler<bool>? CollapseChanged;
@@ -40,7 +39,7 @@ public sealed partial class Sidebar : UserControl
         logoRow.Children.Add(logoBox);
         _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
         _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
-        _logo.Children.Add(new TextBlock { Text = "v2.14.2.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        _logo.Children.Add(new TextBlock { Text = "v2.14.3.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
         logoRow.Children.Add(_logo);
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
@@ -114,6 +113,5 @@ public sealed partial class Sidebar : UserControl
     private void Activate(SidebarItem item) { foreach (var i in _items) i.IsActive = false; item.IsActive = true; var t = item.TransformToVisual(_nav); _indicator.Margin = new Thickness(0, (int)(t.TransformPoint(new Windows.Foundation.Point(0, 0)).Y + 6), 0, 0); }
     private static TextBlock SectionLabel(string t) => new() { Text = t, FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.Muted70B, Padding = new Thickness(Design.S.XL, 0, Design.S.XL, 0), Margin = new Thickness(0, 0, 0, Design.S.SM), CharacterSpacing = 180 };
     public void UpdateStats(string s, string t, string st) { }
-    public void UpdateFishingMacroVisibility(bool v) { }
     public void RefreshTheme() { _root.Background = new SolidColorBrush(ThemeManager.Current.Surface); }
 }

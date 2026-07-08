@@ -2,6 +2,26 @@
 
 ---
 
+## 2026-07-08 — Remoção: Macro de Pesca
+
+### Arquivos removidos
+- `FishingMacroService.cs` — Serviço completo de macro de pesca (visão por computador, automação com teclado/mouse)
+- `FishingMacroWindow.cs` — Janela de controle da macro de pesca
+
+### Arquivos modificados
+- `MainWindow.xaml.cs` — Removido: `_gameProcessTimer`, `GameProcessTimer_Tick`, `IsStellarBladeRunning`, `Sidebar_FishingMacroRequested`, lógica de visibilidade no `LibraryPage_GameSelected`
+- `Sidebar.xaml.cs` — Removido: evento `FishingMacroRequested`, método `UpdateFishingMacroVisibility`
+
+### Motivo
+O macro de pesca era específico para Stellar Blade e não se encaixava na ideia central do launcher. A remoção simplifica a base de código e elimina uma funcionalidade que não é parte do escopo do projeto.
+
+### Impacto
+- Nenhum efeito em outras funcionalidades
+- Botão de macro de pesca removido da sidebar (não existia visualmente, apenas o evento)
+- Timer de verificação de processo removido (reduz uso de CPU)
+
+---
+
 ## 2026-07-07 — Correção: Persistência de jogos no banco de dados
 
 ### Arquivos modificados
