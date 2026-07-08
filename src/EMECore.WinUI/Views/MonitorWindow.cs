@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Shapes;
 using System.Numerics;
 using System.Collections.ObjectModel;
@@ -26,6 +27,8 @@ public sealed partial class MonitorWindow : Window
     private DispatcherTimer _graphTimer = null!;
     private DispatcherTimer _stressTimer = null!;
     private System.Threading.Timer? _bgTimer;
+    private System.Threading.Timer? _gpPollTimer;
+    private System.Threading.Timer? _calibPollTimer;
 
     // Motherboard
     private TextBlock _mbModel = null!, _mbTemp = null!, _mbVrmTemp = null!, _mbVoltage = null!;
@@ -114,6 +117,7 @@ public sealed partial class MonitorWindow : Window
 
     // Gamepad real-time
     private DispatcherTimer _gamepadTimer = null!;
+    private int _gamepadPollCount = 0;
     private Border _gpBtnA = null!, _gpBtnB = null!, _gpBtnX = null!, _gpBtnY = null!;
     private Border _gpBtnLB = null!, _gpBtnRB = null!;
     private Border _gpBtnStart = null!, _gpBtnBack = null!;
@@ -122,6 +126,10 @@ public sealed partial class MonitorWindow : Window
     private TextBlock _gpPollingText = null!;
     private TextBlock _gpLxText = null!, _gpLyText = null!, _gpRxText = null!, _gpRyText = null!;
     private TextBlock _gpLtText = null!, _gpRtText = null!;
+    private FrameworkElement _gpLeftStickCanvas = null!, _gpRightStickCanvas = null!;
+    private Ellipse _gpLeftStickDot = null!, _gpRightStickDot = null!;
+    private Ellipse _gpLeftTriggerDot = null!, _gpRightTriggerDot = null!;
+    private double _gpLsCenterX, _gpLsCenterY, _gpRsCenterX, _gpRsCenterY;
     private GamepadInfo _lastGamepadState = new();
 
     // Cached hardware data — Collect() result reused by StressMetrics
@@ -146,8 +154,8 @@ public sealed partial class MonitorWindow : Window
     private static readonly SolidColorBrush _brushRed = new(ColorFromHex("#EF4444"));
 
     // Gamepad brush pooling — allocated once, reused every tick
-    private static readonly SolidColorBrush GpPressedBg = new(Windows.UI.Color.FromArgb(180, 245, 158, 11));
-    private static readonly SolidColorBrush GpPressedBorder = new(Windows.UI.Color.FromArgb(220, 251, 191, 36));
+    private static readonly SolidColorBrush GpPressedBg = new(Windows.UI.Color.FromArgb(180, 74, 222, 128));
+    private static readonly SolidColorBrush GpPressedBorder = new(Windows.UI.Color.FromArgb(220, 74, 222, 128));
     private static readonly SolidColorBrush GpReleasedBg = new(Windows.UI.Color.FromArgb(0, 0, 0, 0));
     private static readonly SolidColorBrush GpReleasedBorder = new(Windows.UI.Color.FromArgb(0, 0, 0, 0));
     private bool[] _gpButtonStates = new bool[14]; // track previous state per button index
@@ -981,7 +989,7 @@ public sealed partial class MonitorWindow : Window
         _navMonitores.Click += (_, _) => SwitchTab("monitores");
         _navPerifericos.Click += (_, _) => SwitchTab("perifericos");
 
-        Closed += (_, _) => { _bgTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
+        Closed += (_, _) => { _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
         var hwnd2 = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId2 = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd2);
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId2);
@@ -996,6 +1004,7 @@ public sealed partial class MonitorWindow : Window
             try
             {
                 var s = _monitor.CollectFast();
+                _lastCollect = s;
                 DispatcherQueue.TryEnqueue(() => RefreshLhmWith(s));
             }
             catch { }
@@ -1009,7 +1018,16 @@ public sealed partial class MonitorWindow : Window
 
         // Gamepad real-time timer (16ms = ~60 Hz)
         _gamepadTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-        _gamepadTimer.Tick += (_, _) => UpdateGamepadState();
+        _gamepadTimer.Tick += (_, _) => UpdateGamepadUi();
+
+        _gpPollTimer = new System.Threading.Timer(_ =>
+        {
+            try
+            {
+                _monitor?.GamepadService?.PollState(0);
+            }
+            catch { }
+        }, null, 0, 1);
 
         // Detect FurMark on startup
         if (_stressTest.DetectFurMark())
@@ -2012,11 +2030,16 @@ public sealed partial class MonitorWindow : Window
 
     // ===== Periféricos =====
 
-    private void RefreshPerifericos()
+    private int _perifBuildCount = 0;
+    private void RefreshPerifericosWith(HardwareStats s)
     {
+        _perifBuildCount++;
+        var stackTrace = new System.Diagnostics.StackTrace(1, true).GetFrame(0);
+        File.AppendAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "perif-rebuild.txt"),
+            $"REBUILD #{_perifBuildCount} from {stackTrace?.GetMethod()?.Name} at {DateTime.UtcNow:HH:mm:ss.fff}\n");
+        
         try
         {
-            var s = _monitor.Collect();
             var stack = (StackPanel)_perifericosContent.Content;
             stack.Children.Clear();
 
@@ -2026,7 +2049,7 @@ public sealed partial class MonitorWindow : Window
             header.Children.Add(new TextBlock { Text = "Controles e dispositivos conectados", FontSize = 13, Foreground = SubtleText });
             stack.Children.Add(header);
 
-            var gamepadColor = new SolidColorBrush(ColorFromHex("#F59E0B"));
+            var gamepadColor = new SolidColorBrush(ColorFromHex("#4ADE80"));
 
             // Gamepads
             var connectedCount = s.Gamepads.Count(g => g.IsConnected);
@@ -2047,6 +2070,25 @@ public sealed partial class MonitorWindow : Window
                 // Header
                 var hdr = CreateCardHeaderGrid("\uE711", gp.Name, gamepadColor, "gp_" + gp.Name);
                 cardStack.Children.Add(hdr);
+
+                // Calibrate button
+                var calibrateBtn = new Button
+                {
+                    Content = "\uE771  Calibrar Layout",
+                    FontSize = 11,
+                    FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons"),
+                    Foreground = gamepadColor,
+                    Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = gamepadColor,
+                    Padding = new Thickness(12, 6, 12, 6),
+                    HorizontalAlignment = HorizontalAlignment.Stretch
+                };
+                calibrateBtn.Click += (_, _) =>
+                {
+                    ShowCalibrationOverlay();
+                };
+                cardStack.Children.Add(calibrateBtn);
 
                 // Battery info
                 if (gp.HasBattery)
@@ -2176,7 +2218,7 @@ public sealed partial class MonitorWindow : Window
                 card.Child = cardStack;
                 stack.Children.Add(card);
 
-                _lastGamepadState = gp;
+            _lastGamepadState = gp;
             }
         }
         catch { }
@@ -2227,6 +2269,8 @@ public sealed partial class MonitorWindow : Window
         if (layout.Buttons.TryGetValue("A", out var btnA))
         {
             var (px, py, pr) = GamepadLayoutService.ToPixels(btnA, layout.ImageWidth, layout.ImageHeight);
+            File.AppendAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "calib-debug.txt"),
+                $"VISUAL: A loaded X={btnA.X} Y={btnA.Y} → px=({px:F0},{py:F0}) canvas=({layout.ImageWidth},{layout.ImageHeight})\n");
             _gpBtnA = CreateOverlayBtn(pr * 2, pr * 2);
             Canvas.SetLeft(_gpBtnA, px - pr); Canvas.SetTop(_gpBtnA, py - pr);
         }
@@ -2292,6 +2336,77 @@ public sealed partial class MonitorWindow : Window
         }
 
         // Add all overlays to canvas
+        // Left Stick dot
+        if (layout.Buttons.TryGetValue("LeftStick", out var lsPos))
+        {
+            var (lsx, lsy, _) = GamepadLayoutService.ToPixels(lsPos, layout.ImageWidth, layout.ImageHeight);
+            _gpLsCenterX = lsx; _gpLsCenterY = lsy;
+            _gpLeftStickDot = new Ellipse { Width = 10, Height = 10, Fill = new SolidColorBrush(ColorFromHex("#4ADE80")) };
+            Canvas.SetLeft(_gpLeftStickDot, lsx - 5);
+            Canvas.SetTop(_gpLeftStickDot, lsy - 5);
+            canvas.Children.Add(_gpLeftStickDot);
+        }
+
+        // Right Stick dot
+        if (layout.Buttons.TryGetValue("RightStick", out var rsPos))
+        {
+            var (rsx, rsy, _) = GamepadLayoutService.ToPixels(rsPos, layout.ImageWidth, layout.ImageHeight);
+            _gpRsCenterX = rsx; _gpRsCenterY = rsy;
+            _gpRightStickDot = new Ellipse { Width = 10, Height = 10, Fill = new SolidColorBrush(ColorFromHex("#4ADE80")) };
+            Canvas.SetLeft(_gpRightStickDot, rsx - 5);
+            Canvas.SetTop(_gpRightStickDot, rsy - 5);
+            canvas.Children.Add(_gpRightStickDot);
+        }
+
+        // Trigger curves (outside the image, left and right sides)
+        var trigColor = new SolidColorBrush(ColorFromHex("#4ADE80"));
+        var trigStroke = 2.0;
+        var lw = layout.ImageWidth;
+        var lh = layout.ImageHeight;
+
+        // Quarter-circle bezier (k = 0.552), center ~(-160, 118), R=92
+        var ltCurve = new Microsoft.UI.Xaml.Shapes.Path
+        {
+            Stroke = trigColor, StrokeThickness = trigStroke,
+            Data = new PathGeometry { Figures = new PathFigureCollection { new PathFigure
+            {
+                StartPoint = new Windows.Foundation.Point(-160, 26),
+                Segments = new PathSegmentCollection { new BezierSegment
+                {
+                    Point1 = new Windows.Foundation.Point(-160 + 51, 26),
+                    Point2 = new Windows.Foundation.Point(-68, 118 - 50),
+                    Point3 = new Windows.Foundation.Point(-68, 118)
+                }}
+            }}}
+        };
+        canvas.Children.Add(ltCurve);
+
+        var rtCurve = new Microsoft.UI.Xaml.Shapes.Path
+        {
+            Stroke = trigColor, StrokeThickness = trigStroke,
+            Data = new PathGeometry { Figures = new PathFigureCollection { new PathFigure
+            {
+                StartPoint = new Windows.Foundation.Point(lw + 160, 26),
+                Segments = new PathSegmentCollection { new BezierSegment
+                {
+                    Point1 = new Windows.Foundation.Point(lw + 160 - 51, 26),
+                    Point2 = new Windows.Foundation.Point(lw + 68, 118 - 50),
+                    Point3 = new Windows.Foundation.Point(lw + 68, 118)
+                }}
+            }}}
+        };
+        canvas.Children.Add(rtCurve);
+
+        _gpLeftTriggerDot = new Ellipse { Width = 10, Height = 10, Fill = trigColor };
+        Canvas.SetLeft(_gpLeftTriggerDot, -68 - 5);
+        Canvas.SetTop(_gpLeftTriggerDot, 118 - 5);
+        canvas.Children.Add(_gpLeftTriggerDot);
+
+        _gpRightTriggerDot = new Ellipse { Width = 10, Height = 10, Fill = trigColor };
+        Canvas.SetLeft(_gpRightTriggerDot, lw + 68 - 5);
+        Canvas.SetTop(_gpRightTriggerDot, 118 - 5);
+        canvas.Children.Add(_gpRightTriggerDot);
+
         canvas.Children.Add(_gpBtnUp);
         canvas.Children.Add(_gpBtnDown);
         canvas.Children.Add(_gpBtnLeft);
@@ -2309,6 +2424,43 @@ public sealed partial class MonitorWindow : Window
 
         grid.Children.Add(canvas);
         return grid;
+    }
+
+    private static FrameworkElement CreateAnalogVisualizer(SolidColorBrush color, out Ellipse dot)
+    {
+        const int size = 140;
+        const int margin = 10;
+        var canvas = new Canvas { Width = size, Height = size, HorizontalAlignment = HorizontalAlignment.Center };
+
+        var bg = new Rectangle { Width = size, Height = size, RadiusX = 8, RadiusY = 8, Fill = Design.C.InsetB };
+        canvas.Children.Add(bg);
+
+        var crossH = new Line { X1 = margin, Y1 = size / 2.0, X2 = size - margin, Y2 = size / 2.0, Stroke = Design.C.SecB, StrokeThickness = 1 };
+        var crossV = new Line { X1 = size / 2.0, Y1 = margin, X2 = size / 2.0, Y2 = size - margin, Stroke = Design.C.SecB, StrokeThickness = 1 };
+        canvas.Children.Add(crossH);
+        canvas.Children.Add(crossV);
+
+        var outer = new Ellipse { Width = size - 20, Height = size - 20, Stroke = color, StrokeThickness = 1.5 };
+        Canvas.SetLeft(outer, 10); Canvas.SetTop(outer, 10);
+        canvas.Children.Add(outer);
+
+        dot = new Ellipse { Width = 10, Height = 10, Fill = color };
+        Canvas.SetLeft(dot, size / 2.0 - 5);
+        Canvas.SetTop(dot, size / 2.0 - 5);
+        canvas.Children.Add(dot);
+
+        var label = new TextBlock { Text = "X:0  Y:0", FontSize = 10, Foreground = SubtleText, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 4, 0, 0) };
+
+        var wrapper = new StackPanel { Spacing = 0, HorizontalAlignment = HorizontalAlignment.Center };
+        wrapper.Children.Add(canvas);
+        wrapper.Children.Add(label);
+        return wrapper;
+    }
+
+    private static double Bezier(double t, double p0, double p1, double p2, double p3)
+    {
+        var u = 1.0 - t;
+        return u * u * u * p0 + 3.0 * u * u * t * p1 + 3.0 * u * t * t * p2 + t * t * t * p3;
     }
 
     private static Border CreateOverlayBtn(double w, double h)
@@ -2481,7 +2633,220 @@ public sealed partial class MonitorWindow : Window
         // Graphs auto-update via ObservableCollection - no manual DrawGraph needed
     }
 
+    // ===== Gamepad Calibration Inline =====
+
+    private FrameworkElement? _calibrationDragTarget;
+    private string? _calibrationDragKey;
+    private double _calibrationOffsetX, _calibrationOffsetY;
+    private readonly Dictionary<FrameworkElement, string> _calibrationOverlays = new();
+    private GamepadLayout _calibrationLayout = new();
+
+    private void ShowCalibrationOverlay()
+    {
+        _gamepadTimer.Stop(); // pausa timer durante calibração
+
+        var stack = (StackPanel)_perifericosContent.Content;
+        stack.Children.Clear();
+
+        _calibrationLayout = GamepadLayoutService.Load();
+        _calibrationOverlays.Clear();
+
+        var header = new StackPanel { Spacing = 4, Margin = new Thickness(0, 0, 0, 8) };
+        header.Children.Add(new TextBlock { Text = "Calibração do Controle", FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Colors.White) });
+        header.Children.Add(new TextBlock { Text = "Arraste os círculos sobre os botões da imagem", FontSize = 13, Foreground = SubtleText });
+        stack.Children.Add(header);
+
+        var btnRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Margin = new Thickness(0, 0, 0, 16) };
+        var saveBtn = new Button { Content = "Salvar Layout", Foreground = new SolidColorBrush(ColorFromHex("#F59E0B")), Padding = new Thickness(24, 8, 24, 8) };
+        saveBtn.Click += (_, _) =>
+        {
+            GamepadLayoutService.Save(_calibrationLayout);
+            saveBtn.Content = "Salvo!";
+            saveBtn.Foreground = new SolidColorBrush(ColorFromHex("#4ADE80"));
+        };
+        btnRow.Children.Add(saveBtn);
+
+        var resetBtn = new Button { Content = "Resetar", Padding = new Thickness(24, 8, 24, 8) };
+        resetBtn.Click += (_, _) => { GamepadLayoutService.InvalidateCache(); ShowCalibrationOverlay(); };
+        btnRow.Children.Add(resetBtn);
+
+        var backBtn = new Button { Content = "Voltar", Padding = new Thickness(24, 8, 24, 8) };
+        backBtn.Click += (_, _) =>
+        {
+            _calibPollTimer?.Dispose();
+            _calibPollTimer = null;
+            RefreshPerifericos();
+            _gamepadTimer.Start();
+        };
+        btnRow.Children.Add(backBtn);
+        stack.Children.Add(btnRow);
+
+        var canvas = new Canvas
+        {
+            Width = _calibrationLayout.ImageWidth,
+            Height = _calibrationLayout.ImageHeight,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Background = Design.C.InsetB
+        };
+
+        var imgPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "Gamepad", "8bitdoUltimate2.png");
+        var img = new Image
+        {
+            Source = new BitmapImage(new Uri(imgPath)),
+            Width = _calibrationLayout.ImageWidth,
+            Height = _calibrationLayout.ImageHeight
+        };
+        canvas.Children.Add(img);
+
+        var accent = new SolidColorBrush(ColorFromHex("#4ADE80"));
+        foreach (var (key, btn) in _calibrationLayout.Buttons)
+        {
+            var (px, py, pr) = GamepadLayoutService.ToPixels(btn, (int)canvas.Width, (int)canvas.Height);
+            var d = Math.Max(12, pr * 2);
+
+            var circle = new Border
+            {
+                Width = d, Height = d,
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(80, 245, 158, 11)),
+                BorderBrush = accent,
+                BorderThickness = new Thickness(2),
+                CornerRadius = new CornerRadius(d / 2),
+                Tag = key
+            };
+            var label = new TextBlock
+            {
+                Text = key, FontSize = 8, Foreground = new SolidColorBrush(Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+                IsHitTestVisible = false
+            };
+            circle.Child = label;
+            Canvas.SetLeft(circle, px - pr);
+            Canvas.SetTop(circle, py - pr);
+            canvas.Children.Add(circle);
+
+            circle.PointerPressed += (sender, e) =>
+            {
+                if (sender is not Border b) return;
+                _calibrationDragTarget = b;
+                _calibrationDragKey = b.Tag as string;
+                b.CapturePointer(e.Pointer);
+                var pos = e.GetCurrentPoint(canvas);
+                _calibrationOffsetX = pos.Position.X - Canvas.GetLeft(b);
+                _calibrationOffsetY = pos.Position.Y - Canvas.GetTop(b);
+                b.Opacity = 1.0;
+                e.Handled = true;
+            };
+
+            circle.PointerMoved += (sender, e) =>
+            {
+                if (sender is not Border b || _calibrationDragTarget != b) return;
+                var pos = e.GetCurrentPoint(canvas);
+                var nx = Math.Clamp(pos.Position.X - _calibrationOffsetX, -b.Width * 0.3, canvas.Width - b.Width * 0.7);
+                var ny = Math.Clamp(pos.Position.Y - _calibrationOffsetY, -b.Height * 0.3, canvas.Height - b.Height * 0.7);
+                Canvas.SetLeft(b, nx);
+                Canvas.SetTop(b, ny);
+            };
+
+            circle.PointerReleased += (sender, e) =>
+            {
+                if (sender is not Border b) return;
+                b.Opacity = 0.85;
+                var cx = Canvas.GetLeft(b) + b.Width / 2;
+                var cy = Canvas.GetTop(b) + b.Height / 2;
+                var savedKey = _calibrationDragKey;
+                _calibrationDragTarget?.ReleasePointerCapture(e.Pointer);
+                _calibrationDragTarget = null;
+                if (savedKey != null && _calibrationLayout.Buttons.ContainsKey(savedKey))
+                {
+                    var nx = Math.Round(cx / canvas.Width, 3);
+                    var ny = Math.Round(cy / canvas.Height, 3);
+                    File.AppendAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "calib-debug.txt"),
+                        $"CALIB: {savedKey} px=({cx:F0},{cy:F0}) norm=({nx},{ny}) canvas=({canvas.Width},{canvas.Height})\n");
+                    _calibrationLayout.Buttons[savedKey].X = nx;
+                    _calibrationLayout.Buttons[savedKey].Y = ny;
+                }
+            };
+
+            circle.PointerCaptureLost += (_, _) => { _calibrationDragTarget = null; _calibrationDragKey = null; };
+
+            _calibrationOverlays[circle] = key;
+        }
+
+        // Add live dots for sticks
+        _gpLeftStickDot = new Ellipse { Width = 8, Height = 8, Fill = new SolidColorBrush(ColorFromHex("#4ADE80")), Visibility = Visibility.Collapsed };
+        canvas.Children.Add(_gpLeftStickDot);
+        _gpRightStickDot = new Ellipse { Width = 8, Height = 8, Fill = new SolidColorBrush(ColorFromHex("#4ADE80")), Visibility = Visibility.Collapsed };
+        canvas.Children.Add(_gpRightStickDot);
+
+        stack.Children.Add(canvas);
+
+        // Live stick dot indicators on calibration canvas
+        _gpLeftStickDot.Visibility = Visibility.Visible;
+        _gpRightStickDot.Visibility = Visibility.Visible;
+        _calibPollTimer?.Dispose();
+        _calibPollTimer = new System.Threading.Timer(_ =>
+        {
+            try
+            {
+                if (_monitor?.GamepadService == null) return;
+                var gp = _monitor.GamepadService.GetCachedState(0);
+                if (gp == null || !gp.IsConnected) return;
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    try
+                    {
+                        const double r = 30.0;
+                        if (_gpLeftStickDot != null && _calibrationLayout.Buttons.TryGetValue("LeftStick", out var ls))
+                        {
+                            var (lsx, lsy, _) = GamepadLayoutService.ToPixels(ls, (int)canvas.Width, (int)canvas.Height);
+                            Canvas.SetLeft(_gpLeftStickDot, lsx + (gp.ThumbLX / 32767.0) * r - 4);
+                            Canvas.SetTop(_gpLeftStickDot, lsy - (gp.ThumbLY / 32767.0) * r - 4);
+                        }
+                        if (_gpRightStickDot != null && _calibrationLayout.Buttons.TryGetValue("RightStick", out var rs))
+                        {
+                            var (rsx, rsy, _) = GamepadLayoutService.ToPixels(rs, (int)canvas.Width, (int)canvas.Height);
+                            Canvas.SetLeft(_gpRightStickDot, rsx + (gp.ThumbRX / 32767.0) * r - 4);
+                            Canvas.SetTop(_gpRightStickDot, rsy - (gp.ThumbRY / 32767.0) * r - 4);
+                        }
+                    }
+                    catch { }
+                });
+            }
+            catch { }
+        }, null, 0, 16);
+    }
+
     // ===== Gamepad Real-time =====
+
+    private int _lastGamepadCount = -1;
+
+    private void RefreshPerifericosIfChanged()
+    {
+        try
+        {
+            var s = _lastCollect;
+            if (s == null) return;
+            var count = s.Gamepads.Count(g => g.IsConnected);
+            if (count != _lastGamepadCount)
+            {
+                _lastGamepadCount = count;
+                RefreshPerifericosWith(s);
+            }
+        }
+        catch { }
+    }
+
+    private void RefreshPerifericos()
+    {
+        var s = _monitor.Collect();
+        _lastGamepadCount = s.Gamepads.Count(g => g.IsConnected);
+        RefreshPerifericosWith(s);
+    }
+
+    private void UpdateGamepadUi()
+    {
+        UpdateGamepadState();
+    }
 
     private uint _gpLastPacket = 0;
 
@@ -2490,8 +2855,43 @@ public sealed partial class MonitorWindow : Window
         try
         {
             if (_monitor?.GamepadService == null) return;
-            var gp = _monitor.GamepadService.GetState(0);
+            var gp = _monitor.GamepadService.GetCachedState(0);
             if (gp == null || !gp.IsConnected) return;
+
+            // Analog sticks always update (using cached calibrated centers)
+            const double stickRange = 30.0;
+            if (_gpLeftStickDot != null)
+            {
+                var lx = _gpLsCenterX + (gp.ThumbLX / 32767.0) * stickRange;
+                var ly = _gpLsCenterY - (gp.ThumbLY / 32767.0) * stickRange;
+                Canvas.SetLeft(_gpLeftStickDot, lx - 5);
+                Canvas.SetTop(_gpLeftStickDot, ly - 5);
+            }
+            if (_gpRightStickDot != null)
+            {
+                var rx = _gpRsCenterX + (gp.ThumbRX / 32767.0) * stickRange;
+                var ry = _gpRsCenterY - (gp.ThumbRY / 32767.0) * stickRange;
+                Canvas.SetLeft(_gpRightStickDot, rx - 5);
+                Canvas.SetTop(_gpRightStickDot, ry - 5);
+            }
+
+            // Trigger indicators (cubic bezier: starts vertical, ends horizontal)
+            if (_gpLeftTriggerDot != null)
+            {
+                double lt = 1.0 - (gp.LeftTrigger / 255.0);
+                double ltX = Bezier(lt, -160.0, -109.0, -68.0, -68.0);
+                double ltY = Bezier(lt, 26.0, 26.0, 68.0, 118.0);
+                Canvas.SetLeft(_gpLeftTriggerDot, ltX - 5);
+                Canvas.SetTop(_gpLeftTriggerDot, ltY - 5);
+            }
+            if (_gpRightTriggerDot != null)
+            {
+                double rt = 1.0 - (gp.RightTrigger / 255.0);
+                double rtX = Bezier(rt, 520.0, 469.0, 428.0, 428.0);
+                double rtY = Bezier(rt, 26.0, 26.0, 68.0, 118.0);
+                Canvas.SetLeft(_gpRightTriggerDot, rtX - 5);
+                Canvas.SetTop(_gpRightTriggerDot, rtY - 5);
+            }
 
             // Skip entire UI update if nothing changed
             if (gp.PacketNumber == _gpLastPacket) return;

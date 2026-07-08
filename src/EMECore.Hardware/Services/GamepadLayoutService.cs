@@ -32,14 +32,40 @@ public static class GamepadLayoutService
             if (File.Exists(LayoutPath))
             {
                 var json = File.ReadAllText(LayoutPath);
-                _cached = JsonSerializer.Deserialize<GamepadLayout>(json) ?? new GamepadLayout();
-                return _cached;
+                var loaded = JsonSerializer.Deserialize<GamepadLayout>(json);
+                if (loaded?.Buttons?.Count > 0)
+                {
+                    _cached = loaded;
+                    return loaded;
+                }
             }
         }
         catch { }
 
-        _cached = new GamepadLayout();
+        _cached = CreateDefault();
         return _cached;
+    }
+
+    private static GamepadLayout CreateDefault()
+    {
+        var layout = new GamepadLayout();
+        var btns = layout.Buttons;
+        // Xbox layout (left-to-right, top-to-bottom on 360×256 image)
+        btns["LeftStick"]  = new() { X = 0.220, Y = 0.580, Radius = 0.065 };
+        btns["RightStick"] = new() { X = 0.390, Y = 0.580, Radius = 0.065 };
+        btns["DpadUp"]    = new() { X = 0.220, Y = 0.260, Radius = 0.030 };
+        btns["DpadDown"]  = new() { X = 0.220, Y = 0.450, Radius = 0.030 };
+        btns["DpadLeft"]  = new() { X = 0.155, Y = 0.355, Radius = 0.030 };
+        btns["DpadRight"] = new() { X = 0.285, Y = 0.355, Radius = 0.030 };
+        btns["Y"]         = new() { X = 0.568, Y = 0.260, Radius = 0.030 };
+        btns["A"]         = new() { X = 0.568, Y = 0.450, Radius = 0.030 };
+        btns["X"]         = new() { X = 0.503, Y = 0.355, Radius = 0.030 };
+        btns["B"]         = new() { X = 0.633, Y = 0.355, Radius = 0.030 };
+        btns["LeftShoulder"]  = new() { X = 0.085, Y = 0.060, Radius = 0.025 };
+        btns["RightShoulder"] = new() { X = 0.500, Y = 0.060, Radius = 0.025 };
+        btns["Start"]     = new() { X = 0.470, Y = 0.330, Radius = 0.020 };
+        btns["Back"]      = new() { X = 0.380, Y = 0.330, Radius = 0.020 };
+        return layout;
     }
 
     public static void Save(GamepadLayout layout)

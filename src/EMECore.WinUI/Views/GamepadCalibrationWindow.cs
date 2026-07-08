@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using EMECore.Hardware.Services;
+using System.IO;
 
 namespace EMECore.WinUI.Views;
 
@@ -25,15 +26,17 @@ public class GamepadCalibrationWindow : Window
     public GamepadCalibrationWindow()
     {
         _layout = GamepadLayoutService.Load();
-
         Title = "Gamepad Calibration Mode";
         Content = BuildUI();
         Closed += (_, _) => GamepadLayoutService.InvalidateCache();
 
-        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-        var appWindow = AppWindow.GetFromWindowId(windowId);
-        appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 800, Height = 640 });
+        Activated += (_, _) =>
+        {
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            var appWindow = AppWindow.GetFromWindowId(windowId);
+            appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 800, Height = 640 });
+        };
     }
 
     private FrameworkElement BuildUI()
@@ -59,9 +62,10 @@ public class GamepadCalibrationWindow : Window
         _canvas.Width = _layout.ImageWidth;
         _canvas.Height = _layout.ImageHeight;
 
+        var imgPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Gamepad", "8bitdoUltimate2.png");
         _image = new Image
         {
-            Source = new BitmapImage(new Uri("ms-appx:///Assets/Gamepad/8bitdoUltimate2.png")),
+            Source = new BitmapImage(new Uri(imgPath)),
             Width = _layout.ImageWidth, Height = _layout.ImageHeight,
             HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top
         };

@@ -128,25 +128,6 @@ public class GamepadService : IDisposable
             info.ThumbRX = state.Gamepad.sThumbRX;
             info.ThumbRY = state.Gamepad.sThumbRY;
             info.PacketNumber = state.dwPacketNumber;
-
-            if (state.dwPacketNumber != _lastPacketNumbers[i])
-            {
-                if (!_pollingTimers[i].IsRunning)
-                {
-                    _pollingTimers[i].Restart();
-                    _packetChanges[i] = 0;
-                }
-                _packetChanges[i]++;
-                _lastPacketNumbers[i] = state.dwPacketNumber;
-
-                if (_pollingTimers[i].ElapsedMilliseconds >= 1000)
-                {
-                    _pollingRates[i] = _packetChanges[i] * 1000.0 / _pollingTimers[i].ElapsedMilliseconds;
-                    _pollingTimers[i].Restart();
-                    _packetChanges[i] = 0;
-                }
-            }
-
             info.PollingRate = _pollingRates[i];
 
             gamepads.Add(info);
@@ -213,6 +194,64 @@ public class GamepadService : IDisposable
 
         return info;
     }
+
+    // Cached state from PollState for UI thread
+    private GamepadInfo? _cachedState0;
+
+    public void PollState(int playerIndex)
+    {
+        int result = XInputGetState(playerIndex, out var state);
+        if (result != ERROR_SUCCESS)
+        {
+            _cachedState0 = null;
+            return;
+        }
+
+        // Polling rate calculation
+        if (state.dwPacketNumber != _lastPacketNumbers[playerIndex])
+        {
+            if (!_pollingTimers[playerIndex].IsRunning)
+            {
+                _pollingTimers[playerIndex].Restart();
+                _packetChanges[playerIndex] = 0;
+                _lastPacketNumbers[playerIndex] = state.dwPacketNumber;
+            }
+            else
+            {
+                uint diff = state.dwPacketNumber - _lastPacketNumbers[playerIndex];
+                _packetChanges[playerIndex] += (int)Math.Min(diff, 1000);
+                _lastPacketNumbers[playerIndex] = state.dwPacketNumber;
+            }
+
+            if (_pollingTimers[playerIndex].ElapsedMilliseconds >= 1000)
+            {
+                _pollingRates[playerIndex] = _packetChanges[playerIndex] * 1000.0 / _pollingTimers[playerIndex].ElapsedMilliseconds;
+                _pollingTimers[playerIndex].Restart();
+                _packetChanges[playerIndex] = 0;
+            }
+        }
+
+        // Cache full state for UI
+        var info = new GamepadInfo { PlayerIndex = playerIndex, IsConnected = true };
+        int capsResult = XInputGetCapabilities(playerIndex, XINPUT_FLAG_GAMEPAD, out var caps);
+        if (capsResult == ERROR_SUCCESS)
+        {
+            string subType = caps.SubType < SubTypeNames.Length ? SubTypeNames[caps.SubType] : "Unknown";
+            info.Name = $"Player {playerIndex + 1} - {subType}";
+        }
+        info.Buttons = state.Gamepad.wButtons;
+        info.LeftTrigger = state.Gamepad.bLeftTrigger;
+        info.RightTrigger = state.Gamepad.bRightTrigger;
+        info.ThumbLX = state.Gamepad.sThumbLX;
+        info.ThumbLY = state.Gamepad.sThumbLY;
+        info.ThumbRX = state.Gamepad.sThumbRX;
+        info.ThumbRY = state.Gamepad.sThumbRY;
+        info.PacketNumber = state.dwPacketNumber;
+        info.PollingRate = _pollingRates[playerIndex];
+        _cachedState0 = info;
+    }
+
+    public GamepadInfo? GetCachedState(int playerIndex) => _cachedState0;
 
     public void Dispose()
     {
