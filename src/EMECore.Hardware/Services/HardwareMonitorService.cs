@@ -30,6 +30,11 @@ public class HardwareMonitorService
     private DateTime _lastLhmNetworkCheck = DateTime.MinValue;
     private string _cachedNetworkName = "";
 
+    // WMI network cache (refreshed every 5s to avoid WMI overhead)
+    private double _cachedWmiNetDown, _cachedWmiNetUp;
+    private DateTime _lastWmiNetCheck = DateTime.MinValue;
+    private static readonly TimeSpan WmiNetRefreshInterval = TimeSpan.FromSeconds(5);
+
     public HardwareMonitorService()
     {
         _mapping.Load();
@@ -74,12 +79,7 @@ public class HardwareMonitorService
             CollectDiskData(s);
             _cachedDisks = s.Disks;
 
-            // Get adapter name via WMI (only once or on first WMI call)
-            if (string.IsNullOrEmpty(_cachedNetworkName))
-            {
-                var (netName, _, _) = CollectNetworkData();
-                _cachedNetworkName = netName;
-            }
+            CollectNetworkFromWmi(s);
 
             if (s.GpuUsage == 0 || s.GpuTemp == 0)
             {
@@ -91,8 +91,9 @@ public class HardwareMonitorService
             s.Monitors = CollectMonitorData();
         }
 
-        // Network via LHM (fast, always runs — ~0.1ms)
-        CollectNetworkFromLhm(s);
+        // Network via LHM (fast, only when LHM data is fresh)
+        if (refreshLhm)
+            CollectNetworkFromLhm(s);
 
         // Fans (cached, fast)
         if ((DateTime.UtcNow - _fansCache).TotalSeconds > 5)
@@ -255,6 +256,7 @@ public class HardwareMonitorService
     {
         try
         {
+            s.Disks.Clear();
             // Query ALL logical disks
             using var searcher = new ManagementObjectSearcher("SELECT DeviceID, VolumeName, FileSystem, DriveType, Size, FreeSpace FROM Win32_LogicalDisk").Get();
             foreach (ManagementObject disk in searcher)
@@ -341,16 +343,20 @@ public class HardwareMonitorService
     {
         try
         {
-            using var adapter = new ManagementObjectSearcher("SELECT * FROM Win32_NetworkAdapter WHERE NetConnectionStatus=2 AND PhysicalAdapter=True").Get().Cast<ManagementObject>().FirstOrDefault();
-            if (adapter != null)
+            using var searcher = new ManagementObjectSearcher("SELECT Name, BytesReceivedPersec, BytesSentPersec FROM Win32_PerfFormattedData_Tcpip_NetworkInterface WHERE BytesReceivedPersec IS NOT NULL");
+            long totalReceived = 0, totalSent = 0;
+            string name = "Rede";
+            foreach (var obj in searcher.Get().Cast<ManagementObject>())
             {
-                var name = adapter["Name"]?.ToString() ?? "Rede";
-                using var stats = new ManagementObjectSearcher($"SELECT * FROM Win32_PerfFormattedData_Tcpip_NetworkInterface WHERE Name='{adapter["Name"]}'").Get().Cast<ManagementObject>().FirstOrDefault();
-                if (stats != null)
-                {
-                    return (name, Convert.ToInt64(stats["BytesReceivedPersec"]), Convert.ToInt64(stats["BytesSentPersec"]));
-                }
+                var n = obj["Name"]?.ToString();
+                if (string.IsNullOrEmpty(n)) continue;
+                if (n.Contains("Loopback") || n.Contains("isatap") || n.Contains("Teredo")) continue;
+
+                if (name == "Rede") name = n;
+                totalReceived += Convert.ToInt64(obj["BytesReceivedPersec"]);
+                totalSent += Convert.ToInt64(obj["BytesSentPersec"]);
             }
+            return (name, totalReceived, totalSent);
         }
         catch { }
         return ("Rede", 0, 0);
@@ -368,29 +374,54 @@ public class HardwareMonitorService
                 : _cachedNetworkName;
 
             double totalReceived = 0, totalSent = 0;
+            bool hasSensor = false;
             foreach (var sensor in netHw.Sensors)
             {
                 if (!sensor.Value.HasValue) continue;
                 var name = sensor.Name?.ToLowerInvariant() ?? "";
                 if (name.Contains("download") || name.Contains("received"))
-                    totalReceived += (double)sensor.Value;
+                { totalReceived += (double)sensor.Value; hasSensor = true; }
                 else if (name.Contains("upload") || name.Contains("sent"))
-                    totalSent += (double)sensor.Value;
+                { totalSent += (double)sensor.Value; hasSensor = true; }
             }
 
-            var now = DateTime.UtcNow;
-            if (_lastLhmNetworkCheck != DateTime.MinValue)
+            if (hasSensor)
             {
-                var elapsed = (now - _lastLhmNetworkCheck).TotalSeconds;
-                if (elapsed > 0)
+                var now = DateTime.UtcNow;
+                if (_lastLhmNetworkCheck != DateTime.MinValue)
                 {
-                    s.NetworkDownloadSpeed = Math.Max(0, (totalReceived - _lastLhmBytesReceived) / elapsed / 1024.0);
-                    s.NetworkUploadSpeed = Math.Max(0, (totalSent - _lastLhmBytesSent) / elapsed / 1024.0);
+                    var elapsed = (now - _lastLhmNetworkCheck).TotalSeconds;
+                    if (elapsed > 0)
+                    {
+                        s.NetworkDownloadSpeed = Math.Max(0, (totalReceived - _lastLhmBytesReceived) / elapsed / 1024.0);
+                        s.NetworkUploadSpeed = Math.Max(0, (totalSent - _lastLhmBytesSent) / elapsed / 1024.0);
+                    }
                 }
+                _lastLhmBytesReceived = totalReceived;
+                _lastLhmBytesSent = totalSent;
+                _lastLhmNetworkCheck = now;
             }
-            _lastLhmBytesReceived = totalReceived;
-            _lastLhmBytesSent = totalSent;
-            _lastLhmNetworkCheck = now;
+        }
+        catch { }
+    }
+
+    private void CollectNetworkFromWmi(HardwareStats s)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            if (now - _lastWmiNetCheck > WmiNetRefreshInterval)
+            {
+                var (netName, received, sent) = CollectNetworkData();
+                _cachedWmiNetDown = received / 1024.0;
+                _cachedWmiNetUp = sent / 1024.0;
+                if (string.IsNullOrEmpty(_cachedNetworkName))
+                    _cachedNetworkName = string.IsNullOrEmpty(netName) ? "Rede" : netName;
+                _lastWmiNetCheck = now;
+            }
+            s.NetworkName = string.IsNullOrEmpty(_cachedNetworkName) ? "Rede" : _cachedNetworkName;
+            s.NetworkDownloadSpeed = _cachedWmiNetDown;
+            s.NetworkUploadSpeed = _cachedWmiNetUp;
         }
         catch { }
     }
@@ -468,14 +499,33 @@ public class HardwareMonitorService
                 cpuTemp = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Value > 0);
             
             if (cpuTemp != null)
-            {
                 s.CpuTemp = Math.Round(cpuTemp.Value ?? 0, 1);
-                s.CpuPackageTemp = s.CpuTemp; // Use same as temp for consistency
+
+            // Core temperature: find hottest individual core or CCD sensor
+            var allTempSensors = cpu.Sensors.Where(s => s.SensorType == SensorType.Temperature).ToList();
+
+            // AMD: CCD sensors are the real core temps (CCD1 (Tdie), CCD2 (Tdie), etc.)
+            // Intel: Core #0, Core #1, etc.
+            // Exclude "Core (Tctl/Tdie)" which is package-level on AMD
+            var coreSensors = allTempSensors
+                .Where(s => s.Value > 0
+                    && (s.Name.Contains("CCD") || s.Name.StartsWith("Core #"))
+                    && !s.Name.Contains("Tctl"))
+                .ToList();
+            if (coreSensors.Count > 0)
+            {
+                var maxCore = coreSensors.Max(s => s.Value ?? 0);
+                s.CpuTemp = Math.Round(maxCore, 1);
             }
 
-            // Package temp (try to find separate package sensor)
-            var pkgTemp = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Package"));
-            if (pkgTemp != null) s.CpuPackageTemp = Math.Round(pkgTemp.Value ?? 0, 1);
+            // Package temp: "Core (Tctl/Tdie)" on AMD, "CPU Package" on Intel
+            var pkgTemp = allTempSensors.FirstOrDefault(s => s.Name.Contains("Tctl"));
+            if (pkgTemp == null)
+                pkgTemp = allTempSensors.FirstOrDefault(s => s.Name.Contains("Package"));
+            if (pkgTemp != null)
+                s.CpuPackageTemp = Math.Round(pkgTemp.Value ?? 0, 1);
+            else
+                s.CpuPackageTemp = s.CpuTemp;
 
             // Voltage - use mapping
             var voltageSensorName = _cpuMapping.GetVoltageSensorName();
@@ -672,39 +722,66 @@ public class HardwareMonitorService
         catch { }
 
         // Step 4: Resolution/refresh from GPU
+        // Match using Win32_PnPEntity to determine the correct order
         try
         {
-            using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
-            var gpuIdx = 0;
-            foreach (ManagementObject gpu in searcher.Get())
+            // Collect GPU data
+            var gpuDataList = new List<(string pnpId, int resW, int resH, int refresh, int bpp)>();
+            using (var gpuSearcher = new ManagementObjectSearcher("SELECT PNPDeviceID, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, CurrentBitsPerPixel FROM Win32_VideoController"))
             {
-                var resW = Convert.ToInt32(gpu["CurrentHorizontalResolution"] ?? 0);
-                var resH = Convert.ToInt32(gpu["CurrentVerticalResolution"] ?? 0);
-                var refresh = Convert.ToInt32(gpu["CurrentRefreshRate"] ?? 0);
-                var bpp = Convert.ToInt32(gpu["CurrentBitsPerPixel"] ?? 0);
+                foreach (ManagementObject gpu in gpuSearcher.Get())
+                {
+                    gpuDataList.Add((
+                        gpu["PNPDeviceID"]?.ToString() ?? "",
+                        Convert.ToInt32(gpu["CurrentHorizontalResolution"] ?? 0),
+                        Convert.ToInt32(gpu["CurrentVerticalResolution"] ?? 0),
+                        Convert.ToInt32(gpu["CurrentRefreshRate"] ?? 0),
+                        Convert.ToInt32(gpu["CurrentBitsPerPixel"] ?? 0)
+                    ));
+                }
+            }
 
-                // Apply to matching monitor or create entry
-                var monitorList = monitors.Values.ToList();
-                if (gpuIdx < monitorList.Count)
+            // Build EDID lookup by vendor+product code (e.g. "DEL4150")
+            var edidByCode = new Dictionary<string, MonitorInfo>();
+            foreach (var kvp in monitors)
+            {
+                var instParts = kvp.Key.Split('\\');
+                if (instParts.Length >= 2)
+                    edidByCode[instParts[1]] = kvp.Value;
+            }
+
+            // Get ordered list from Win32_PnPEntity (deterministic device tree order)
+            var orderedMonitors = new List<MonitorInfo>();
+            try
+            {
+                using var pnpSearcher = new ManagementObjectSearcher("SELECT DeviceID FROM Win32_PnPEntity WHERE PNPClass = 'Monitor'");
+                foreach (ManagementObject pnp in pnpSearcher.Get())
                 {
-                    monitorList[gpuIdx].ResolutionWidth = resW;
-                    monitorList[gpuIdx].ResolutionHeight = resH;
-                    monitorList[gpuIdx].RefreshRate = refresh;
-                    monitorList[gpuIdx].BitsPerPixel = bpp;
-                }
-                else if (resW > 0)
-                {
-                    // GPU without matching monitor entry
-                    monitors[$"GPU_{gpuIdx}"] = new MonitorInfo
+                    var devId = pnp["DeviceID"]?.ToString() ?? "";
+                    var parts = devId.Split('\\');
+                    if (parts.Length >= 2 && edidByCode.TryGetValue(parts[1], out var info))
                     {
-                        Name = gpu["Name"]?.ToString() ?? "Display",
-                        ResolutionWidth = resW,
-                        ResolutionHeight = resH,
-                        RefreshRate = refresh,
-                        BitsPerPixel = bpp
-                    };
+                        if (!orderedMonitors.Contains(info))
+                            orderedMonitors.Add(info);
+                    }
                 }
-                gpuIdx++;
+            }
+            catch { }
+
+            // Add any remaining EDID monitors not found by PnP
+            foreach (var info in monitors.Values)
+            {
+                if (!orderedMonitors.Contains(info))
+                    orderedMonitors.Add(info);
+            }
+
+            // Match by index: PnP order should match GPU order
+            for (int i = 0; i < orderedMonitors.Count && i < gpuDataList.Count; i++)
+            {
+                orderedMonitors[i].ResolutionWidth = gpuDataList[i].resW;
+                orderedMonitors[i].ResolutionHeight = gpuDataList[i].resH;
+                orderedMonitors[i].RefreshRate = gpuDataList[i].refresh;
+                orderedMonitors[i].BitsPerPixel = gpuDataList[i].bpp;
             }
         }
         catch { }

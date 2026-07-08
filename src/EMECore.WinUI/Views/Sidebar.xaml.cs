@@ -23,6 +23,7 @@ public sealed partial class Sidebar : UserControl
     private readonly TextBlock _navLbl, _utilLbl;
     private readonly Border _indicator;
     private readonly SidebarItem _libraryBtn;
+    private readonly SidebarItem _monBtn;
     private readonly List<SidebarItem> _items = new();
 
     public Sidebar()
@@ -39,7 +40,7 @@ public sealed partial class Sidebar : UserControl
         logoRow.Children.Add(logoBox);
         _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
         _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
-        _logo.Children.Add(new TextBlock { Text = "v2.14.3.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        _logo.Children.Add(new TextBlock { Text = "v2.15.0.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
         logoRow.Children.Add(_logo);
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
@@ -86,8 +87,9 @@ public sealed partial class Sidebar : UserControl
 
         _utilLbl = SectionLabel("Utilitários EME"); _nav.Children.Add(_utilLbl);
 
-        var monBtn = AddItem("\uE9CA", "Monitor de Hardware");
-        monBtn.Click += (_, _) => MonitorRequested?.Invoke(this, EventArgs.Empty);
+        _monBtn = AddItem("\uE9CA", "Monitor de Hardware");
+        _monBtn.Click += (_, _) => MonitorRequested?.Invoke(this, EventArgs.Empty);
+
         var achBtn = AddItem("\uE8FB", "Testar Conquista");
         achBtn.Click += (_, _) => TestAchievementRequested?.Invoke(this, EventArgs.Empty);
 

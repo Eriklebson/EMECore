@@ -70,7 +70,7 @@ public class FpsMonitorService
         }
     }
 
-    private void ParseCsv(string path, string processFilter)
+    private void ParseCsv(string path, string _)
     {
         if (!File.Exists(path)) return;
         try
@@ -79,20 +79,16 @@ public class FpsMonitorService
             if (lines.Length < 2) return;
 
             var headers = lines[0].Split(',');
-            int msIdx = -1, appIdx = -1;
+            int msIdx = -1;
             for (int i = 0; i < headers.Length; i++)
             {
                 if (headers[i].Trim() == "MsBetweenPresents") msIdx = i;
-                if (headers[i].Trim() == "Application") appIdx = i;
             }
             if (msIdx < 0) return;
 
             for (int i = 1; i < lines.Length; i++)
             {
                 var cols = lines[i].Split(',');
-                if (appIdx >= 0 && cols.Length > appIdx && !cols[appIdx].Contains(processFilter, StringComparison.OrdinalIgnoreCase))
-                    continue;
-
                 if (cols.Length > msIdx && double.TryParse(cols[msIdx].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var ms) && ms > 0 && ms < 5000)
                 {
                     var fps = Math.Round(1000.0 / ms);

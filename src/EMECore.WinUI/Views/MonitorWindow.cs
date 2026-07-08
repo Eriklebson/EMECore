@@ -6,9 +6,15 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using System.Numerics;
+using System.Collections.ObjectModel;
 using EMECore.Core.Models;
 using EMECore.Hardware.Services;
 using EMECore.WinUI.Theme;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using LiveChartsCore.SkiaSharpView.WinUI;
+using SkiaSharp;
 
 namespace EMECore.WinUI.Views;
 
@@ -17,45 +23,52 @@ public sealed partial class MonitorWindow : Window
     private readonly HardwareMonitorService _monitor;
     private readonly StressTestService _stressTest = new();
     private readonly MappingService _mapping = MappingService.Instance;
-    private DispatcherTimer _timer = null!;
     private DispatcherTimer _graphTimer = null!;
     private DispatcherTimer _stressTimer = null!;
+    private System.Threading.Timer? _bgTimer;
 
     // Motherboard
     private TextBlock _mbModel = null!, _mbTemp = null!, _mbVrmTemp = null!, _mbVoltage = null!;
     private StackPanel _mbFansPanel = null!;
+    private TextBlock _mbCompactTemp = null!, _mbCompactVrm = null!, _mbCompactFans = null!, _mbCompactVoltage = null!;
 
     // RAM
     private TextBlock _ramPct = null!, _ramInfo = null!, _ramModel = null!, _ramVoltage = null!;
     private Grid _ramBar = null!;
+    private TextBlock _ramCompactPct = null!, _ramCompactInfo = null!;
 
     // CPU
     private TextBlock _cpuPct = null!, _cpuCoreTemp = null!, _cpuPkgTemp = null!, _cpuModel = null!, _cpuVoltage = null!;
     private Grid _cpuBar = null!;
-    private Canvas _cpuGraph = null!;
-    private readonly List<double> _cpuHistory = new();
+    private CartesianChart _cpuChart = null!;
+    private readonly ObservableCollection<double> _cpuValues = new();
     private StackPanel _cpuFansPanel = null!;
+    private TextBlock _cpuCompactPct = null!, _cpuCompactCore = null!, _cpuCompactPkg = null!;
 
     // GPU
     private TextBlock _gpuPct = null!, _gpuCoreTemp = null!, _gpuModel = null!, _gpuVoltage = null!;
     private Grid _gpuBar = null!;
-    private Canvas _gpuGraph = null!;
-    private readonly List<double> _gpuHistory = new();
+    private CartesianChart _gpuChart = null!;
+    private readonly ObservableCollection<double> _gpuValues = new();
     private StackPanel _gpuFansPanel = null!;
+    private TextBlock _gpuCompactPct = null!, _gpuCompactTemp = null!;
 
     // Disk (dynamic multi-disk)
     private StackPanel _disksPanel = null!;
+    private TextBlock _diskCompactInfo = null!;
 
     // Network
     private TextBlock _netName = null!, _netDown = null!, _netUp = null!;
-    private Canvas _netDownGraph = null!, _netUpGraph = null!;
-    private readonly List<double> _netDownHistory = new();
-    private readonly List<double> _netUpHistory = new();
+    private CartesianChart _netDownChart = null!, _netUpChart = null!;
+    private readonly ObservableCollection<double> _netDownValues = new();
+    private readonly ObservableCollection<double> _netUpValues = new();
     private double _lastNetDown, _lastNetUp;
+    private TextBlock _netCompactDown = null!, _netCompactUp = null!;
 
     // FPS
     private TextBlock _fpsValue = null!, _fpsInfo = null!, _fpsLabel = null!;
     private Border _fpsCard = null!;
+    private Button _fpsToggleBtn = null!;
 
     private int _fanCount;
     private bool _isMoving;
@@ -90,14 +103,14 @@ public sealed partial class MonitorWindow : Window
     private TextBlock _furmarkStatus = null!;
 
     // Stress Test Graphs
-    private Canvas _cpuStressTempGraph = null!;
-    private Canvas _cpuStressUsageGraph = null!;
-    private readonly List<double> _cpuStressTempHistory = new();
-    private readonly List<double> _cpuStressUsageHistory = new();
-    private Canvas _gpuStressTempGraph = null!;
-    private Canvas _gpuStressUsageGraph = null!;
-    private readonly List<double> _gpuStressTempHistory = new();
-    private readonly List<double> _gpuStressUsageHistory = new();
+    private CartesianChart _cpuStressTempChart = null!;
+    private CartesianChart _cpuStressUsageChart = null!;
+    private readonly ObservableCollection<double> _cpuStressTempValues = new();
+    private readonly ObservableCollection<double> _cpuStressUsageValues = new();
+    private CartesianChart _gpuStressTempChart = null!;
+    private CartesianChart _gpuStressUsageChart = null!;
+    private readonly ObservableCollection<double> _gpuStressTempValues = new();
+    private readonly ObservableCollection<double> _gpuStressUsageValues = new();
 
     // Gamepad real-time
     private DispatcherTimer _gamepadTimer = null!;
@@ -113,6 +126,17 @@ public sealed partial class MonitorWindow : Window
 
     // Cached hardware data — Collect() result reused by StressMetrics
     private HardwareStats? _lastCollect;
+
+    // Card collapse state (key = card name, value = isCollapsed)
+    private readonly Dictionary<string, bool> _collapsedState = new();
+    private readonly Dictionary<string, StackPanel> _expandedContent = new();
+    private readonly Dictionary<string, StackPanel> _collapsedContent = new();
+    private readonly Dictionary<string, Border> _cardBorders = new();
+    private readonly Dictionary<string, Button> _toggleButtons = new();
+
+    // WMI refresh counter — refresh RAM/Disks every 5 seconds (10 ticks × 500ms)
+    private int _wmiTickCounter = 0;
+    private const int WMI_REFRESH_INTERVAL = 5;
 
     // Brush pooling for UsageColor/TempColor — allocated once
     private static readonly SolidColorBrush _brush85 = new(ColorFromHex("#EF4444"));
@@ -152,6 +176,22 @@ public sealed partial class MonitorWindow : Window
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
         appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 960, Height = 640 });
 
+        // Dark title bar
+        var titleBar = appWindow.TitleBar;
+        titleBar.ExtendsContentIntoTitleBar = false;
+        var darkBg = ColorFromHex("#0A0B0D");
+        var hoverBg = ColorFromHex("#2A2D31");
+        var pressedBg = ColorFromHex("#1E2023");
+        var mutedFg = Windows.UI.Color.FromArgb(255, 128, 128, 128);
+        titleBar.BackgroundColor = darkBg;
+        titleBar.ForegroundColor = Colors.White;
+        titleBar.ButtonBackgroundColor = darkBg;
+        titleBar.ButtonForegroundColor = Colors.White;
+        titleBar.ButtonHoverBackgroundColor = hoverBg;
+        titleBar.ButtonPressedBackgroundColor = pressedBg;
+        titleBar.ButtonInactiveBackgroundColor = darkBg;
+        titleBar.ButtonInactiveForegroundColor = mutedFg;
+
         // Loading overlay — shown FIRST so window appears immediately
         _loadingOverlay = new Grid { Background = SurfaceBg };
         var loadingStack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Spacing = 12 };
@@ -188,9 +228,9 @@ public sealed partial class MonitorWindow : Window
         _navMonitores = CreateNavItem("\uE7F4", "Monitores", false, SubtleText);
         _navPerifericos = CreateNavItem("\uE711", "Periféricos", false, SubtleText);
         sidebarStack.Children.Add(_navHardware);
-        sidebarStack.Children.Add(_navStressTest);
+        // sidebarStack.Children.Add(_navStressTest); — oculto, ideia para app futuro
         sidebarStack.Children.Add(_navMonitores);
-        // _navPerifericos ocultado temporariamente
+        sidebarStack.Children.Add(_navPerifericos);
         sidebar.Child = sidebarStack;
         Grid.SetColumn(sidebar, 0);
         root.Children.Add(sidebar);
@@ -216,10 +256,9 @@ public sealed partial class MonitorWindow : Window
         // Motherboard Card
         var mbCard = CreateCard();
         var mbStack = new StackPanel { Spacing = 12 };
-        var mbHeader = CreateCardHeaderGrid("\uE950", "PLACA MÃE", MbColor);
+        var mbHeader = CreateCardHeaderGrid("\uE950", "PLACA MÃE", MbColor, "mb");
         _mbVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(_mbVoltage, 1);
-        ((Grid)mbHeader).Children.Add(_mbVoltage);
+        mbHeader.Children.Add(_mbVoltage);
         mbStack.Children.Add(mbHeader);
         _mbModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         mbStack.Children.Add(_mbModel);
@@ -246,17 +285,30 @@ public sealed partial class MonitorWindow : Window
         _mbFansPanel = new StackPanel { Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
         mbStack.Children.Add(_mbFansPanel);
 
-        mbCard.Child = mbStack;
+        var mbCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
+        _mbCompactTemp = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = MbColor };
+        _mbCompactVrm = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        _mbCompactFans = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        _mbCompactVoltage = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        mbCompact.Children.Add(new TextBlock { Text = "TEMP", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        mbCompact.Children.Add(_mbCompactTemp);
+        mbCompact.Children.Add(new TextBlock { Text = "VRM", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        mbCompact.Children.Add(_mbCompactVrm);
+        mbCompact.Children.Add(new TextBlock { Text = "FAN", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        mbCompact.Children.Add(_mbCompactFans);
+        mbCompact.Children.Add(new TextBlock { Text = "V", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        mbCompact.Children.Add(_mbCompactVoltage);
+        RegisterCard("mb", mbCard, mbStack, mbCompact);
+
         Grid.SetColumn(mbCard, 0);
         row1.Children.Add(mbCard);
 
         // RAM Card
         var ramCard = CreateCard();
         var ramStack = new StackPanel { Spacing = 12 };
-        var ramHeader = CreateCardHeaderGrid("\uf515", "RAM", RamColor);
+        var ramHeader = CreateCardHeaderGrid("\uf515", "RAM", RamColor, "ram");
         _ramVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(_ramVoltage, 1);
-        ((Grid)ramHeader).Children.Add(_ramVoltage);
+        ramHeader.Children.Add(_ramVoltage);
         ramStack.Children.Add(ramHeader);
         _ramModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         ramStack.Children.Add(_ramModel);
@@ -275,7 +327,16 @@ public sealed partial class MonitorWindow : Window
         ramMetricsGrid.Children.Add(ramInfoStack);
         ramStack.Children.Add(ramMetricsGrid);
         ramStack.Children.Add(CreateBar(out _ramBar, RamColor));
-        ramCard.Child = ramStack;
+
+        var ramCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
+        _ramCompactPct = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = RamColor };
+        _ramCompactInfo = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        ramCompact.Children.Add(new TextBlock { Text = "USO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        ramCompact.Children.Add(_ramCompactPct);
+        ramCompact.Children.Add(new TextBlock { Text = "RAM", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        ramCompact.Children.Add(_ramCompactInfo);
+        RegisterCard("ram", ramCard, ramStack, ramCompact);
+
         Grid.SetColumn(ramCard, 1);
         row1.Children.Add(ramCard);
         contentStack.Children.Add(row1);
@@ -288,10 +349,9 @@ public sealed partial class MonitorWindow : Window
         // CPU Card
         var cpuCard = CreateCard();
         var cpuStack = new StackPanel { Spacing = 12 };
-        var cpuHeader = CreateCardHeaderGrid("\uef8e", "CPU", CpuColor);
+        var cpuHeader = CreateCardHeaderGrid("\uef8e", "CPU", CpuColor, "cpu");
         _cpuVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(_cpuVoltage, 1);
-        ((Grid)cpuHeader).Children.Add(_cpuVoltage);
+        cpuHeader.Children.Add(_cpuVoltage);
         cpuStack.Children.Add(cpuHeader);
         _cpuModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         cpuStack.Children.Add(_cpuModel);
@@ -320,26 +380,67 @@ public sealed partial class MonitorWindow : Window
         cpuStack.Children.Add(cpuMetricsGrid);
         cpuStack.Children.Add(CreateBar(out _cpuBar, CpuColor));
 
-        var cpuGraphContainer = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(8), Height = 50, Padding = new Thickness(8), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _cpuGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        cpuGraphContainer.Child = _cpuGraph;
+        var cpuGraphContainer = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(8), Height = 80, Padding = new Thickness(4), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
+        _cpuChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _cpuValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(new SKColor(0, 210, 255), 2),
+                    Fill = new SolidColorPaint(new SKColor(0, 210, 255, 30))
+                }
+            },
+            XAxes = new Axis[]
+            {
+                new Axis
+                {
+                    IsVisible = false,
+                    MinStep = 1
+                }
+            },
+            YAxes = new Axis[]
+            {
+                new Axis
+                {
+                    IsVisible = false,
+                    MinLimit = 0,
+                    MaxLimit = 100
+                }
+            }
+        };
+        cpuGraphContainer.Child = _cpuChart;
         cpuStack.Children.Add(cpuGraphContainer);
 
         // CPU Fans
         _cpuFansPanel = new StackPanel { Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
         cpuStack.Children.Add(_cpuFansPanel);
 
-        cpuCard.Child = cpuStack;
+        var cpuCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
+        _cpuCompactPct = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = CpuColor };
+        _cpuCompactCore = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        _cpuCompactPkg = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        cpuCompact.Children.Add(new TextBlock { Text = "USO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        cpuCompact.Children.Add(_cpuCompactPct);
+        cpuCompact.Children.Add(new TextBlock { Text = "CORE", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        cpuCompact.Children.Add(_cpuCompactCore);
+        cpuCompact.Children.Add(new TextBlock { Text = "PKG", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        cpuCompact.Children.Add(_cpuCompactPkg);
+        RegisterCard("cpu", cpuCard, cpuStack, cpuCompact);
+
         Grid.SetColumn(cpuCard, 0);
         row2.Children.Add(cpuCard);
 
         // GPU Card
         var gpuCard = CreateCard();
         var gpuStack = new StackPanel { Spacing = 12 };
-        var gpuHeader = CreateCardHeaderGrid("\uea89", "GPU", GpuColor);
+        var gpuHeader = CreateCardHeaderGrid("\uea89", "GPU", GpuColor, "gpu");
         _gpuVoltage = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")), VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(_gpuVoltage, 1);
-        ((Grid)gpuHeader).Children.Add(_gpuVoltage);
+        gpuHeader.Children.Add(_gpuVoltage);
         gpuStack.Children.Add(gpuHeader);
         _gpuModel = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         gpuStack.Children.Add(_gpuModel);
@@ -361,16 +462,56 @@ public sealed partial class MonitorWindow : Window
         gpuStack.Children.Add(gpuMetricsGrid);
         gpuStack.Children.Add(CreateBar(out _gpuBar, GpuColor));
 
-        var gpuGraphContainer = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(8), Height = 50, Padding = new Thickness(8), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _gpuGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        gpuGraphContainer.Child = _gpuGraph;
+        var gpuGraphContainer = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(8), Height = 80, Padding = new Thickness(4), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
+        _gpuChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _gpuValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(new SKColor(168, 85, 247), 2),
+                    Fill = new SolidColorPaint(new SKColor(168, 85, 247, 30))
+                }
+            },
+            XAxes = new Axis[]
+            {
+                new Axis
+                {
+                    IsVisible = false,
+                    MinStep = 1
+                }
+            },
+            YAxes = new Axis[]
+            {
+                new Axis
+                {
+                    IsVisible = false,
+                    MinLimit = 0,
+                    MaxLimit = 100
+                }
+            },
+
+        };
+        gpuGraphContainer.Child = _gpuChart;
         gpuStack.Children.Add(gpuGraphContainer);
 
         // GPU Fans
         _gpuFansPanel = new StackPanel { Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
         gpuStack.Children.Add(_gpuFansPanel);
 
-        gpuCard.Child = gpuStack;
+        var gpuCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
+        _gpuCompactPct = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = GpuColor };
+        _gpuCompactTemp = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        gpuCompact.Children.Add(new TextBlock { Text = "USO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        gpuCompact.Children.Add(_gpuCompactPct);
+        gpuCompact.Children.Add(new TextBlock { Text = "TEMP", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        gpuCompact.Children.Add(_gpuCompactTemp);
+        RegisterCard("gpu", gpuCard, gpuStack, gpuCompact);
+
         Grid.SetColumn(gpuCard, 1);
         row2.Children.Add(gpuCard);
         contentStack.Children.Add(row2);
@@ -383,17 +524,23 @@ public sealed partial class MonitorWindow : Window
         // Disk Card — dynamic, supports multiple disks
         var diskCard = CreateCard();
         var diskStack = new StackPanel { Spacing = 12 };
-        diskStack.Children.Add(CreateCardHeader("\uEDA2", "DISCO", DiskColor));
+        diskStack.Children.Add(CreateCardHeaderGrid("\uEDA2", "DISCO", DiskColor, "disk"));
         _disksPanel = new StackPanel { Spacing = 8 };
         diskStack.Children.Add(_disksPanel);
-        diskCard.Child = diskStack;
+
+        var diskCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
+        _diskCompactInfo = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        diskCompact.Children.Add(new TextBlock { Text = "ESPAÇO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        diskCompact.Children.Add(_diskCompactInfo);
+        RegisterCard("disk", diskCard, diskStack, diskCompact);
+
         Grid.SetColumn(diskCard, 0);
         row3.Children.Add(diskCard);
 
         // Network Card
         var netCard = CreateCard();
         var netStack = new StackPanel { Spacing = 12 };
-        netStack.Children.Add(CreateCardHeader("\uE8B0", "REDE", NetColor));
+        netStack.Children.Add(CreateCardHeaderGrid("\uE8B0", "REDE", NetColor, "net"));
         _netName = new TextBlock { FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
         netStack.Children.Add(_netName);
 
@@ -417,24 +564,66 @@ public sealed partial class MonitorWindow : Window
         netStack.Children.Add(netGrid);
 
         // Network graphs
-        var netGraphGrid = new Grid { ColumnSpacing = 8, Margin = new Thickness(0, 4, 0, 0), Height = 50 };
+        var netGraphGrid = new Grid { ColumnSpacing = 8, Margin = new Thickness(0, 4, 0, 0), Height = 80 };
         netGraphGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         netGraphGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
         var downGraphBg = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(6), Padding = new Thickness(4), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _netDownGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        downGraphBg.Child = _netDownGraph;
-        netGraphGrid.Children.Add(downGraphBg);
 
+        _netDownChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _netDownValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(new SKColor(76, 203, 160), 2),
+                    Fill = new SolidColorPaint(new SKColor(76, 203, 160, 30))
+                }
+            },
+            XAxes = new Axis[] { new Axis { IsVisible = false, MinStep = 1 } },
+            YAxes = new Axis[] { new Axis { IsVisible = false, MinLimit = 0 } },
+
+        };
+        downGraphBg.Child = _netDownChart;
+        netGraphGrid.Children.Add(downGraphBg);
         var upGraphBg = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(6), Padding = new Thickness(4), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _netUpGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        upGraphBg.Child = _netUpGraph;
+
+        _netUpChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _netUpValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(SKColors.White, 2),
+                    Fill = new SolidColorPaint(new SKColor(255, 255, 255, 20))
+                }
+            },
+            XAxes = new Axis[] { new Axis { IsVisible = false, MinStep = 1 } },
+            YAxes = new Axis[] { new Axis { IsVisible = false, MinLimit = 0 } },
+
+        };
+        upGraphBg.Child = _netUpChart;
         Grid.SetColumn(upGraphBg, 1);
         netGraphGrid.Children.Add(upGraphBg);
 
         netStack.Children.Add(netGraphGrid);
 
-        netCard.Child = netStack;
+        var netCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
+        _netCompactDown = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = NetColor };
+        _netCompactUp = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        netCompact.Children.Add(new TextBlock { Text = "↓", FontSize = 12, Foreground = NetColor, VerticalAlignment = VerticalAlignment.Center });
+        netCompact.Children.Add(_netCompactDown);
+        netCompact.Children.Add(new TextBlock { Text = "↑", FontSize = 12, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
+        netCompact.Children.Add(_netCompactUp);
+        RegisterCard("net", netCard, netStack, netCompact);
+
         Grid.SetColumn(netCard, 1);
         row3.Children.Add(netCard);
         contentStack.Children.Add(row3);
@@ -442,7 +631,28 @@ public sealed partial class MonitorWindow : Window
         // ===== ROW 4: FPS =====
         _fpsCard = CreateCard();
         var fpsStack = new StackPanel { Spacing = 12 };
-        fpsStack.Children.Add(CreateCardHeader("\uec4d", "FPS", FpsColor));
+
+        var fpsHeaderGrid = new Grid();
+        fpsHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        fpsHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var fpsHdr = CreateCardHeader("\uec4d", "FPS", FpsColor);
+        fpsHeaderGrid.Children.Add(fpsHdr);
+
+        _fpsToggleBtn = new Button
+        {
+            Content = "INICIAR",
+            FontSize = 10,
+            Foreground = FpsColor,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(1),
+            BorderBrush = FpsColor,
+            Padding = new Thickness(10, 4, 10, 4),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        _fpsToggleBtn.Click += FpsToggle_Click;
+        Grid.SetColumn(_fpsToggleBtn, 1);
+        fpsHeaderGrid.Children.Add(_fpsToggleBtn);
+        fpsStack.Children.Add(fpsHeaderGrid);
         var fpsGrid = new Grid { ColumnSpacing = 32 };
         fpsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         fpsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -488,10 +698,9 @@ public sealed partial class MonitorWindow : Window
         // CPU Stress Test Card
         var cpuStressCard = CreateCard();
         var cpuStressStack = new StackPanel { Spacing = 12 };
-        var cpuStressHdr = CreateCardHeaderGrid("\uef8e", "CPU STRESS TEST", CpuColor);
+        var cpuStressHdr = CreateCardHeaderGrid("\uef8e", "CPU STRESS TEST", CpuColor, "stress_cpu");
         _cpuStressIndicator = new Border { Width = 8, Height = 8, CornerRadius = new CornerRadius(4), Background = SubtleText, VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(_cpuStressIndicator, 1);
-        ((Grid)cpuStressHdr).Children.Add(_cpuStressIndicator);
+        cpuStressHdr.Children.Add(_cpuStressIndicator);
         cpuStressStack.Children.Add(cpuStressHdr);
 
         _cpuStressModel = new TextBlock { Text = "CPU", FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -543,8 +752,25 @@ public sealed partial class MonitorWindow : Window
         cpuStressStack.Children.Add(cpuTempGraphLabel);
 
         var cpuStressTempGraphBg = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(6), Padding = new Thickness(4), Height = 80, BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _cpuStressTempGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        cpuStressTempGraphBg.Child = _cpuStressTempGraph;
+        _cpuStressTempChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _cpuStressTempValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(new SKColor(0, 210, 255), 2),
+                    Fill = new SolidColorPaint(new SKColor(0, 210, 255, 30))
+                }
+            },
+            XAxes = new Axis[] { new Axis { IsVisible = false, MinStep = 1 } },
+            YAxes = new Axis[] { new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 } },
+
+        };
+        cpuStressTempGraphBg.Child = _cpuStressTempChart;
         cpuStressStack.Children.Add(cpuStressTempGraphBg);
 
         // CPU Usage Graph
@@ -558,8 +784,25 @@ public sealed partial class MonitorWindow : Window
         cpuStressStack.Children.Add(cpuUsageGraphLabel);
 
         var cpuStressUsageGraphBg = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(6), Padding = new Thickness(4), Height = 80, BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _cpuStressUsageGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        cpuStressUsageGraphBg.Child = _cpuStressUsageGraph;
+        _cpuStressUsageChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _cpuStressUsageValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(new SKColor(239, 68, 68), 2),
+                    Fill = new SolidColorPaint(new SKColor(239, 68, 68, 30))
+                }
+            },
+            XAxes = new Axis[] { new Axis { IsVisible = false, MinStep = 1 } },
+            YAxes = new Axis[] { new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 } },
+
+        };
+        cpuStressUsageGraphBg.Child = _cpuStressUsageChart;
         cpuStressStack.Children.Add(cpuStressUsageGraphBg);
 
         cpuStressCard.Child = cpuStressStack;
@@ -569,10 +812,9 @@ public sealed partial class MonitorWindow : Window
         // GPU Monitor Card (read-only)
         var gpuStressCard = CreateCard();
         var gpuStressStack = new StackPanel { Spacing = 12 };
-        var gpuStressHdr = CreateCardHeaderGrid("\uea89", "GPU MONITOR", GpuColor);
+        var gpuStressHdr = CreateCardHeaderGrid("\uea89", "GPU MONITOR", GpuColor, "stress_gpu");
         _gpuStressIndicator = new Border { Width = 8, Height = 8, CornerRadius = new CornerRadius(4), Background = SubtleText, VerticalAlignment = VerticalAlignment.Center };
-        Grid.SetColumn(_gpuStressIndicator, 1);
-        ((Grid)gpuStressHdr).Children.Add(_gpuStressIndicator);
+        gpuStressHdr.Children.Add(_gpuStressIndicator);
         gpuStressStack.Children.Add(gpuStressHdr);
 
         _gpuStressModel = new TextBlock { Text = "GPU", FontSize = 11, Foreground = SubtleText, TextTrimming = TextTrimming.CharacterEllipsis };
@@ -628,8 +870,25 @@ public sealed partial class MonitorWindow : Window
         gpuStressStack.Children.Add(gpuTempGraphLabel);
 
         var gpuStressTempGraphBg = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(6), Padding = new Thickness(4), Height = 80, BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _gpuStressTempGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        gpuStressTempGraphBg.Child = _gpuStressTempGraph;
+        _gpuStressTempChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _gpuStressTempValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(new SKColor(168, 85, 247), 2),
+                    Fill = new SolidColorPaint(new SKColor(168, 85, 247, 30))
+                }
+            },
+            XAxes = new Axis[] { new Axis { IsVisible = false, MinStep = 1 } },
+            YAxes = new Axis[] { new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 } },
+
+        };
+        gpuStressTempGraphBg.Child = _gpuStressTempChart;
         gpuStressStack.Children.Add(gpuStressTempGraphBg);
 
         // GPU Usage Graph
@@ -643,8 +902,25 @@ public sealed partial class MonitorWindow : Window
         gpuStressStack.Children.Add(gpuUsageGraphLabel);
 
         var gpuStressUsageGraphBg = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(6), Padding = new Thickness(4), Height = 80, BorderThickness = new Thickness(1), BorderBrush = CardBorder };
-        _gpuStressUsageGraph = new Canvas { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
-        gpuStressUsageGraphBg.Child = _gpuStressUsageGraph;
+        _gpuStressUsageChart = new CartesianChart
+        {
+            Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = _gpuStressUsageValues,
+                    GeometryFill = null,
+                    GeometryStroke = null,
+                    LineSmoothness = 0.5,
+                    Stroke = new SolidColorPaint(new SKColor(239, 68, 68), 2),
+                    Fill = new SolidColorPaint(new SKColor(239, 68, 68, 30))
+                }
+            },
+            XAxes = new Axis[] { new Axis { IsVisible = false, MinStep = 1 } },
+            YAxes = new Axis[] { new Axis { IsVisible = false, MinLimit = 0, MaxLimit = 100 } },
+
+        };
+        gpuStressUsageGraphBg.Child = _gpuStressUsageChart;
         gpuStressStack.Children.Add(gpuStressUsageGraphBg);
 
         gpuStressCard.Child = gpuStressStack;
@@ -705,20 +981,27 @@ public sealed partial class MonitorWindow : Window
         _navMonitores.Click += (_, _) => SwitchTab("monitores");
         _navPerifericos.Click += (_, _) => SwitchTab("perifericos");
 
-        Closed += (_, _) => { _timer.Stop(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
+        Closed += (_, _) => { _bgTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
         var hwnd2 = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId2 = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd2);
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId2);
         appWindow.Changed += (_, args) =>
         {
-            if (args.DidPositionChange) { if (!_isMoving) { _isMoving = true; _timer.Stop(); _graphTimer.Stop(); } }
-            else if (_isMoving) { _isMoving = false; _timer.Start(); _graphTimer.Start(); }
+            if (args.DidPositionChange) { if (!_isMoving) { _isMoving = true; _bgTimer?.Change(Timeout.Infinite, Timeout.Infinite); _graphTimer.Stop(); } }
+            else if (_isMoving) { _isMoving = false; _bgTimer?.Change(1000, 1000); _graphTimer.Start(); }
         };
 
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
-        _timer.Tick += (_, _) => RefreshLhm();
+        _bgTimer = new System.Threading.Timer(_ =>
+        {
+            try
+            {
+                var s = _monitor.CollectFast();
+                DispatcherQueue.TryEnqueue(() => RefreshLhmWith(s));
+            }
+            catch { }
+        }, null, 1000, 1000);
 
-        _graphTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
+        _graphTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(2000) };
         _graphTimer.Tick += (_, _) => UpdateGraphs();
 
         _stressTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -744,9 +1027,9 @@ public sealed partial class MonitorWindow : Window
         // PHASE 1: LHM fast data (~4ms) — populate CPU/GPU/MB/Fans immediately
         RefreshLhm();
 
-        _timer.Start();
+        //_timer.Start();
         _graphTimer.Start();
-        _stressTimer.Start();
+        // _stressTimer.Start(); — oculto com a aba Stress Test
 
         if (_loadingOverlay != null)
             _loadingOverlay.Visibility = Visibility.Collapsed;
@@ -755,16 +1038,27 @@ public sealed partial class MonitorWindow : Window
         _ = LoadWmiInBackgroundAsync();
     }
 
+    private bool _wmiLoading;
+
     private async Task LoadWmiInBackgroundAsync()
     {
-        var s = await Task.Run(() => _monitor.Collect());
-        if (s == null) return;
-
-        DispatcherQueue.TryEnqueue(() =>
+        if (_wmiLoading) return;
+        _wmiLoading = true;
+        try
         {
-            _lastCollect = s;
-            RefreshWmi(s);
-        });
+            var s = await Task.Run(() => _monitor.Collect());
+            if (s == null) return;
+
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                _lastCollect = s;
+                RefreshWmi(s);
+            });
+        }
+        finally
+        {
+            _wmiLoading = false;
+        }
     }
 
     private static Border CreateCard() => new()
@@ -789,17 +1083,107 @@ public sealed partial class MonitorWindow : Window
         return stack;
     }
 
-    private static Grid CreateCardHeaderGrid(string icon, string title, SolidColorBrush accentColor)
+    private StackPanel CreateCardHeaderGrid(string icon, string title, SolidColorBrush accentColor, string cardKey)
     {
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        
         var hdr = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         hdr.Children.Add(new FontIcon { Glyph = icon, FontSize = 18, Foreground = accentColor, FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons") });
         hdr.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
-        grid.Children.Add(hdr);
-        return grid;
+
+        return hdr;
+    }
+
+    private bool _fpsRunning;
+
+    private void FpsToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_fpsRunning)
+        {
+            _monitor.StopFpsMonitor();
+            _fpsRunning = false;
+            _fpsToggleBtn.Content = "INICIAR";
+            _fpsToggleBtn.Foreground = FpsColor;
+            _fpsToggleBtn.BorderBrush = FpsColor;
+        }
+        else
+        {
+            _monitor.StartFpsMonitor("");
+            _fpsRunning = true;
+            _fpsToggleBtn.Content = "PARAR";
+            _fpsToggleBtn.Foreground = _brushRed;
+            _fpsToggleBtn.BorderBrush = _brushRed;
+        }
+    }
+
+    private void CardToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string cardKey) return;
+
+        _collapsedState[cardKey] = !_collapsedState.GetValueOrDefault(cardKey, false);
+        var isCollapsed = _collapsedState[cardKey];
+
+        btn.Content = isCollapsed ? "▲" : "▼";
+
+        if (_expandedContent.TryGetValue(cardKey, out var expanded))
+            expanded.Visibility = isCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        if (_collapsedContent.TryGetValue(cardKey, out var collapsed))
+            collapsed.Visibility = isCollapsed ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private StackPanel CreateCompactRow(params (string label, TextBlock value, SolidColorBrush color)[] items)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 2, 0, 2) };
+        foreach (var (label, value, color) in items)
+        {
+            var itemStack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            itemStack.Children.Add(new TextBlock { Text = label, FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+            var valClone = new TextBlock { Text = value.Text, FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = color, VerticalAlignment = VerticalAlignment.Center, Tag = value.Tag };
+            value.Tag = valClone;
+            itemStack.Children.Add(valClone);
+            row.Children.Add(itemStack);
+        }
+        return row;
+    }
+
+    private void RegisterCard(string key, Border card, StackPanel expanded, StackPanel collapsed, string toggleGlyph = "▼")
+    {
+        _collapsedState[key] = false;
+        _expandedContent[key] = expanded;
+        _collapsedContent[key] = collapsed;
+        _cardBorders[key] = card;
+        collapsed.Visibility = Visibility.Collapsed;
+
+        var header = expanded.Children.Count > 0 ? expanded.Children[0] as UIElement : null;
+        if (header != null)
+            expanded.Children.RemoveAt(0);
+
+        var headerRow = new Grid();
+        headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        if (header != null)
+            headerRow.Children.Add(header);
+
+        var toggleBtn = new Button
+        {
+            Content = toggleGlyph,
+            FontSize = 12,
+            Foreground = SubtleText,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0),
+            Padding = new Thickness(6, 4, 6, 4),
+            VerticalAlignment = VerticalAlignment.Center,
+            Tag = key
+        };
+        toggleBtn.Click += CardToggle_Click;
+        _toggleButtons[key] = toggleBtn;
+        Grid.SetColumn(toggleBtn, 1);
+        headerRow.Children.Add(toggleBtn);
+
+        var container = new StackPanel { Spacing = 12, VerticalAlignment = VerticalAlignment.Top };
+        container.Children.Add(headerRow);
+        container.Children.Add(expanded);
+        container.Children.Add(collapsed);
+        card.Child = container;
+        card.VerticalAlignment = VerticalAlignment.Top;
     }
 
     private static Grid CreateBar(out Grid bar, SolidColorBrush color)
@@ -833,10 +1217,15 @@ public sealed partial class MonitorWindow : Window
 
     private void RefreshLhm()
     {
+        var s = _monitor.CollectFast();
+        _lastCollect = s;
+        RefreshLhmWith(s);
+    }
+
+    private void RefreshLhmWith(HardwareStats s)
+    {
         try
         {
-            var s = _monitor.CollectFast();
-            _lastCollect = s;
 
             // Motherboard (LHM)
             _mbModel.Text = s.MotherboardModel;
@@ -845,6 +1234,10 @@ public sealed partial class MonitorWindow : Window
             _mbVrmTemp.Text = s.MotherboardVrmTemp > 0 ? $"{s.MotherboardVrmTemp:F0}°C" : "--";
             _mbVrmTemp.Foreground = TempColor(s.MotherboardVrmTemp);
             _mbVoltage.Text = s.MotherboardVoltage > 0 ? $"{s.MotherboardVoltage:F2}V" : "";
+            _mbCompactTemp.Text = s.MotherboardTemp > 0 ? $"{s.MotherboardTemp:F0}°C" : "--";
+            _mbCompactVrm.Text = s.MotherboardVrmTemp > 0 ? $"{s.MotherboardVrmTemp:F0}°C" : "--";
+            _mbCompactFans.Text = s.Fans.Count > 0 ? $"{s.Fans[0].Rpm:F0} RPM" : "--";
+            _mbCompactVoltage.Text = s.MotherboardVoltage > 0 ? $"{s.MotherboardVoltage:F2}V" : "--";
 
             // CPU (LHM)
             _cpuModel.Text = s.CpuModel;
@@ -858,8 +1251,11 @@ public sealed partial class MonitorWindow : Window
             _cpuCoreTemp.Foreground = TempColor(s.CpuTemp);
             _cpuPkgTemp.Text = s.CpuPackageTemp > 0 ? $"{s.CpuPackageTemp:F0}°C" : "--";
             _cpuPkgTemp.Foreground = TempColor(s.CpuPackageTemp);
-            _cpuHistory.Add(s.CpuUsage);
-            if (_cpuHistory.Count > 60) _cpuHistory.RemoveAt(0);
+            _cpuValues.Add(s.CpuUsage);
+            if (_cpuValues.Count > 60) _cpuValues.RemoveAt(0);
+            _cpuCompactPct.Text = $"{s.CpuUsage:F0}%";
+            _cpuCompactCore.Text = s.CpuTemp > 0 ? $"{s.CpuTemp:F0}°C" : "--";
+            _cpuCompactPkg.Text = s.CpuPackageTemp > 0 ? $"{s.CpuPackageTemp:F0}°C" : "--";
 
             // GPU (LHM)
             _gpuModel.Text = s.GpuModel;
@@ -871,8 +1267,10 @@ public sealed partial class MonitorWindow : Window
             SetBar(_gpuBar, s.GpuUsage, UsageColor(s.GpuUsage, GpuColor));
             _gpuCoreTemp.Text = s.GpuTemp > 0 ? $"{s.GpuTemp:F0}°C" : "--";
             _gpuCoreTemp.Foreground = TempColor(s.GpuTemp);
-            _gpuHistory.Add(s.GpuUsage);
-            if (_gpuHistory.Count > 60) _gpuHistory.RemoveAt(0);
+            _gpuValues.Add(s.GpuUsage);
+            if (_gpuValues.Count > 60) _gpuValues.RemoveAt(0);
+            _gpuCompactPct.Text = $"{s.GpuUsage:F0}%";
+            _gpuCompactTemp.Text = s.GpuTemp > 0 ? $"{s.GpuTemp:F0}°C" : "--";
 
             // Fans
             if (s.Fans.Count != _fanCount)
@@ -921,6 +1319,14 @@ public sealed partial class MonitorWindow : Window
                 _fpsLabel.Text = s.FpsSource != "Off" ? $"Aguardando... {s.FpsSource}" : "Nenhum jogo detectado";
                 _fpsInfo.Text = "";
             }
+
+            // Periodic WMI refresh for RAM/Disks (every 5 seconds)
+            _wmiTickCounter++;
+            if (_wmiTickCounter >= WMI_REFRESH_INTERVAL)
+            {
+                _wmiTickCounter = 0;
+                _ = LoadWmiInBackgroundAsync();
+            }
         }
         catch { }
     }
@@ -937,6 +1343,8 @@ public sealed partial class MonitorWindow : Window
             _ramPct.Text = $"{rp:F0}%";
             _ramPct.Foreground = UsageColor(rp, RamColor);
             SetBar(_ramBar, rp, UsageColor(rp, RamColor));
+            _ramCompactPct.Text = $"{rp:F0}%";
+            _ramCompactInfo.Text = $"{s.UsedRam:F1} / {s.TotalRam:F1} GB";
 
             // Disks (dynamic)
             PopulateDisks(s.Disks);
@@ -949,10 +1357,12 @@ public sealed partial class MonitorWindow : Window
             _lastNetUp = netUp;
             _netDown.Text = netDown > 0 ? FormatSpeed(netDown) : "--";
             _netUp.Text = netUp > 0 ? FormatSpeed(netUp) : "--";
-            _netDownHistory.Add(netDown);
-            _netUpHistory.Add(netUp);
-            if (_netDownHistory.Count > 60) _netDownHistory.RemoveAt(0);
-            if (_netUpHistory.Count > 60) _netUpHistory.RemoveAt(0);
+            _netDownValues.Add(netDown);
+            _netUpValues.Add(netUp);
+            if (_netDownValues.Count > 60) _netDownValues.RemoveAt(0);
+            if (_netUpValues.Count > 60) _netUpValues.RemoveAt(0);
+            _netCompactDown.Text = netDown > 0 ? FormatSpeed(netDown) : "--";
+            _netCompactUp.Text = netUp > 0 ? FormatSpeed(netUp) : "--";
 
             // GPU fallback from nvidia-smi
             if (s.GpuUsage > 0 && _gpuPct.Text == "--%")
@@ -1095,6 +1505,12 @@ public sealed partial class MonitorWindow : Window
             diskBorder.Child = diskGrid;
             _disksPanel.Children.Add(diskBorder);
         }
+
+        if (disks.Count > 0)
+        {
+            var firstDisk = disks[0];
+            _diskCompactInfo.Text = $"{firstDisk.UsagePercent:F0}% | {firstDisk.UsedGb:F1}/{firstDisk.TotalGb:F1} GB";
+        }
     }
 
     private void Refresh()
@@ -1111,6 +1527,10 @@ public sealed partial class MonitorWindow : Window
             _mbVrmTemp.Text = s.MotherboardVrmTemp > 0 ? $"{s.MotherboardVrmTemp:F0}°C" : "--";
             _mbVrmTemp.Foreground = TempColor(s.MotherboardVrmTemp);
             _mbVoltage.Text = s.MotherboardVoltage > 0 ? $"{s.MotherboardVoltage:F2}V" : "";
+            _mbCompactTemp.Text = s.MotherboardTemp > 0 ? $"{s.MotherboardTemp:F0}°C" : "--";
+            _mbCompactVrm.Text = s.MotherboardVrmTemp > 0 ? $"{s.MotherboardVrmTemp:F0}°C" : "--";
+            _mbCompactFans.Text = s.Fans.Count > 0 ? $"{s.Fans[0].Rpm:F0} RPM" : "--";
+            _mbCompactVoltage.Text = s.MotherboardVoltage > 0 ? $"{s.MotherboardVoltage:F2}V" : "--";
 
             // RAM
             var rp = s.TotalRam > 0 ? s.UsedRam / s.TotalRam * 100 : 0;
@@ -1120,6 +1540,8 @@ public sealed partial class MonitorWindow : Window
             _ramPct.Text = $"{rp:F0}%";
             _ramPct.Foreground = UsageColor(rp, RamColor);
             SetBar(_ramBar, rp, UsageColor(rp, RamColor));
+            _ramCompactPct.Text = $"{rp:F0}%";
+            _ramCompactInfo.Text = $"{s.UsedRam:F1} / {s.TotalRam:F1} GB";
 
             // CPU
             _cpuModel.Text = s.CpuModel;
@@ -1133,8 +1555,11 @@ public sealed partial class MonitorWindow : Window
             _cpuCoreTemp.Foreground = TempColor(s.CpuTemp);
             _cpuPkgTemp.Text = s.CpuPackageTemp > 0 ? $"{s.CpuPackageTemp:F0}°C" : "--";
             _cpuPkgTemp.Foreground = TempColor(s.CpuPackageTemp);
-            _cpuHistory.Add(s.CpuUsage);
-            if (_cpuHistory.Count > 60) _cpuHistory.RemoveAt(0);
+            _cpuValues.Add(s.CpuUsage);
+            if (_cpuValues.Count > 60) _cpuValues.RemoveAt(0);
+            _cpuCompactPct.Text = $"{s.CpuUsage:F0}%";
+            _cpuCompactCore.Text = s.CpuTemp > 0 ? $"{s.CpuTemp:F0}°C" : "--";
+            _cpuCompactPkg.Text = s.CpuPackageTemp > 0 ? $"{s.CpuPackageTemp:F0}°C" : "--";
 
             // GPU
             _gpuModel.Text = s.GpuModel;
@@ -1146,8 +1571,10 @@ public sealed partial class MonitorWindow : Window
             SetBar(_gpuBar, s.GpuUsage, UsageColor(s.GpuUsage, GpuColor));
             _gpuCoreTemp.Text = s.GpuTemp > 0 ? $"{s.GpuTemp:F0}°C" : "--";
             _gpuCoreTemp.Foreground = TempColor(s.GpuTemp);
-            _gpuHistory.Add(s.GpuUsage);
-            if (_gpuHistory.Count > 60) _gpuHistory.RemoveAt(0);
+            _gpuValues.Add(s.GpuUsage);
+            if (_gpuValues.Count > 60) _gpuValues.RemoveAt(0);
+            _gpuCompactPct.Text = $"{s.GpuUsage:F0}%";
+            _gpuCompactTemp.Text = s.GpuTemp > 0 ? $"{s.GpuTemp:F0}°C" : "--";
 
             // Disks
             PopulateDisks(s.Disks);
@@ -1160,10 +1587,10 @@ public sealed partial class MonitorWindow : Window
             _lastNetUp = netUp;
             _netDown.Text = netDown > 0 ? FormatSpeed(netDown) : "--";
             _netUp.Text = netUp > 0 ? FormatSpeed(netUp) : "--";
-            _netDownHistory.Add(netDown);
-            _netUpHistory.Add(netUp);
-            if (_netDownHistory.Count > 60) _netDownHistory.RemoveAt(0);
-            if (_netUpHistory.Count > 60) _netUpHistory.RemoveAt(0);
+            _netDownValues.Add(netDown);
+            _netUpValues.Add(netUp);
+            if (_netDownValues.Count > 60) _netDownValues.RemoveAt(0);
+            if (_netUpValues.Count > 60) _netUpValues.RemoveAt(0);
 
             // Fans - distribuir para cada card
             if (s.Fans.Count != _fanCount)
@@ -1331,10 +1758,7 @@ public sealed partial class MonitorWindow : Window
 
     private void UpdateGraphs()
     {
-        DrawGraph(_cpuGraph, _cpuHistory, CpuColor, 100);
-        DrawGraph(_gpuGraph, _gpuHistory, GpuColor, 100);
-        DrawGraph(_netDownGraph, _netDownHistory, NetColor, 1024);
-        DrawGraph(_netUpGraph, _netUpHistory, new SolidColorBrush(Colors.White), 1024);
+        // LiveCharts2 auto-updates via ObservableCollection - no manual drawing needed
     }
 
     private static void DrawGraph(Canvas canvas, List<double> data, SolidColorBrush color, double maxVal)
@@ -1495,7 +1919,7 @@ public sealed partial class MonitorWindow : Window
                 var cardStack = new StackPanel { Spacing = 12 };
 
                 // Header with icon
-                var hdr = CreateCardHeaderGrid("\uE7F4", m.Name ?? "Monitor", monitorColor);
+                var hdr = CreateCardHeaderGrid("\uE7F4", m.Name ?? "Monitor", monitorColor, "mon_" + (m.Name ?? "x"));
                 cardStack.Children.Add(hdr);
 
                 // Manufacturer and model
@@ -1621,7 +2045,7 @@ public sealed partial class MonitorWindow : Window
                 var cardStack = new StackPanel { Spacing = 12 };
 
                 // Header
-                var hdr = CreateCardHeaderGrid("\uE711", gp.Name, gamepadColor);
+                var hdr = CreateCardHeaderGrid("\uE711", gp.Name, gamepadColor, "gp_" + gp.Name);
                 cardStack.Children.Add(hdr);
 
                 // Battery info
@@ -2001,8 +2425,8 @@ public sealed partial class MonitorWindow : Window
             _cpuStressLoad.Text = $"{_stressTest.CpuLoad:F0}%";
             _cpuStressLoad.Foreground = UsageColor(_stressTest.CpuLoad, CpuColor);
 
-            _cpuStressTempHistory.Add(hw.CpuPackageTemp);
-            _cpuStressUsageHistory.Add(_stressTest.CpuLoad);
+            _cpuStressTempValues.Add(hw.CpuPackageTemp);
+            _cpuStressUsageValues.Add(_stressTest.CpuLoad);
         }
         else
         {
@@ -2010,8 +2434,8 @@ public sealed partial class MonitorWindow : Window
             _cpuStressLoad.Text = $"{hw.CpuUsage:F0}%";
             _cpuStressLoad.Foreground = UsageColor(hw.CpuUsage, CpuColor);
 
-            _cpuStressTempHistory.Add(hw.CpuPackageTemp);
-            _cpuStressUsageHistory.Add(hw.CpuUsage);
+            _cpuStressTempValues.Add(hw.CpuPackageTemp);
+            _cpuStressUsageValues.Add(hw.CpuUsage);
         }
 
         // Always update value labels above graphs
@@ -2020,8 +2444,8 @@ public sealed partial class MonitorWindow : Window
         _cpuStressLoadValue.Text = $"{hw.CpuUsage:F0}%";
         _cpuStressLoadValue.Foreground = UsageColor(hw.CpuUsage, CpuColor);
 
-        if (_cpuStressTempHistory.Count > 60) _cpuStressTempHistory.RemoveAt(0);
-        if (_cpuStressUsageHistory.Count > 60) _cpuStressUsageHistory.RemoveAt(0);
+        if (_cpuStressTempValues.Count > 60) _cpuStressTempValues.RemoveAt(0);
+        if (_cpuStressUsageValues.Count > 60) _cpuStressUsageValues.RemoveAt(0);
 
         // Check if FurMark process exited unexpectedly
         if (_stressTest.IsGpuRunning && _stressTest.FurMarkProcessExited)
@@ -2048,17 +2472,13 @@ public sealed partial class MonitorWindow : Window
             _gpuStressLoadValue.Text = $"{hw.GpuUsage:F0}%";
             _gpuStressLoadValue.Foreground = UsageColor(hw.GpuUsage, GpuColor);
 
-            _gpuStressTempHistory.Add(hw.GpuTemp);
-            _gpuStressUsageHistory.Add(hw.GpuUsage);
-            if (_gpuStressTempHistory.Count > 60) _gpuStressTempHistory.RemoveAt(0);
-            if (_gpuStressUsageHistory.Count > 60) _gpuStressUsageHistory.RemoveAt(0);
+            _gpuStressTempValues.Add(hw.GpuTemp);
+            _gpuStressUsageValues.Add(hw.GpuUsage);
+            if (_gpuStressTempValues.Count > 60) _gpuStressTempValues.RemoveAt(0);
+            if (_gpuStressUsageValues.Count > 60) _gpuStressUsageValues.RemoveAt(0);
         }
 
-        // Draw graphs
-        DrawGraph(_cpuStressTempGraph, _cpuStressTempHistory, SteamColors.RedBrush, 100);
-        DrawGraph(_cpuStressUsageGraph, _cpuStressUsageHistory, CpuColor, 100);
-        DrawGraph(_gpuStressTempGraph, _gpuStressTempHistory, SteamColors.RedBrush, 100);
-        DrawGraph(_gpuStressUsageGraph, _gpuStressUsageHistory, GpuColor, 100);
+        // Graphs auto-update via ObservableCollection - no manual DrawGraph needed
     }
 
     // ===== Gamepad Real-time =====
