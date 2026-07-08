@@ -68,34 +68,48 @@ public partial class MainViewModel : ObservableObject
         CurrentPage = "addgame";
     }
 
+    public void CloseDatabaseSync()
+    {
+        _databaseService.CloseSync();
+    }
+
+    public async Task CloseDatabaseAsync()
+    {
+        await _databaseService.CloseAsync();
+    }
+
     private async Task LoadGamesAsync()
     {
-        var games = await _databaseService.GetGamesAsync();
-        Games.Clear();
-
-        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var idsToDelete = new List<string>();
-        foreach (var game in games)
+        try
         {
-            if (seenNames.Add(game.Name))
+            var games = await _databaseService.GetGamesAsync();
+            Games.Clear();
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var idsToDelete = new List<string>();
+            foreach (var game in games)
             {
-                Games.Add(game);
+                if (seenNames.Add(game.Name))
+                {
+                    Games.Add(game);
+                }
+                else
+                {
+                    idsToDelete.Add(game.Id);
+                }
             }
-            else
-            {
-                idsToDelete.Add(game.Id);
-            }
+            foreach (var id in idsToDelete)
+                await _databaseService.DeleteGameAsync(id);
+            TotalGames = Games.Count;
+            var totalTime = await _databaseService.GetTotalPlayTimeAsync();
+            TotalPlayTime = FormatHelpers.FormatMinutes(totalTime);
+            StatusText = idsToDelete.Count > 0
+                ? $"{TotalGames} jogos carregados ({idsToDelete.Count} duplicatas removidas)"
+                : $"{TotalGames} jogos carregados";
         }
-
-        foreach (var id in idsToDelete)
-            await _databaseService.DeleteGameAsync(id);
-
-        TotalGames = Games.Count;
-        var totalTime = await _databaseService.GetTotalPlayTimeAsync();
-        TotalPlayTime = FormatHelpers.FormatMinutes(totalTime);
-        StatusText = idsToDelete.Count > 0
-            ? $"{TotalGames} jogos carregados ({idsToDelete.Count} duplicatas removidas)"
-            : $"{TotalGames} jogos carregados";
+        catch (Exception ex)
+        {
+            StatusText = $"Erro ao carregar: {ex.Message}";
+        }
     }
 
     [RelayCommand]
@@ -131,6 +145,7 @@ public partial class MainViewModel : ObservableObject
                 }
             }
             TotalGames = Games.Count;
+            _databaseService.Checkpoint();
             StatusText = added > 0 ? $"{added} jogos novos encontrados" : "Nenhum jogo novo encontrado";
 
             // Buscar gêneros via RAWG (não bloqueia o scan se falhar)

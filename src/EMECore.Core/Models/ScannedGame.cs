@@ -7,4 +7,5 @@ public class ScannedGame
     public string Platform { get; set; } = "other";
     public string SteamAppId { get; set; } = string.Empty;
     public string CoverImage { get; set; } = string.Empty;
+    public string Genre { get; set; } = string.Empty;
 }

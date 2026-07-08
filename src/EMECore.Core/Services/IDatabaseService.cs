@@ -16,4 +16,6 @@ public interface IDatabaseService
     Task<int> GetTotalPlayTimeAsync();
     Task<Dictionary<string, int>> GetGameCountAsync();
     Task CloseAsync();
+    void CloseSync();
+    void Checkpoint();
 }

@@ -66,7 +66,7 @@ public sealed partial class GameCard : UserControl
     {
         _game=game; _name.Text=game.Name;
         _status.Text=game.PlayTime>0?$"Jogado {TimeSpan.FromMinutes(game.PlayTime).TotalHours:F1}h":"Nunca jogado";
-        _genre.Text="";
+        _genre.Text=!string.IsNullOrEmpty(game.Genre)?game.Genre:"";
         _platLbl.Text=game.Platform.ToUpper();
         var (bg,txt,ring) = Design.PlatformColors(game.Platform);
         _badge.Background=new SolidColorBrush(bg); _badge.BorderThickness=new Thickness(1); _badge.BorderBrush=new SolidColorBrush(ring);

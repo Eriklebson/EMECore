@@ -80,7 +80,6 @@ public sealed partial class MonitorWindow : Window
     private Button _cpuStressBtn = null!;
     private TextBlock _gpuStressModel = null!;
     private TextBlock _gpuStressStatus = null!;
-    private TextBlock _gpuStressTime = null!;
     private TextBlock _gpuStressTemp = null!;
     private TextBlock _gpuStressUsage = null!;
     private TextBlock _gpuStressTempValue = null!;
@@ -114,9 +113,6 @@ public sealed partial class MonitorWindow : Window
 
     // Cached hardware data — Collect() result reused by StressMetrics
     private HardwareStats? _lastCollect;
-
-    // Two-phase loading
-    private bool _wmiLoaded;
 
     // Brush pooling for UsageColor/TempColor — allocated once
     private static readonly SolidColorBrush _brush85 = new(ColorFromHex("#EF4444"));
@@ -767,7 +763,6 @@ public sealed partial class MonitorWindow : Window
         DispatcherQueue.TryEnqueue(() =>
         {
             _lastCollect = s;
-            _wmiLoaded = true;
             RefreshWmi(s);
         });
     }

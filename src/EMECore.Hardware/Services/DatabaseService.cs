@@ -14,14 +14,22 @@ public class DatabaseService : IDatabaseService
         if (!string.IsNullOrEmpty(dir))
             Directory.CreateDirectory(dir);
 
-        _connection = new SqliteConnection($"Data Source={dbPath}");
+        _connection = new SqliteConnection($"Data Source={dbPath};Pooling=false");
         await _connection.OpenAsync();
+
+        using (var pragma = _connection.CreateCommand())
+        {
+            pragma.CommandText = "PRAGMA journal_mode=DELETE";
+            await pragma.ExecuteNonQueryAsync();
+        }
+        using (var pragma = _connection.CreateCommand())
+        {
+            pragma.CommandText = "PRAGMA foreign_keys=ON";
+            await pragma.ExecuteNonQueryAsync();
+        }
 
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = @"
-            PRAGMA journal_mode=WAL;
-            PRAGMA wal_checkpoint(TRUNCATE);
-            PRAGMA foreign_keys=ON;
             CREATE TABLE IF NOT EXISTS games (
                 id TEXT PRIMARY KEY, name TEXT NOT NULL, executable_path TEXT NOT NULL,
                 cover_image TEXT, platform TEXT NOT NULL DEFAULT 'other',
@@ -69,8 +77,8 @@ public class DatabaseService : IDatabaseService
                 PlayTime = reader.GetInt32(6),
                 LastSessionStart = reader.IsDBNull(7) ? null : DateTime.Parse(reader.GetString(7)),
                 SteamAppId = reader.IsDBNull(8) ? "" : reader.GetString(8),
-                Genre = reader.IsDBNull(10) ? "" : reader.GetString(10),
-                CreatedAt = DateTime.Parse(reader.GetString(9)),
+                Genre = reader.IsDBNull(9) ? "" : reader.GetString(9),
+                CreatedAt = DateTime.Parse(reader.GetString(10)),
                 UpdatedAt = DateTime.Parse(reader.GetString(11))
             });
         }
@@ -95,8 +103,8 @@ public class DatabaseService : IDatabaseService
                 PlayTime = reader.GetInt32(6),
                 LastSessionStart = reader.IsDBNull(7) ? null : DateTime.Parse(reader.GetString(7)),
                 SteamAppId = reader.IsDBNull(8) ? "" : reader.GetString(8),
-                Genre = reader.IsDBNull(10) ? "" : reader.GetString(10),
-                CreatedAt = DateTime.Parse(reader.GetString(9)),
+                Genre = reader.IsDBNull(9) ? "" : reader.GetString(9),
+                CreatedAt = DateTime.Parse(reader.GetString(10)),
                 UpdatedAt = DateTime.Parse(reader.GetString(11))
             };
         }
@@ -246,10 +254,42 @@ public class DatabaseService : IDatabaseService
         return dict;
     }
 
+    public void Checkpoint()
+    {
+        if (_connection != null)
+        {
+            try { using var cmd = _connection.CreateCommand(); cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE)"; cmd.ExecuteNonQuery(); } catch { }
+        }
+    }
+
+    public void CloseSync()
+    {
+        if (_connection != null)
+        {
+            try
+            {
+                using var cmd = _connection.CreateCommand();
+                cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE)";
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
+            _connection.Close();
+            _connection.Dispose();
+            _connection = null;
+        }
+    }
+
     public async Task CloseAsync()
     {
         if (_connection != null)
         {
+            try
+            {
+                using var cmd = _connection.CreateCommand();
+                cmd.CommandText = "PRAGMA wal_checkpoint(TRUNCATE)";
+                cmd.ExecuteNonQuery();
+            }
+            catch { }
             await _connection.CloseAsync();
             await _connection.DisposeAsync();
             _connection = null;

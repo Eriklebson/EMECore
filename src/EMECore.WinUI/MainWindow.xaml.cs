@@ -124,6 +124,22 @@ public sealed partial class MainWindow : Window
 
         Content = rootGrid;
 
+        Closed += (_, _) =>
+        {
+            _gameProcessTimer.Stop();
+            _saveMonitor.Dispose();
+            _monitorWindow?.Close();
+            try { ViewModel.CloseDatabaseSync(); } catch { }
+            try
+            {
+                var dbPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EMECore", "eme_core.db");
+                System.IO.File.Delete(dbPath + "-shm");
+                System.IO.File.Delete(dbPath + "-wal");
+            }
+            catch { }
+            Environment.Exit(0);
+        };
+
         this.Activated += MainWindow_Activated;
     }
 
@@ -137,15 +153,14 @@ public sealed partial class MainWindow : Window
 
         appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 1400, Height = 900 });
 
-            appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
-            var titleBarObj = appWindow.TitleBar;
-            titleBarObj.BackgroundColor = ParseColor("#0e1621");
-            titleBarObj.ButtonBackgroundColor = ParseColor("#0e1621");
-            titleBarObj.ButtonHoverBackgroundColor = ParseColor("#1b2838");
-            titleBarObj.ButtonPressedBackgroundColor = ParseColor("#2a475e");
-            
-            // Definir área de arrastar
-            SetTitleBar(_dragRegion);
+        appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
+        var titleBarObj = appWindow.TitleBar;
+        titleBarObj.BackgroundColor = ParseColor("#0e1621");
+        titleBarObj.ButtonBackgroundColor = ParseColor("#0e1621");
+        titleBarObj.ButtonHoverBackgroundColor = ParseColor("#1b2838");
+        titleBarObj.ButtonPressedBackgroundColor = ParseColor("#2a475e");
+        
+        SetTitleBar(_dragRegion);
 
         var dbPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -179,13 +194,6 @@ public sealed partial class MainWindow : Window
         _saveMonitor.OnAchievementUnlocked += OnAchievementUnlocked;
         _saveMonitor.StartMonitoring();
         _gameProcessTimer.Start();
-
-        Closed += (_, _) =>
-        {
-            _gameProcessTimer.Stop();
-            _saveMonitor.Dispose();
-            _monitorWindow?.Close();
-        };
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -334,7 +342,7 @@ public sealed partial class MainWindow : Window
 
     private async void LibraryPage_ScanRequested(object? sender, EventArgs e)
     {
-        await ViewModel.ResetAndScanCommand.ExecuteAsync(null);
+        await ViewModel.ScanGamesCommand.ExecuteAsync(null);
     }
 
     private void LibraryPage_GameSelected(object? sender, Game game)

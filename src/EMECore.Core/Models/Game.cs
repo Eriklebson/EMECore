@@ -11,6 +11,7 @@ public class Game
     public int PlayTime { get; set; }
     public DateTime? LastSessionStart { get; set; }
     public string SteamAppId { get; set; } = string.Empty;
+    public string Genre { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

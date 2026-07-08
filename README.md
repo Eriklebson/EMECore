@@ -121,6 +121,8 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.14.2.0 | 07/07/2026 | Correcao de persistencia de jogos no banco: journal_mode=DELETE, Environment.Exit(0), indices de colunas corrigidos, SHM/WAL limpos no fechamento, Closed handler movido pro construtor |
+| 2.14.1.0 | 07/07/2026 | Scroll da biblioteca (StackPanel→Grid), correcao do botao Procurar Jogos (ScanGamesAsync), requisitos do sistema formatados, WAL checkpoint |
 | 2.14.0.0 | 07/07/2026 | Sidebar colapsavel com toggle <, limpeza do layout (removido badge e status card), correcao de titulo Ferramentas/Treinamento |
 | 2.13.0.0 | 07/07/2026 | Reorganizacao da navegacao: abas Jogos/Ferramentas/Treinamento, filtragem por categoria, remocao de ToolPatterns, Adicionar Jogo no footer |
 | 2.12.0.0 | 07/07/2026 | Monitoramento em tempo real de conquistas, macro de pesca auto-detecta jogo, capas via Twitch CDN, correcao de game detection, multi-drive scanner, scanner Riot/Ubisoft/EA/Battle.net/Rockstar/Bethesda/Amazon |
