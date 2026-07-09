@@ -267,58 +267,15 @@ public sealed partial class GameDetailPage : UserControl
         {
             try
             {
-                var logFile = Path.Combine(Path.GetTempPath(), "eme_ach_debug.log");
-                var log = $"[{DateTime.Now:HH:mm:ss}] Start: game={_game?.Name}, appid={_game?.SteamAppId}\n";
-                await File.AppendAllTextAsync(logFile, log);
+                if (_game == null || string.IsNullOrEmpty(_game.SteamAppId)) return;
 
-                if (_game == null || string.IsNullOrEmpty(_game.SteamAppId))
-                {
-                    await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] SKIP: no SteamAppId\n");
-                    return;
-                }
+                await _imgSvc.PreloadSchemaAsync(_game.SteamAppId);
 
-                var isStellarBlade = _game.Name.Contains("Stellar Blade", StringComparison.OrdinalIgnoreCase) || _game.SteamAppId == "3489700";
-
-                Dictionary<string, string> nameToPath = new(StringComparer.OrdinalIgnoreCase);
-                if (!isStellarBlade)
-                {
-                    await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] Downloading highlighted for {_game.SteamAppId}...\n");
-                    var highlighted = await _imgSvc.DownloadAllHighlightedAsync(_game.SteamAppId);
-                    await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] Got {highlighted.Count} highlighted icons\n");
-                    foreach (var (name, hash, path) in highlighted)
-                        nameToPath[name] = path;
-                }
-
-                var loadedCount = 0;
                 foreach (var (img, border, ach) in imageLoadTasks)
                 {
                     try
                     {
-                        string? imgPath = null;
-
-                        if (_game.Name.Contains("Stellar Blade", StringComparison.OrdinalIgnoreCase) || _game.SteamAppId == "3489700")
-                            imgPath = await _stellarImgSvc.GetAchievementImageAsync(ach.Apiname);
-                        else
-                            imgPath = await _imgSvc.GetAchievementImageAsync(_game.SteamAppId, ach.Apiname, ach.Achieved);
-
-                        if (string.IsNullOrEmpty(imgPath) && !string.IsNullOrEmpty(ach.Name))
-                        {
-                            if (nameToPath.TryGetValue(ach.Name, out var hp))
-                                imgPath = hp;
-                            else
-                            {
-                                foreach (var kv in nameToPath)
-                                {
-                                    if (kv.Key.Contains(ach.Name, StringComparison.OrdinalIgnoreCase) ||
-                                        ach.Name.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
-                                    {
-                                        imgPath = kv.Value;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-
+                        var imgPath = await _imgSvc.GetAchievementImageAsync(_game.SteamAppId, ach.Apiname, ach.Achieved, _game.Name);
                         if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))
                         {
                             var capturedPath = imgPath;
@@ -326,18 +283,12 @@ public sealed partial class GameDetailPage : UserControl
                             {
                                 _ = LoadImageIntoElement(img, border, capturedPath);
                             });
-                            loadedCount++;
                         }
                     }
                     catch { }
                 }
-                await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] Loaded {loadedCount}/{imageLoadTasks.Count} images\n");
             }
-            catch (Exception ex)
-            {
-                var logFile = Path.Combine(Path.GetTempPath(), "eme_ach_debug.log");
-                await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] ERROR: {ex.Message}\n");
-            }
+            catch { }
         });
     }
 
@@ -345,10 +296,11 @@ public sealed partial class GameDetailPage : UserControl
     {
         try
         {
-            var bi = new BitmapImage();
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            await bi.SetSourceAsync(fs.AsRandomAccessStream());
+            var bi = new BitmapImage(new Uri($"file:///{path.Replace("\\", "/")}"));
             img.Source = bi;
+            img.Width = 32;
+            img.Height = 32;
+            img.Stretch = Stretch.UniformToFill;
             border.Child = img;
         }
         catch { }

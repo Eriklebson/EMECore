@@ -32,6 +32,9 @@ public class AchievementService
         if (IsStellarBlade(game))
             return _stellarBladeParser.ParseAchievements();
 
+        if (!string.IsNullOrEmpty(game.SteamAppId))
+            return await GetSteamAchievementsAsync(game.SteamAppId);
+
         if (IsEldenRing(game))
             return _eldenRingParser.ParseAchievements();
 
@@ -52,9 +55,6 @@ public class AchievementService
 
         if (IsForzaHorizon6(game))
             return _forzaParser.ParseAchievements();
-
-        if (!string.IsNullOrEmpty(game.SteamAppId))
-            return await GetSteamAchievementsAsync(game.SteamAppId);
 
         return new List<Achievement>();
     }
@@ -79,17 +79,43 @@ public class AchievementService
         return null;
     }
 
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private const string SteamApiKey = "B48A34F0A093B6CB53618DCC9F0640BE";
+
     private async Task<List<Achievement>> GetSteamAchievementsAsync(string appId)
     {
         try
         {
-            var storeInfo = await _steamStore.GetStoreInfoAsync(appId);
-            if (storeInfo == null) return new List<Achievement>();
+            var url = $"https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key={SteamApiKey}&appid={appId}";
+            var json = await _http.GetStringAsync(url);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
 
-            return new List<Achievement>
+            if (!doc.RootElement.TryGetProperty("game", out var game)) return new();
+            if (!game.TryGetProperty("availableGameStats", out var stats)) return new();
+            if (!stats.TryGetProperty("achievements", out var achArr)) return new();
+
+            var achievements = new List<Achievement>();
+            foreach (var ach in achArr.EnumerateArray())
             {
-                new() { Name = "Steam Achievements", Description = "Conquistas Steam disponíveis", Achieved = false }
-            };
+                var apiName = ach.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                var displayName = ach.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : apiName;
+                var description = ach.TryGetProperty("description", out var desc) ? desc.GetString() ?? "" : "";
+                var icon = ach.TryGetProperty("icon", out var ic) ? ic.GetString() ?? "" : "";
+                var iconGray = ach.TryGetProperty("icongray", out var gc) ? gc.GetString() ?? "" : "";
+
+                achievements.Add(new Achievement
+                {
+                    GameId = appId,
+                    Apiname = apiName,
+                    Name = displayName,
+                    Description = description,
+                    Icon = icon,
+                    Icongray = iconGray,
+                    Achieved = false
+                });
+            }
+
+            return achievements;
         }
         catch
         {

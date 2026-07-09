@@ -6,13 +6,14 @@ public class AchievementImageService
 {
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private static readonly Dictionary<string, string> _imageCache = new();
-    private static readonly Dictionary<string, Dictionary<string, string>> _iconHashCache = new();
+    private static readonly Dictionary<string, Dictionary<string, (string icon, string iconGray)>> _schemaCache = new();
+    private static readonly Dictionary<string, Dictionary<string, string>> _displayNameToApiName = new();
     private static readonly HashSet<string> _loadingSchemas = new();
     private static readonly string _imagesPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "EMECore", "AchievementImages");
 
-    private const string CdnBase = "https://shared.akamai.steamstatic.com/community_assets/images/apps";
+    private const string SteamApiKey = "B48A34F0A093B6CB53618DCC9F0640BE";
 
     public AchievementImageService()
     {
@@ -21,13 +22,13 @@ public class AchievementImageService
 
     public async Task PreloadSchemaAsync(string appId)
     {
-        if (_iconHashCache.ContainsKey(appId) || _loadingSchemas.Contains(appId))
+        if (_schemaCache.ContainsKey(appId) || _loadingSchemas.Contains(appId))
             return;
 
         _loadingSchemas.Add(appId);
         try
         {
-            await LoadStoreApiIconsAsync(appId);
+            await LoadSteamSchemaAsync(appId);
         }
         finally
         {
@@ -35,17 +36,18 @@ public class AchievementImageService
         }
     }
 
-    public async Task<string?> GetAchievementImageAsync(string appId, string achievementName, bool achieved)
+    public async Task<string?> GetAchievementImageAsync(string appId, string achievementName, bool achieved, string? gameName = null)
     {
-        var cacheKey = $"{appId}_{achievementName}_{achieved}";
+        var folderName = SanitizeFolderName(gameName ?? appId);
+        var suffix = achieved ? "a" : "g";
+        var cacheKey = $"{folderName}_{achievementName}_{suffix}";
         if (_imageCache.TryGetValue(cacheKey, out var cached) && File.Exists(cached))
             return cached;
 
-        var gameDir = Path.Combine(_imagesPath, appId);
+        var gameDir = Path.Combine(_imagesPath, folderName);
         Directory.CreateDirectory(gameDir);
         var safeName = string.Concat(achievementName.Where(c => char.IsLetterOrDigit(c) || c == '_'));
         if (string.IsNullOrEmpty(safeName)) safeName = "unknown";
-        var suffix = achieved ? "a" : "g";
         var localPath = Path.Combine(gameDir, $"{safeName}_{suffix}.png");
 
         if (File.Exists(localPath) && new FileInfo(localPath).Length > 0)
@@ -54,101 +56,85 @@ public class AchievementImageService
             return localPath;
         }
 
-        if (!_iconHashCache.ContainsKey(appId))
-            await LoadStoreApiIconsAsync(appId);
+        if (!_schemaCache.ContainsKey(appId))
+            await LoadSteamSchemaAsync(appId);
 
-        if (_iconHashCache.TryGetValue(appId, out var hashes) &&
-            hashes.TryGetValue(achievementName, out var hash))
+        if (_schemaCache.TryGetValue(appId, out var achData))
         {
-            var url = $"{CdnBase}/{appId}/{hash}";
-            try
+            string? url = null;
+
+            if (achData.TryGetValue(achievementName, out var urls))
             {
-                using var response = await _http.GetAsync(url);
-                if (response.IsSuccessStatusCode)
-                {
-                    var bytes = await response.Content.ReadAsByteArrayAsync();
-                    await File.WriteAllBytesAsync(localPath, bytes);
-                    _imageCache[cacheKey] = localPath;
-                    return localPath;
-                }
+                url = achieved ? urls.icon : urls.iconGray;
             }
-            catch { }
+            else if (_displayNameToApiName.TryGetValue(appId, out var nameMap) &&
+                     nameMap.TryGetValue(achievementName, out var apiName) &&
+                     achData.TryGetValue(apiName, out var urls2))
+            {
+                url = achieved ? urls2.icon : urls2.iconGray;
+            }
+
+            if (!string.IsNullOrEmpty(url))
+            {
+                try
+                {
+                    using var response = await _http.GetAsync(url);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var bytes = await response.Content.ReadAsByteArrayAsync();
+                        await File.WriteAllBytesAsync(localPath, bytes);
+                        _imageCache[cacheKey] = localPath;
+                        return localPath;
+                    }
+                }
+                catch { }
+            }
         }
 
         return null;
     }
 
-    public async Task<List<(string name, string iconHash, string localPath)>> DownloadAllHighlightedAsync(string appId)
+    private static string SanitizeFolderName(string name)
     {
-        var results = new List<(string, string, string)>();
-
-        if (!_iconHashCache.ContainsKey(appId))
-            await LoadStoreApiIconsAsync(appId);
-
-        if (!_iconHashCache.TryGetValue(appId, out var hashes))
-            return results;
-
-        var gameDir = Path.Combine(_imagesPath, appId);
-        Directory.CreateDirectory(gameDir);
-
-        foreach (var (name, hash) in hashes)
-        {
-            var safeName = string.Concat(name.Where(c => char.IsLetterOrDigit(c) || c == '_'));
-            if (string.IsNullOrEmpty(safeName)) continue;
-            var localPath = Path.Combine(gameDir, $"{safeName}_highlighted.png");
-
-            if (File.Exists(localPath) && new FileInfo(localPath).Length > 0)
-            {
-                results.Add((name, hash, localPath));
-                continue;
-            }
-
-            var url = $"{CdnBase}/{appId}/{hash}";
-            try
-            {
-                using var response = await _http.GetAsync(url);
-                if (response.IsSuccessStatusCode)
-                {
-                    var bytes = await response.Content.ReadAsByteArrayAsync();
-                    await File.WriteAllBytesAsync(localPath, bytes);
-                    results.Add((name, hash, localPath));
-                }
-            }
-            catch { }
-        }
-
-        return results;
+        var invalid = Path.GetInvalidFileNameChars();
+        return new string(name.Where(c => !invalid.Contains(c)).ToArray()).Trim();
     }
 
-    private async Task LoadStoreApiIconsAsync(string appId)
+    private async Task LoadSteamSchemaAsync(string appId)
     {
         try
         {
-            var url = $"https://store.steampowered.com/api/appdetails?appids={appId}&filters=achievements";
+            var url = $"https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/?key={SteamApiKey}&appid={appId}";
             using var response = await _http.GetAsync(url);
             if (!response.IsSuccessStatusCode) return;
 
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
 
-            if (!doc.RootElement.TryGetProperty(appId, out var gameEl)) return;
-            if (!gameEl.TryGetProperty("data", out var dataEl)) return;
-            if (!dataEl.TryGetProperty("achievements", out var achObj)) return;
+            if (!doc.RootElement.TryGetProperty("game", out var game)) return;
+            if (!game.TryGetProperty("availableGameStats", out var stats)) return;
+            if (!stats.TryGetProperty("achievements", out var achArr)) return;
 
-            var hashes = new Dictionary<string, string>();
+            var achData = new Dictionary<string, (string icon, string iconGray)>();
+            var nameMap = new Dictionary<string, string>();
 
-            if (achObj.TryGetProperty("highlighted", out var highlighted))
+            foreach (var ach in achArr.EnumerateArray())
             {
-                foreach (var ach in highlighted.EnumerateArray())
+                var apiName = ach.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                var displayName = ach.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : apiName;
+                var icon = ach.TryGetProperty("icon", out var ic) ? ic.GetString() ?? "" : "";
+                var iconGray = ach.TryGetProperty("icongray", out var gc) ? gc.GetString() ?? "" : "";
+
+                if (!string.IsNullOrEmpty(apiName))
                 {
-                    var name = ach.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
-                    var iconHash = ach.TryGetProperty("icon", out var ic) ? ic.GetString() ?? "" : "";
-                    if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(iconHash))
-                        hashes[name] = iconHash;
+                    achData[apiName] = (icon, iconGray);
+                    if (!string.IsNullOrEmpty(displayName) && displayName != apiName)
+                        nameMap[displayName] = apiName;
                 }
             }
 
-            _iconHashCache[appId] = hashes;
+            _schemaCache[appId] = achData;
+            _displayNameToApiName[appId] = nameMap;
         }
         catch { }
     }

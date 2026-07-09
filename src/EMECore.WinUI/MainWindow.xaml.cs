@@ -274,7 +274,7 @@ public sealed partial class MainWindow : Window
                 foreach (var ach in newAchievements.Take(3)) // Máximo 3 popups
                 {
                     var notification = new AchievementNotificationWindow();
-                    notification.Show(ach);
+                    notification.Show(ach, ViewModel.SelectedGame?.Name ?? "");
                     await Task.Delay(500); // Delay entre popups
                 }
             }
@@ -337,7 +337,7 @@ public sealed partial class MainWindow : Window
             Achieved = true
         };
         var notification = new AchievementNotificationWindow();
-        notification.Show(testAchievement);
+        notification.Show(testAchievement, "Stellar Blade");
     }
 
     private void OnAchievementUnlocked(Achievement achievement)
