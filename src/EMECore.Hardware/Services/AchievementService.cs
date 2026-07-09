@@ -32,9 +32,6 @@ public class AchievementService
         if (IsStellarBlade(game))
             return _stellarBladeParser.ParseAchievements();
 
-        if (!string.IsNullOrEmpty(game.SteamAppId))
-            return await GetSteamAchievementsAsync(game.SteamAppId);
-
         if (IsEldenRing(game))
             return _eldenRingParser.ParseAchievements();
 
@@ -55,6 +52,9 @@ public class AchievementService
 
         if (IsForzaHorizon6(game))
             return _forzaParser.ParseAchievements();
+
+        if (!string.IsNullOrEmpty(game.SteamAppId))
+            return await GetSteamAchievementsAsync(game.SteamAppId);
 
         return new List<Achievement>();
     }
