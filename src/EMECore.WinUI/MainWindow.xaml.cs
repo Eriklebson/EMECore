@@ -28,6 +28,11 @@ public sealed partial class MainWindow : Window
     private readonly AddGamePage _addGamePage;
     private readonly AchievementService _achievementService;
     private readonly SaveMonitorService _saveMonitor;
+    private readonly SaveDiscoveryService _saveDiscovery;
+    private readonly SaveParserService _saveParser;
+    private readonly SaveBasedAchievementProvider _saveAchievementProvider;
+    private readonly AchievementCheckerService _achievementChecker;
+    private readonly AchievementsPage _achievementsPage;
 
     private List<Achievement>? _lastAchievements;
     private MonitorWindow? _monitorWindow;
@@ -48,6 +53,10 @@ public sealed partial class MainWindow : Window
         ViewModel = new MainViewModel(databaseService, gameScannerService, steamStoreService);
         _achievementService = new AchievementService();
         _saveMonitor = new SaveMonitorService();
+        _saveDiscovery = new SaveDiscoveryService();
+        _saveParser = new SaveParserService();
+        _saveAchievementProvider = new SaveBasedAchievementProvider(_saveDiscovery, _saveParser);
+        _achievementChecker = new AchievementCheckerService(_saveAchievementProvider);
 
         var rootGrid = new Grid { Background = new SolidColorBrush(SteamColors.Dark) };
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
@@ -88,11 +97,14 @@ public sealed partial class MainWindow : Window
 
         _sidebar = new Sidebar { Background = SteamColors.DarkerBrush };
         _sidebar.NavigationRequested += Sidebar_NavigationRequested;
-        _sidebar.CategoryRequested += Sidebar_CategoryRequested;
         _sidebar.MonitorRequested += Sidebar_MonitorRequested;
         _sidebar.TestAchievementRequested += Sidebar_TestAchievementRequested;
         _sidebar.CollapseChanged += Sidebar_CollapseChanged;
         contentGrid.Children.Add(_sidebar);
+
+        SettingsService.Load();
+        var lastCategory = SettingsService.Get("sidebar_category", "library");
+        _sidebar.SetActiveCategory(lastCategory);
 
         var pageContainer = new Grid();
         _libraryPage = new LibraryPage { Visibility = Visibility.Visible };
@@ -111,6 +123,9 @@ public sealed partial class MainWindow : Window
         _addGamePage.GameAdded += AddGamePage_GameAdded;
         _addGamePage.CancelRequested += AddGamePage_CancelRequested;
         pageContainer.Children.Add(_addGamePage);
+
+        _achievementsPage = new AchievementsPage(_achievementChecker) { Visibility = Visibility.Collapsed };
+        pageContainer.Children.Add(_achievementsPage);
 
         Grid.SetColumn(pageContainer, 1);
         contentGrid.Children.Add(pageContainer);
@@ -170,6 +185,17 @@ public sealed partial class MainWindow : Window
             $"{ViewModel.TotalPlayTime} jogado",
             ViewModel.StatusText);
 
+        var savedCategory = SettingsService.Get("sidebar_category", "library");
+        if (savedCategory != "library")
+            Sidebar_NavigationRequested(this, savedCategory);
+
+        var savedCollapsed = SettingsService.Get("sidebar_collapsed", "False");
+        if (savedCollapsed == "True")
+        {
+            _sidebar.SetCollapsed(true);
+            _sidebarColumn.Width = new GridLength(64);
+        }
+
         ViewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainViewModel.StatusText))
@@ -204,10 +230,26 @@ public sealed partial class MainWindow : Window
         _libraryPage.Visibility = page == "library" ? Visibility.Visible : Visibility.Collapsed;
         _detailPage.Visibility = page == "detail" ? Visibility.Visible : Visibility.Collapsed;
         _addGamePage.Visibility = page == "addgame" ? Visibility.Visible : Visibility.Collapsed;
+        _achievementsPage.Visibility = page == "achievements" ? Visibility.Visible : Visibility.Collapsed;
+
+        if (page == "achievements")
+        {
+            _achievementsPage.LoadAchievements(ViewModel.Games.ToList());
+        }
 
         if (page == "detail" && ViewModel.SelectedGame != null)
         {
             _detailPage.LoadGame(ViewModel.SelectedGame);
+            
+            // Buscar SteamAppId ANTES de carregar conquistas
+            if (string.IsNullOrEmpty(ViewModel.SelectedGame.SteamAppId))
+            {
+                var steamStoreService = new SteamStoreService();
+                var appId = await steamStoreService.SearchAppIdAsync(ViewModel.SelectedGame.Name);
+                if (!string.IsNullOrEmpty(appId))
+                    ViewModel.SelectedGame.SteamAppId = appId;
+            }
+
             var achievements = await _achievementService.GetAchievementsAsync(ViewModel.SelectedGame);
             await _detailPage.SetAchievements(achievements);
             
@@ -220,19 +262,7 @@ public sealed partial class MainWindow : Window
             }
             else
             {
-                // Tentar buscar AppId pelo nome do jogo (ex: Stellar Blade)
-                var steamStoreService = new SteamStoreService();
-                var appId = await steamStoreService.SearchAppIdAsync(ViewModel.SelectedGame.Name);
-                if (!string.IsNullOrEmpty(appId))
-                {
-                    ViewModel.SelectedGame.SteamAppId = appId;
-                    var storeInfo = await steamStoreService.GetStoreInfoAsync(appId);
-                    _detailPage.SetRequirements(storeInfo?.Requirements, ViewModel.SelectedGame.Platform);
-                }
-                else
-                {
-                    _detailPage.SetRequirements(null, ViewModel.SelectedGame.Platform);
-                }
+                _detailPage.SetRequirements(null, ViewModel.SelectedGame.Platform);
             }
             
             // Verificar novas conquistas desbloqueadas
@@ -263,15 +293,18 @@ public sealed partial class MainWindow : Window
 
     private void Sidebar_NavigationRequested(object? sender, string page)
     {
-        ViewModel.NavigateToCommand.Execute(page);
-    }
+        SettingsService.Set("sidebar_category", page);
 
-    private void Sidebar_CategoryRequested(object? sender, string category)
-    {
-        _libraryPage.SetCategory(category);
-        _libraryPage.Visibility = Visibility.Visible;
-        _detailPage.Visibility = Visibility.Collapsed;
-        _addGamePage.Visibility = Visibility.Collapsed;
+        if (page == "library" || page == "tools" || page == "training")
+        {
+            var category = page == "library" ? "game" : page == "tools" ? "tool" : "training";
+            _libraryPage.SetCategory(category);
+            ViewModel.CurrentPage = "library";
+        }
+        else
+        {
+            ViewModel.NavigateToCommand.Execute(page);
+        }
     }
 
     private void Sidebar_CollapseChanged(object? sender, bool isCollapsed)

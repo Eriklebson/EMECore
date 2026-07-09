@@ -1,0 +1,54 @@
+{
+  "gameId": "baldursgate3",
+  "gameName": "Baldur's Gate 3",
+  "achievements": [
+    {
+      "apiname": "bg3_main_quest",
+      "name": "Herói dos Reinos",
+      "description": "Complete a quest principal",
+      "condition": { "type": "KeyValue", "saveKey": "stat_quest", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "bg3_level_12",
+      "name": "Máximo Nível",
+      "description": "Alcance o nível 12",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 12 }
+    },
+    {
+      "apiname": "bg3_kills_100",
+      "name": "Matador de Monstros",
+      "description": "Mate 100 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "bg3_kills_500",
+      "name": "Carniceiro",
+      "description": "Mate 500 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 500 }
+    },
+    {
+      "apiname": "bg3_spells_30",
+      "name": "Mago Supremo",
+      "description": "Use 30 magias diferentes",
+      "condition": { "type": "KeyValue", "saveKey": "stat_spell", "op": "GreaterOrEqual", "expectedValue": 30 }
+    },
+    {
+      "apiname": "bg3_companion_6",
+      "name": "Líder de Grupo",
+      "description": "Recrute 6 companheiros",
+      "condition": { "type": "KeyValue", "saveKey": "stat_companion", "op": "GreaterOrEqual", "expectedValue": 6 }
+    },
+    {
+      "apiname": "bg3_camp_20",
+      "name": "Acampamento Acolhedor",
+      "description": "Durma 20 vezes no acampamento",
+      "condition": { "type": "KeyValue", "saveKey": "stat_camp", "op": "GreaterOrEqual", "expectedValue": 20 }
+    },
+    {
+      "apiname": "bg3_gold_50000",
+      "name": "Rico",
+      "description": "Acumule 50.000 de ouro",
+      "condition": { "type": "KeyValue", "saveKey": "stat_gold", "op": "GreaterOrEqual", "expectedValue": 50000 }
+    }
+  ]
+}

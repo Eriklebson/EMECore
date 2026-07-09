@@ -1,0 +1,60 @@
+{
+  "gameId": "rdr2",
+  "gameName": "Red Dead Redemption 2",
+  "achievements": [
+    {
+      "apiname": "rdr2_main_quest",
+      "name": "Fora da Lei",
+      "description": "Complete a história principal",
+      "condition": { "type": "KeyValue", "saveKey": "stat_mission", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "rdr2_chapter_6",
+      "name": "Capítulo Final",
+      "description": "Chegue ao Capítulo 6",
+      "condition": { "type": "KeyValue", "saveKey": "stat_chapter", "op": "GreaterOrEqual", "expectedValue": 6 }
+    },
+    {
+      "apiname": "rdr2_honor_max",
+      "name": "Honra Máxima",
+      "description": "Alcance honra máxima",
+      "condition": { "type": "KeyValue", "saveKey": "stat_honor", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "rdr2_hunt_100",
+      "name": "Caçador",
+      "description": "Caçe 100 animais",
+      "condition": { "type": "KeyValue", "saveKey": "stat_hunt", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "rdr2_fish_50",
+      "name": "Pescador",
+      "description": "Pesque 50 peixes",
+      "condition": { "type": "KeyValue", "saveKey": "stat_fish", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "rdr2_kills_200",
+      "name": "Pistoleiro",
+      "description": "Mate 200 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 200 }
+    },
+    {
+      "apiname": "rdr2_horse_bond",
+      "name": "Melhor Amigo",
+      "description": "Alcance laço máximo com seu cavalo",
+      "condition": { "type": "KeyValue", "saveKey": "stat_horse", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "rdr2_camp_upgrade",
+      "name": "Líder do Acampamento",
+      "description": "Melhore o acampamento 10 vezes",
+      "condition": { "type": "KeyValue", "saveKey": "stat_camp", "op": "GreaterOrEqual", "expectedValue": 10 }
+    },
+    {
+      "apiname": "rdr2_stranger_20",
+      "name": "Estranhos",
+      "description": "Complete 20 missões de estranhos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_stranger", "op": "GreaterOrEqual", "expectedValue": 20 }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "gameId": "fallout4",
+  "gameName": "Fallout 4",
+  "achievements": [
+    {
+      "apiname": "f4_rocket",
+      "name": "Propulsores",
+      "description": "Construa os propulsores na Sanctuary",
+      "condition": { "type": "KeyValue", "saveKey": "stat_settlement", "op": "GreaterOrEqual", "expectedValue": 1 }
+    },
+    {
+      "apiname": "f4_unbound",
+      "name": "Sem limites",
+      "description": "Escape do Vault 111",
+      "condition": { "type": "KeyValue", "saveKey": "stat_quest", "op": "GreaterOrEqual", "expectedValue": 5 }
+    },
+    {
+      "apiname": "f4_minutemen",
+      "name": "Os Minutemen",
+      "description": "Complete a questline dos Minutemen",
+      "condition": { "type": "KeyValue", "saveKey": "stat_MQ", "op": "GreaterOrEqual", "expectedValue": 10 }
+    },
+    {
+      "apiname": "f4_brotherhood",
+      "name": "Irmandade de Aço",
+      "description": "Complete a questline da Irmandade de Aço",
+      "condition": { "type": "KeyValue", "saveKey": "stat_BoS", "op": "GreaterOrEqual", "expectedValue": 5 }
+    },
+    {
+      "apiname": "f4_railroad",
+      "name": "Estrada de Ferro",
+      "description": "Complete a questline da Estrada de Ferro",
+      "condition": { "type": "KeyValue", "saveKey": "stat_RR", "op": "GreaterOrEqual", "expectedValue": 5 }
+    },
+    {
+      "apiname": "f4_institute",
+      "name": "Instituto",
+      "description": "Complete a questline do Instituto",
+      "condition": { "type": "KeyValue", "saveKey": "stat_IN", "op": "GreaterOrEqual", "expectedValue": 5 }
+    },
+    {
+      "apiname": "f4_level_50",
+      "name": "Nível 50",
+      "description": "Alcance o nível 50",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "f4_kills_100",
+      "name": "Caçador",
+      "description": "Mate 100 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "f4_kills_500",
+      "name": "Carniceiro",
+      "description": "Mate 500 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 500 }
+    },
+    {
+      "apiname": "f4_settlements_5",
+      "name": "Urbanista",
+      "description": "Construa 5 assentamentos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_settlement", "op": "GreaterOrEqual", "expectedValue": 5 }
+    },
+    {
+      "apiname": "f4_perks_50",
+      "name": "Especialista",
+      "description": "Desbloqueie 50 perks",
+      "condition": { "type": "KeyValue", "saveKey": "stat_perk", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "f4_playtime_100h",
+      "name": "Viciado",
+      "description": "Jogue por mais de 100 horas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 100 }
+    }
+  ]
+}

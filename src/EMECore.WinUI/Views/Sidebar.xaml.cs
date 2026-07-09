@@ -2,6 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using EMECore.Core.Services;
 using EMECore.WinUI.Controls;
 using EMECore.WinUI.Theme;
 
@@ -12,7 +13,6 @@ public sealed partial class Sidebar : UserControl
     public event EventHandler<string>? NavigationRequested;
     public event EventHandler? MonitorRequested;
     public event EventHandler? TestAchievementRequested;
-    public event EventHandler<string>? CategoryRequested;
     public event EventHandler<bool>? CollapseChanged;
     public event EventHandler? SettingsRequested;
 
@@ -24,6 +24,10 @@ public sealed partial class Sidebar : UserControl
     private readonly Border _indicator;
     private readonly SidebarItem _libraryBtn;
     private readonly SidebarItem _monBtn;
+    private readonly SidebarItem _toolsBtn;
+    private readonly SidebarItem _trainBtn;
+    private readonly SidebarItem _achNavBtn;
+    private readonly Button _collapseBtn;
     private readonly List<SidebarItem> _items = new();
 
     public Sidebar()
@@ -45,7 +49,7 @@ public sealed partial class Sidebar : UserControl
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
 
-        var collapseBtn = new Button
+        _collapseBtn = new Button
         {
             Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.SM, Children = { new FontIcon { Glyph = "\uE76B", FontSize = 14, FontFamily = new FontFamily("Segoe MDL2 Assets"), Foreground = Design.C.MutedB }, new TextBlock { Text = "Recolher", FontSize = 11, Foreground = Design.C.MutedB, VerticalAlignment = VerticalAlignment.Center, CharacterSpacing = 30 } } },
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0),
@@ -53,33 +57,28 @@ public sealed partial class Sidebar : UserControl
             Padding = new Thickness(Design.S.MD, 6, Design.S.MD, 6), Margin = new Thickness(Design.S.MD, 0, Design.S.MD, Design.S.LG),
             CornerRadius = Design.R.MD
         };
-        collapseBtn.Click += (_, _) =>
+        _collapseBtn.Click += (_, _) =>
         {
             _collapsed = !_collapsed;
-            ((FontIcon)((StackPanel)collapseBtn.Content).Children[0]).Glyph = _collapsed ? "\uE76C" : "\uE76B";
-            ((TextBlock)((StackPanel)collapseBtn.Content).Children[1]).Text = _collapsed ? "" : "Recolher";
-            collapseBtn.HorizontalContentAlignment = _collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-            _logoBox.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
-            _logo.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
-            _navLbl.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
-            _utilLbl.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
-            _indicator.Visibility = _collapsed ? Visibility.Collapsed : Visibility.Visible;
-            foreach (var i in _items) i.SetCollapsed(_collapsed);
+            ApplyCollapsedState(_collapsed);
+            SettingsService.Set("sidebar_collapsed", _collapsed.ToString());
             CollapseChanged?.Invoke(this, _collapsed);
         };
-        Grid.SetRow(collapseBtn, 1); _root.Children.Add(collapseBtn);
+        Grid.SetRow(_collapseBtn, 1); _root.Children.Add(_collapseBtn);
 
         _nav = new StackPanel();
         _navLbl = SectionLabel("Navegação"); _nav.Children.Add(_navLbl);
 
         _libraryBtn = AddItem("\uE80F", "Jogos");
-        _libraryBtn.Click += (_, _) => { Activate(_libraryBtn); CategoryRequested?.Invoke(this, "game"); };
-        var toolsBtn = AddItem("\uE70F", "Ferramentas");
-        toolsBtn.Click += (_, _) => { Activate(toolsBtn); CategoryRequested?.Invoke(this, "tool"); };
-        var trainBtn = AddItem("\uE9D9", "Treinamento");
-        trainBtn.Click += (_, _) => { Activate(trainBtn); CategoryRequested?.Invoke(this, "training"); };
+        _libraryBtn.Click += (_, _) => { Activate(_libraryBtn); NavigationRequested?.Invoke(this, "library"); };
+        _toolsBtn = AddItem("\uE70F", "Ferramentas");
+        _toolsBtn.Click += (_, _) => { Activate(_toolsBtn); NavigationRequested?.Invoke(this, "tools"); };
+        _trainBtn = AddItem("\uE9D9", "Treinamento");
+        _trainBtn.Click += (_, _) => { Activate(_trainBtn); NavigationRequested?.Invoke(this, "training"); };
         var settBtn = AddItem("\uE713", "Configurações");
         settBtn.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        _achNavBtn = AddItem("\uE7C1", "Conquistas");
+        _achNavBtn.Click += (_, _) => { Activate(_achNavBtn); NavigationRequested?.Invoke(this, "achievements"); };
 
         var divC = new Grid { Height = Design.S.LG, Margin = new Thickness(Design.S.XL, Design.S.MD, Design.S.XL, Design.S.MD) };
         divC.Children.Add(new Border { Background = Design.C.BorB, Width = 1, HorizontalAlignment = HorizontalAlignment.Center });
@@ -109,6 +108,38 @@ public sealed partial class Sidebar : UserControl
 
         Content = _root;
         Activate(_libraryBtn);
+    }
+
+    public void SetActiveCategory(string category)
+    {
+        var item = category switch
+        {
+            "library" or "game" => _libraryBtn,
+            "tools" or "tool" => _toolsBtn,
+            "training" => _trainBtn,
+            "achievements" => _achNavBtn,
+            _ => _libraryBtn
+        };
+        Activate(item);
+    }
+
+    public void SetCollapsed(bool collapsed)
+    {
+        _collapsed = collapsed;
+        ApplyCollapsedState(collapsed);
+    }
+
+    private void ApplyCollapsedState(bool collapsed)
+    {
+        ((FontIcon)((StackPanel)_collapseBtn.Content).Children[0]).Glyph = collapsed ? "\uE76C" : "\uE76B";
+        ((TextBlock)((StackPanel)_collapseBtn.Content).Children[1]).Text = collapsed ? "" : "Recolher";
+        _collapseBtn.HorizontalContentAlignment = collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        _logoBox.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _logo.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _navLbl.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _utilLbl.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _indicator.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var i in _items) i.SetCollapsed(collapsed);
     }
 
     private SidebarItem AddItem(string g, string l) { var i = new SidebarItem(g, l); _items.Add(i); _nav.Children.Add(i); return i; }

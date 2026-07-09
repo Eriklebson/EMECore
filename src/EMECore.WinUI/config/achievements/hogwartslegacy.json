@@ -1,0 +1,54 @@
+{
+  "gameId": "hogwartslegacy",
+  "gameName": "Hogwarts Legacy",
+  "achievements": [
+    {
+      "apiname": "hl_main_quest",
+      "name": "Bruxo de Hogwarts",
+      "description": "Complete a quest principal",
+      "condition": { "type": "KeyValue", "saveKey": "stat_quest", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "hl_level_40",
+      "name": "Mago Supremo",
+      "description": "Alcance o nível 40",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 40 }
+    },
+    {
+      "apiname": "hl_spells_30",
+      "name": "Domador de Feitiços",
+      "description": "Desbloqueie 30 feitiços",
+      "condition": { "type": "KeyValue", "saveKey": "stat_spell", "op": "GreaterOrEqual", "expectedValue": 30 }
+    },
+    {
+      "apiname": "hl_merlin_50",
+      "name": "Desafiante de Merlin",
+      "description": "Complete 50 desafios de Merlin",
+      "condition": { "type": "KeyValue", "saveKey": "stat_trial", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "hl_hogwarts",
+      "name": "Explorador de Hogwarts",
+      "description": "Descubra todos os locais de Hogwarts",
+      "condition": { "type": "KeyValue", "saveKey": "stat_room", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "hl_potions_20",
+      "name": "Mestre Potion Maker",
+      "description": "Crie 20 poções",
+      "condition": { "type": "KeyValue", "saveKey": "stat_potion", "op": "GreaterOrEqual", "expectedValue": 20 }
+    },
+    {
+      "apiname": "hl_plants_20",
+      "name": "Jardineiro",
+      "description": "Plante 20 plantas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_plant", "op": "GreaterOrEqual", "expectedValue": 20 }
+    },
+    {
+      "apiname": "hl_kills_100",
+      "name": "Caçador",
+      "description": "Mate 100 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 100 }
+    }
+  ]
+}

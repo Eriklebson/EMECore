@@ -1,0 +1,60 @@
+{
+  "gameId": "eldenring",
+  "gameName": "Elden Ring",
+  "achievements": [
+    {
+      "apiname": "er_main_quest",
+      "name": "Elden Lord",
+      "description": "Complete o jogo principal",
+      "condition": { "type": "KeyValue", "saveKey": "stat_quest", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "er_level_100",
+      "name": "Lendário",
+      "description": "Alcance o nível 100",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "er_level_150",
+      "name": "Mito",
+      "description": "Alcance o nível 150",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 150 }
+    },
+    {
+      "apiname": "er_boss_10",
+      "name": "Caçador de Chefes",
+      "description": "Derrote 10 chefes",
+      "condition": { "type": "KeyValue", "saveKey": "stat_boss", "op": "GreaterOrEqual", "expectedValue": 10 }
+    },
+    {
+      "apiname": "er_boss_30",
+      "name": "Matador de Deuses",
+      "description": "Derrote 30 chefes",
+      "condition": { "type": "KeyValue", "saveKey": "stat_boss", "op": "GreaterOrEqual", "expectedValue": 30 }
+    },
+    {
+      "apiname": "er_runes_1m",
+      "name": "Milhão de Runas",
+      "description": "Acumule 1.000.000 de runas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_runes", "op": "GreaterOrEqual", "expectedValue": 1000000 }
+    },
+    {
+      "apiname": "er_weapons_20",
+      "name": "Colecionador",
+      "description": "Colete 20 armas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_weapon", "op": "GreaterOrEqual", "expectedValue": 20 }
+    },
+    {
+      "apiname": "er_sites_50",
+      "name": "Peregrino",
+      "description": "Desbloqueie 50 Sites of Grace",
+      "condition": { "type": "KeyValue", "saveKey": "stat_grace", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "er_playtime_100h",
+      "name": "Tarnished Eterno",
+      "description": "Jogue por mais de 100 horas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 100 }
+    }
+  ]
+}

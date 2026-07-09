@@ -9,8 +9,10 @@ using Microsoft.UI.Xaml.Shapes;
 using System.Numerics;
 using System.Collections.ObjectModel;
 using EMECore.Core.Models;
+using EMECore.Core.Services;
 using EMECore.Hardware.Services;
 using EMECore.WinUI.Theme;
+using EMECore.WinUI.Services;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -29,6 +31,8 @@ public sealed partial class MonitorWindow : Window
     private System.Threading.Timer? _bgTimer;
     private System.Threading.Timer? _gpPollTimer;
     private System.Threading.Timer? _calibPollTimer;
+    private System.Threading.Timer? _batteryTimer;
+    private List<PeripheralBatteryInfo> _peripheralBatteries = new();
 
     // Motherboard
     private TextBlock _mbModel = null!, _mbTemp = null!, _mbVrmTemp = null!, _mbVoltage = null!;
@@ -81,6 +85,14 @@ public sealed partial class MonitorWindow : Window
     private Button _navStressTest = null!;
     private Button _navMonitores = null!;
     private Button _navPerifericos = null!;
+    private Border _monitorIndicator = null!;
+    private List<Button> _monitorNavItems = null!;
+    private Button _monitorCollapseBtn = null!;
+    private StackPanel _monitorLogoText = null!;
+    private Border _monitorLogoBox = null!;
+    private TextBlock _monitorNavLbl = null!;
+    private bool _monitorCollapsed;
+    private ColumnDefinition _monitorSidebarColumn = null!;
     private ScrollViewer _hardwareContent = null!;
     private ScrollViewer _stressTestContent = null!;
     private ScrollViewer _monitoresContent = null!;
@@ -216,32 +228,90 @@ public sealed partial class MonitorWindow : Window
     {
         await Task.Delay(50);
         var root = new Grid { Background = SurfaceBg };
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(232) });
+        _monitorSidebarColumn = new ColumnDefinition { Width = new GridLength(232) };
+        root.ColumnDefinitions.Add(_monitorSidebarColumn);
         root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
         // ===== SIDEBAR =====
         var sidebar = new Border
         {
             Background = Design.C.SideB,
-            BorderThickness = new Thickness(0, 0, 1, 0), BorderBrush = CardBorder,
-            Padding = new Thickness(0, 48, 0, 16)
+            BorderThickness = new Thickness(0, 0, 1, 0), BorderBrush = Design.C.BorB,
         };
-        var sidebarStack = new StackPanel { Spacing = 4, Padding = new Thickness(12) };
-        var logoStack = new StackPanel { Spacing = 4, Margin = new Thickness(8, 0, 8, 24) };
-        logoStack.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 18, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = new SolidColorBrush(Colors.White) });
-        logoStack.Children.Add(new TextBlock { Text = "Hardware Monitor", FontSize = 12, Foreground = SubtleText });
-        sidebarStack.Children.Add(logoStack);
-        _navHardware = CreateNavItem("\uE9F5", "Hardware", true, CpuColor);
-        _navStressTest = CreateNavItem("\uE7F4", "Stress Test", false, SubtleText);
-        _navMonitores = CreateNavItem("\uE7F4", "Monitores", false, SubtleText);
-        _navPerifericos = CreateNavItem("\uE711", "Periféricos", false, SubtleText);
-        sidebarStack.Children.Add(_navHardware);
-        // sidebarStack.Children.Add(_navStressTest); — oculto, ideia para app futuro
-        sidebarStack.Children.Add(_navMonitores);
-        sidebarStack.Children.Add(_navPerifericos);
-        sidebar.Child = sidebarStack;
+        var sidebarGrid = new Grid();
+        sidebarGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        sidebarGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        sidebarGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        sidebarGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+        // Logo row
+        var logoRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.MD };
+        var logoBox = new Border { Width=40, Height=40, CornerRadius=Design.R.XL, Background=Design.C.Pri10B, BorderThickness=new Thickness(1), BorderBrush=new SolidColorBrush(Design.C.PriRing), VerticalAlignment=VerticalAlignment.Center, Child=new TextBlock{Text="EME",FontSize=11,FontWeight=Microsoft.UI.Text.FontWeights.Bold,CharacterSpacing=-50,Foreground=Design.C.PriB,FontFamily=new("Consolas"),HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center} };
+        logoRow.Children.Add(logoBox);
+        _monitorLogoText = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
+        _monitorLogoText.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
+        _monitorLogoText.Children.Add(new TextBlock { Text = "Hardware Monitor", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        logoRow.Children.Add(_monitorLogoText);
+        _monitorLogoBox = logoBox;
+        var logoBorder = new Border { Padding = new Thickness(Design.S.XL, Design.S.XL, Design.S.XL, Design.S.LG), Child = logoRow };
+        Grid.SetRow(logoBorder, 0); sidebarGrid.Children.Add(logoBorder);
+
+        // Collapse button
+        _monitorCollapseBtn = new Button
+        {
+            Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.SM, Children = { new FontIcon { Glyph = "\uE76B", FontSize = 14, FontFamily = new FontFamily("Segoe MDL2 Assets"), Foreground = Design.C.MutedB }, new TextBlock { Text = "Recolher", FontSize = 11, Foreground = Design.C.MutedB, VerticalAlignment = VerticalAlignment.Center, CharacterSpacing = 30 } } },
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), BorderThickness = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left,
+            Padding = new Thickness(Design.S.MD, 6, Design.S.MD, 6), Margin = new Thickness(Design.S.MD, 0, Design.S.MD, Design.S.LG),
+            CornerRadius = Design.R.MD
+        };
+        _monitorCollapseBtn.Click += (_, _) =>
+        {
+            _monitorCollapsed = !_monitorCollapsed;
+            ApplyMonitorCollapsedState(_monitorCollapsed);
+            SettingsService.Set("monitor_sidebar_collapsed", _monitorCollapsed.ToString());
+        };
+        Grid.SetRow(_monitorCollapseBtn, 1); sidebarGrid.Children.Add(_monitorCollapseBtn);
+
+        // Section label
+        _monitorNavLbl = new TextBlock { Text = "Monitoramento", FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.Muted70B, Padding = new Thickness(Design.S.XL, 0, Design.S.XL, 0), Margin = new Thickness(0, 0, 0, Design.S.SM), CharacterSpacing = 180 };
+        Grid.SetRow(_monitorNavLbl, 2); sidebarGrid.Children.Add(_monitorNavLbl);
+
+        // Nav items container with indicator
+        _monitorIndicator = new Border { Width=3, HorizontalAlignment=HorizontalAlignment.Left, CornerRadius=new CornerRadius(0,3,3,0), Background=new LinearGradientBrush{StartPoint=new(0,0),EndPoint=new(0,1),GradientStops={new(){Color=Design.C.Pri,Offset=0},new(){Color=Design.C.Pri,Offset=1}}}, VerticalAlignment=VerticalAlignment.Top };
+        var navStack = new StackPanel { Padding = new Thickness(Design.S.MD, 0, Design.S.MD, 0) };
+
+        _navHardware = CreateNavItem("\uE9CA", "Hardware", CpuColor);
+        _navStressTest = CreateNavItem("\uE7F4", "Stress Test", new SolidColorBrush(ColorFromHex("#EF4444")));
+        _navMonitores = CreateNavItem("\uE7F4", "Monitores", new SolidColorBrush(ColorFromHex("#8B5CF6")));
+        _navPerifericos = CreateNavItem("\uE961", "Periféricos", new SolidColorBrush(ColorFromHex("#F59E0B")));
+
+        _navHardware.Click += (_, _) => SwitchTab("hardware");
+        _navMonitores.Click += (_, _) => SwitchTab("monitores");
+        _navPerifericos.Click += (_, _) => SwitchTab("perifericos");
+
+        navStack.Children.Add(_navHardware);
+        navStack.Children.Add(_navMonitores);
+        navStack.Children.Add(_navPerifericos);
+
+        var navContainer = new Grid();
+        navContainer.Children.Add(_monitorIndicator);
+        navContainer.Children.Add(navStack);
+        Grid.SetRow(navContainer, 3); sidebarGrid.Children.Add(navContainer);
+
+        _monitorNavItems = new List<Button> { _navHardware, _navMonitores, _navPerifericos };
+        ActivateMonitorNav(_navHardware);
+
+        sidebar.Child = sidebarGrid;
         Grid.SetColumn(sidebar, 0);
         root.Children.Add(sidebar);
+
+        // Restore collapsed state
+        if (SettingsService.Get("monitor_sidebar_collapsed", "False") == "True")
+        {
+            _monitorCollapsed = true;
+            ApplyMonitorCollapsedState(true);
+        }
 
         // ===== MAIN CONTENT =====
         var contentPanel = new Grid();
@@ -631,6 +701,7 @@ public sealed partial class MonitorWindow : Window
         netCompact.Children.Add(new TextBlock { Text = "↑", FontSize = 12, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
         netCompact.Children.Add(_netCompactUp);
         RegisterCard("net", netCard, netStack, netCompact);
+        RestoreCardStates();
 
         Grid.SetColumn(netCard, 1);
         row3.Children.Add(netCard);
@@ -983,13 +1054,7 @@ public sealed partial class MonitorWindow : Window
 
         Content = root;
 
-        // Navigation click handlers
-        _navHardware.Click += (_, _) => SwitchTab("hardware");
-        _navStressTest.Click += (_, _) => SwitchTab("stresstest");
-        _navMonitores.Click += (_, _) => SwitchTab("monitores");
-        _navPerifericos.Click += (_, _) => SwitchTab("perifericos");
-
-        Closed += (_, _) => { _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
+        Closed += (_, _) => { _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _batteryTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
         var hwnd2 = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId2 = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd2);
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId2);
@@ -1028,6 +1093,19 @@ public sealed partial class MonitorWindow : Window
             }
             catch { }
         }, null, 0, 1);
+
+        // Peripheral battery refresh (every 30s)
+        var batteryService = new PeripheralBatteryService();
+        _batteryTimer = new System.Threading.Timer(async _ =>
+        {
+            try
+            {
+                var batteries = await batteryService.GetBatteriesAsync();
+                _peripheralBatteries = batteries;
+                DispatcherQueue.TryEnqueue(RefreshPerifericosBatteries);
+            }
+            catch { }
+        }, null, 2000, 30000);
 
         // Detect FurMark on startup
         if (_stressTest.DetectFurMark())
@@ -1145,6 +1223,38 @@ public sealed partial class MonitorWindow : Window
             expanded.Visibility = isCollapsed ? Visibility.Collapsed : Visibility.Visible;
         if (_collapsedContent.TryGetValue(cardKey, out var collapsed))
             collapsed.Visibility = isCollapsed ? Visibility.Visible : Visibility.Collapsed;
+
+        SaveCardStates();
+    }
+
+    private void SaveCardStates()
+    {
+        var entries = _collapsedState.Select(kv => $"\"{kv.Key}\":{kv.Value.ToString().ToLower()}");
+        SettingsService.Set("monitor_card_states", "{" + string.Join(",", entries) + "}");
+    }
+
+    private void RestoreCardStates()
+    {
+        var json = SettingsService.Get("monitor_card_states", "{}");
+        if (json.Length < 3) return;
+        var inner = json.Trim('{', '}');
+        foreach (var pair in inner.Split(','))
+        {
+            var parts = pair.Split(':');
+            if (parts.Length != 2) continue;
+            var key = parts[0].Trim('"');
+            var val = parts[1].Trim() == "true";
+            if (!_collapsedState.ContainsKey(key)) continue;
+            if (val == _collapsedState[key]) continue;
+
+            _collapsedState[key] = val;
+            if (_toggleButtons.TryGetValue(key, out var toggleBtn))
+                toggleBtn.Content = val ? "▲" : "▼";
+            if (_expandedContent.TryGetValue(key, out var expanded))
+                expanded.Visibility = val ? Visibility.Collapsed : Visibility.Visible;
+            if (_collapsedContent.TryGetValue(key, out var collapsed))
+                collapsed.Visibility = val ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     private StackPanel CreateCompactRow(params (string label, TextBlock value, SolidColorBrush color)[] items)
@@ -1216,21 +1326,90 @@ public sealed partial class MonitorWindow : Window
         return bar;
     }
 
-    private static Button CreateNavItem(string icon, string label, bool isActive, SolidColorBrush accentColor)
+    private Button CreateNavItem(string icon, string label, SolidColorBrush accentColor)
     {
         var btn = new Button
         {
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            Background = isActive ? new SolidColorBrush(ColorFromHex("#1A2744")) : new SolidColorBrush(Colors.Transparent),
-            Foreground = isActive ? new SolidColorBrush(Colors.White) : new SolidColorBrush(ColorFromHex("#94A3B8")),
-            BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(12, 10, 12, 10), Margin = new Thickness(0, 2, 0, 2)
+            HorizontalContentAlignment = HorizontalAlignment.Left,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Foreground = Design.C.FgB,
+            BorderThickness = new Thickness(0),
+            CornerRadius = Design.R.LG,
+            Padding = new Thickness(Design.S.MD, Design.S.SM, Design.S.MD, Design.S.SM),
         };
-        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-        panel.Children.Add(new FontIcon { Glyph = icon, FontSize = 16, Foreground = isActive ? accentColor : Design.C.MutedB, FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons") });
-        panel.Children.Add(new TextBlock { Text = label, FontSize = 13, FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal, VerticalAlignment = VerticalAlignment.Center });
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.MD };
+        panel.Children.Add(new FontIcon { Glyph = icon, FontSize = 18, Foreground = Design.C.MutedB, FontFamily = new FontFamily("Segoe MDL2 Assets") });
+        panel.Children.Add(new TextBlock { Text = label, FontSize = 14, VerticalAlignment = VerticalAlignment.Center });
         btn.Content = panel;
+
+        btn.PointerEntered += (_, _) => { if (!_monitorNavItems.Contains(btn) || !IsMonitorNavActive(btn)) btn.Background = Design.C.SecB; };
+        btn.PointerExited += (_, _) => { if (!IsMonitorNavActive(btn)) btn.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent); };
+
         return btn;
+    }
+
+    private bool IsMonitorNavActive(Button btn)
+    {
+        var idx = _monitorNavItems.IndexOf(btn);
+        return idx >= 0 && _currentMonitorTab == idx;
+    }
+
+    private int _currentMonitorTab = 0;
+
+    private void ActivateMonitorNav(Button active)
+    {
+        for (int i = 0; i < _monitorNavItems.Count; i++)
+        {
+            var btn = _monitorNavItems[i];
+            var isActive = btn == active;
+            if (isActive) _currentMonitorTab = i;
+
+            btn.Background = isActive ? Design.C.Pri10B : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+            btn.Foreground = isActive ? Design.C.FgB : Design.C.FgB;
+            btn.BorderThickness = isActive ? new Thickness(1) : new Thickness(0);
+            btn.BorderBrush = isActive ? new SolidColorBrush(Design.C.PriRing20) : null;
+
+            if (btn.Content is StackPanel panel && panel.Children.Count >= 2)
+            {
+                if (panel.Children[0] is FontIcon icon)
+                    icon.Foreground = isActive ? Design.C.PriB : Design.C.MutedB;
+                if (panel.Children[1] is TextBlock text)
+                    text.FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal;
+            }
+        }
+
+        // Reposition indicator
+        var idx2 = _monitorNavItems.IndexOf(active);
+        if (idx2 >= 0)
+        {
+            var y = 0.0;
+            for (int i = 0; i < idx2; i++)
+                y += _monitorNavItems[i].ActualHeight + 8; // margin
+            _monitorIndicator.Margin = new Thickness(0, (int)y + 8, 0, 0);
+        }
+    }
+
+    private void ApplyMonitorCollapsedState(bool collapsed)
+    {
+        ((FontIcon)((StackPanel)_monitorCollapseBtn.Content).Children[0]).Glyph = collapsed ? "\uE76C" : "\uE76B";
+        ((TextBlock)((StackPanel)_monitorCollapseBtn.Content).Children[1]).Text = collapsed ? "" : "Recolher";
+        _monitorCollapseBtn.HorizontalContentAlignment = collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        _monitorLogoBox.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _monitorLogoText.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _monitorNavLbl.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _monitorIndicator.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _monitorSidebarColumn.Width = new GridLength(collapsed ? 64 : 232);
+        foreach (var btn in _monitorNavItems)
+        {
+            if (btn.Content is StackPanel panel && panel.Children.Count >= 2)
+            {
+                if (panel.Children[1] is TextBlock text)
+                    text.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+            }
+            btn.HorizontalContentAlignment = collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+            btn.Padding = collapsed ? new Thickness(0, Design.S.SM, 0, Design.S.SM) : new Thickness(Design.S.MD, Design.S.SM, Design.S.MD, Design.S.SM);
+        }
     }
 
     private void RefreshLhm()
@@ -1866,10 +2045,15 @@ public sealed partial class MonitorWindow : Window
         _monitoresContent.Visibility = tab == "monitores" ? Visibility.Visible : Visibility.Collapsed;
         _perifericosContent.Visibility = tab == "perifericos" ? Visibility.Visible : Visibility.Collapsed;
 
-        UpdateNavButton(_navHardware, tab == "hardware", "\uE9F5", "Hardware", CpuColor);
-        UpdateNavButton(_navStressTest, tab == "stresstest", "\uE7F4", "Stress Test", new SolidColorBrush(ColorFromHex("#EF4444")));
-        UpdateNavButton(_navMonitores, tab == "monitores", "\uE7F4", "Monitores", new SolidColorBrush(ColorFromHex("#8B5CF6")));
-        UpdateNavButton(_navPerifericos, tab == "perifericos", "\uE711", "Periféricos", new SolidColorBrush(ColorFromHex("#F59E0B")));
+        var activeBtn = tab switch
+        {
+            "hardware" => _navHardware,
+            "stresstest" => _navStressTest,
+            "monitores" => _navMonitores,
+            "perifericos" => _navPerifericos,
+            _ => _navHardware
+        };
+        ActivateMonitorNav(activeBtn);
 
         if (tab == "monitores")
             RefreshMonitores();
@@ -1882,28 +2066,6 @@ public sealed partial class MonitorWindow : Window
         {
             _gamepadTimer.Stop();
         }
-    }
-
-    private void UpdateNavButton(Button btn, bool isActive, string icon, string label, SolidColorBrush accentColor)
-    {
-        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-        panel.Children.Add(new FontIcon
-        {
-            Glyph = icon,
-            FontSize = 16,
-            Foreground = isActive ? accentColor : Design.C.MutedB,
-            FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons")
-        });
-        panel.Children.Add(new TextBlock
-        {
-            Text = label,
-            FontSize = 13,
-            FontWeight = isActive ? Microsoft.UI.Text.FontWeights.SemiBold : Microsoft.UI.Text.FontWeights.Normal,
-            VerticalAlignment = VerticalAlignment.Center
-        });
-        btn.Content = panel;
-        btn.Background = isActive ? new SolidColorBrush(ColorFromHex("#1A2744")) : new SolidColorBrush(Colors.Transparent);
-        btn.Foreground = isActive ? new SolidColorBrush(Colors.White) : new SolidColorBrush(ColorFromHex("#94A3B8"));
     }
 
     // ===== Monitores =====
@@ -2222,6 +2384,7 @@ public sealed partial class MonitorWindow : Window
             }
         }
         catch { }
+        RefreshPerifericosBatteries();
     }
 
     private Grid CreateGamepadVisual()
@@ -2831,6 +2994,77 @@ public sealed partial class MonitorWindow : Window
             {
                 _lastGamepadCount = count;
                 RefreshPerifericosWith(s);
+            }
+        }
+        catch { }
+    }
+
+    private void RefreshPerifericosBatteries()
+    {
+        try
+        {
+            var stack = (StackPanel)_perifericosContent.Content;
+            if (stack == null) return;
+
+            // Remove old battery cards (find by Tag)
+            for (int i = stack.Children.Count - 1; i >= 0; i--)
+            {
+                if (stack.Children[i] is Border b && b.Tag is string tag && tag == "battery-section")
+                {
+                    // Remove everything from this point to the end
+                    while (stack.Children.Count > i)
+                        stack.Children.RemoveAt(stack.Children.Count - 1);
+                    break;
+                }
+            }
+
+            if (_peripheralBatteries.Count == 0) return;
+
+            var batHeader = new TextBlock
+            {
+                Text = $"{_peripheralBatteries.Count} periférico(s) com bateria",
+                FontSize = 13,
+                Foreground = SubtleText,
+                Margin = new Thickness(0, 16, 0, 8)
+            };
+            stack.Children.Add(batHeader);
+
+            foreach (var bat in _peripheralBatteries)
+            {
+                var card = CreateCard();
+                card.Tag = "battery-card";
+                var cardStack = new StackPanel { Spacing = 8 };
+
+                var hdr = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                hdr.Children.Add(new FontIcon { Glyph = "\uE9F5", FontSize = 16, Foreground = new SolidColorBrush(ColorFromHex("#60A5FA")), FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons") });
+                hdr.Children.Add(new TextBlock { Text = bat.DeviceName, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
+                cardStack.Children.Add(hdr);
+
+                var batColor = bat.BatteryPercent switch
+                {
+                    < 0 => new SolidColorBrush(ColorFromHex("#9CA3AF")),
+                    < 15 => SteamColors.RedBrush,
+                    < 30 => new SolidColorBrush(ColorFromHex("#F59E0B")),
+                    _ => new SolidColorBrush(ColorFromHex("#4ADE80"))
+                };
+                var batPctText = bat.BatteryPercent >= 0 ? $"{bat.BatteryPercent}%" : "N/A";
+
+                var batRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
+                batRow.Children.Add(new TextBlock { Text = batPctText, FontSize = 28, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = batColor, VerticalAlignment = VerticalAlignment.Center });
+                batRow.Children.Add(new TextBlock { Text = bat.Status, FontSize = 12, Foreground = SubtleText, VerticalAlignment = VerticalAlignment.Center });
+                cardStack.Children.Add(batRow);
+
+                // Battery bar
+                if (bat.BatteryPercent >= 0)
+                {
+                    var barGrid = new Grid { Height = 6, CornerRadius = new CornerRadius(3), Background = Design.C.SecB };
+                    var barFill = new Border { CornerRadius = new CornerRadius(3), Background = batColor, Width = bat.BatteryPercent / 100.0 * 200, MaxWidth = 200, HorizontalAlignment = HorizontalAlignment.Left };
+                    barGrid.Children.Add(barFill);
+                    cardStack.Children.Add(barGrid);
+                }
+
+                card.Child = cardStack;
+                stack.Children.Add(card);
             }
         }
         catch { }

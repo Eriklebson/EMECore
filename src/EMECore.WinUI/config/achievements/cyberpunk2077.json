@@ -1,0 +1,54 @@
+{
+  "gameId": "cyberpunk2077",
+  "gameName": "Cyberpunk 2077",
+  "achievements": [
+    {
+      "apiname": "cp_main_quest",
+      "name": "Caminho dos Mercenários",
+      "description": "Complete a quest principal",
+      "condition": { "type": "KeyValue", "saveKey": "stat_quest", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "cp_level_50",
+      "name": "Lenda de Night City",
+      "description": "Alcance o nível 50",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "cp_kills_100",
+      "name": "Profissional",
+      "description": "Mate 100 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "cp_kills_500",
+      "name": "Carniceiro de Night City",
+      "description": "Mate 500 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 500 }
+    },
+    {
+      "apiname": "cp_hack_100",
+      "name": "Netrunner",
+      "description": "Faça 100 hacks",
+      "condition": { "type": "KeyValue", "saveKey": "stat_hack", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "cp_side_20",
+      "name": "Mercenário Completo",
+      "description": "Complete 20 side quests",
+      "condition": { "type": "KeyValue", "saveKey": "stat_side", "op": "GreaterOrEqual", "expectedValue": 20 }
+    },
+    {
+      "apiname": "cp_gig_30",
+      "name": "Veterano",
+      "description": "Complete 30 gigs",
+      "condition": { "type": "KeyValue", "saveKey": "stat_gig", "op": "GreaterOrEqual", "expectedValue": 30 }
+    },
+    {
+      "apiname": "cp_cyberware_20",
+      "name": "Cromado",
+      "description": "Instale 20 cyberwares",
+      "condition": { "type": "KeyValue", "saveKey": "stat_cyberware", "op": "GreaterOrEqual", "expectedValue": 20 }
+    }
+  ]
+}

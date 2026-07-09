@@ -21,7 +21,8 @@ public sealed partial class GameDetailPage : UserControl
     private readonly StackPanel _achievePanel, _reqPanel;
     private readonly Image _hero;
     private readonly Border _cover;
-    private readonly StellarBladeAchievementImageService _imgSvc = new();
+    private readonly StellarBladeAchievementImageService _stellarImgSvc = new();
+    private readonly AchievementImageService _imgSvc = new();
 
     public GameDetailPage()
     {
@@ -216,6 +217,8 @@ public sealed partial class GameDetailPage : UserControl
 
         // UniformGrid from CommunityToolkit — auto 2 columns
         var grid=new UniformGrid{Columns=2,ColumnSpacing=Design.S.MD,RowSpacing=Design.S.SM};
+        var imageLoadTasks = new List<(Image img, Border border, Achievement ach)>();
+
         for(int i=0;i<achievements.Count;i++)
         {
             var a=achievements[i];var d=a.Achieved;
@@ -224,20 +227,17 @@ public sealed partial class GameDetailPage : UserControl
             ac.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
             ac.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star)});
             var icn=new Border{Width=40,Height=40,CornerRadius=Design.R.LG,Background=d?Design.C.Pri10B:Design.C.SecB,VerticalAlignment=VerticalAlignment.Center,BorderThickness=new Thickness(1),BorderBrush=d?new SolidColorBrush(Design.C.PriRing):Design.C.BorB};
-            // Carregar imagem da conquista
+
             var achImage = new Image { Width=32, Height=32, Stretch=Stretch.UniformToFill, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center };
-            var imgPath = await _imgSvc.GetAchievementImageAsync(a.Apiname);
-            if (!string.IsNullOrEmpty(imgPath))
-                achImage.Source = new BitmapImage(new Uri($"file:///{imgPath}"));
-            else
-                icn.Child = new FontIcon{Glyph="\uE8FB",FontSize=20,Foreground=d?Design.C.PriB:Design.C.MutedB,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};
-            if (!string.IsNullOrEmpty(imgPath)) icn.Child = achImage;
+
+            icn.Child = new FontIcon{Glyph="\uE8FB",FontSize=20,Foreground=d?Design.C.PriB:Design.C.MutedB,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center};
+            imageLoadTasks.Add((achImage, icn, a));
+
             ac.Children.Add(icn);
             var ts=new StackPanel{VerticalAlignment=VerticalAlignment.Center,Spacing=Design.S.XS};
             ts.Children.Add(new TextBlock{Text=a.Name,FontSize=14,FontWeight=Microsoft.UI.Text.FontWeights.Medium,Foreground=d?Design.C.FgB:Design.C.Muted70B,TextTrimming=TextTrimming.CharacterEllipsis});
             if(!string.IsNullOrEmpty(a.Description)) ts.Children.Add(new TextBlock{Text=a.Description,FontSize=12,Foreground=Design.C.MutedB,MaxLines=2,TextWrapping=TextWrapping.Wrap});
 
-            // Progress bar mini (HTML: "Progresso 1050 / 1500" + barra h-1)
             if(a.HasProgress && !d)
             {
                 var apc = new StackPanel{Spacing=Design.S.XS,Margin=new Thickness(0,Design.S.XS,0,0)};
@@ -262,5 +262,95 @@ public sealed partial class GameDetailPage : UserControl
             grid.Children.Add(card);
         }
         _achievePanel.Children.Add(grid);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var logFile = Path.Combine(Path.GetTempPath(), "eme_ach_debug.log");
+                var log = $"[{DateTime.Now:HH:mm:ss}] Start: game={_game?.Name}, appid={_game?.SteamAppId}\n";
+                await File.AppendAllTextAsync(logFile, log);
+
+                if (_game == null || string.IsNullOrEmpty(_game.SteamAppId))
+                {
+                    await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] SKIP: no SteamAppId\n");
+                    return;
+                }
+
+                var isStellarBlade = _game.Name.Contains("Stellar Blade", StringComparison.OrdinalIgnoreCase) || _game.SteamAppId == "3489700";
+
+                Dictionary<string, string> nameToPath = new(StringComparer.OrdinalIgnoreCase);
+                if (!isStellarBlade)
+                {
+                    await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] Downloading highlighted for {_game.SteamAppId}...\n");
+                    var highlighted = await _imgSvc.DownloadAllHighlightedAsync(_game.SteamAppId);
+                    await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] Got {highlighted.Count} highlighted icons\n");
+                    foreach (var (name, hash, path) in highlighted)
+                        nameToPath[name] = path;
+                }
+
+                var loadedCount = 0;
+                foreach (var (img, border, ach) in imageLoadTasks)
+                {
+                    try
+                    {
+                        string? imgPath = null;
+
+                        if (_game.Name.Contains("Stellar Blade", StringComparison.OrdinalIgnoreCase) || _game.SteamAppId == "3489700")
+                            imgPath = await _stellarImgSvc.GetAchievementImageAsync(ach.Apiname);
+                        else
+                            imgPath = await _imgSvc.GetAchievementImageAsync(_game.SteamAppId, ach.Apiname, ach.Achieved);
+
+                        if (string.IsNullOrEmpty(imgPath) && !string.IsNullOrEmpty(ach.Name))
+                        {
+                            if (nameToPath.TryGetValue(ach.Name, out var hp))
+                                imgPath = hp;
+                            else
+                            {
+                                foreach (var kv in nameToPath)
+                                {
+                                    if (kv.Key.Contains(ach.Name, StringComparison.OrdinalIgnoreCase) ||
+                                        ach.Name.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        imgPath = kv.Value;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))
+                        {
+                            var capturedPath = imgPath;
+                            DispatcherQueue.TryEnqueue(() =>
+                            {
+                                _ = LoadImageIntoElement(img, border, capturedPath);
+                            });
+                            loadedCount++;
+                        }
+                    }
+                    catch { }
+                }
+                await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] Loaded {loadedCount}/{imageLoadTasks.Count} images\n");
+            }
+            catch (Exception ex)
+            {
+                var logFile = Path.Combine(Path.GetTempPath(), "eme_ach_debug.log");
+                await File.AppendAllTextAsync(logFile, $"[{DateTime.Now:HH:mm:ss}] ERROR: {ex.Message}\n");
+            }
+        });
+    }
+
+    private async Task LoadImageIntoElement(Image img, Border border, string path)
+    {
+        try
+        {
+            var bi = new BitmapImage();
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await bi.SetSourceAsync(fs.AsRandomAccessStream());
+            img.Source = bi;
+            border.Child = img;
+        }
+        catch { }
     }
 }

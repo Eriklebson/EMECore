@@ -1,0 +1,356 @@
+{
+  "gameId": "skyrim",
+  "gameName": "The Elder Scrolls V: Skyrim",
+  "achievements": [
+    {
+      "apiname": "skyrim_unbound",
+      "name": "Sem limites",
+      "description": "Complete o tutorial e escape de Helgen",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x000337D9",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_dragonslayer",
+      "name": "Matador de Dragões",
+      "description": "Mate Alduin",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x0004B2D7",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_hail_sithis",
+      "name": "Ave Sithis",
+      "description": "Complete a questline dos Dark Brotherhood",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x0001EA6B",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_traitor",
+      "name": "Traidor",
+      "description": "Complete a questline dos Thieves Guild",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x00021557",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_eye_of_magnus",
+      "name": "Olho de Magnus",
+      "description": "Complete a questline dos College of Winterhold",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x00043308",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_companions",
+      "name": "Os Companions",
+      "description": "Lidere os Companions",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x00048362",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_stone_of_barenziah",
+      "name": "Pedra de Barenziah",
+      "description": "Colete 24 Pedras de Barenziah",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.barenziahStones",
+        "op": "GreaterOrEqual",
+        "expectedValue": 24
+      }
+    },
+    {
+      "apiname": "skyrim_word_wall",
+      "name": "Mural de Palavras",
+      "description": "Aprenda 20 palavras de poder",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.wordsLearned",
+        "op": "GreaterOrEqual",
+        "expectedValue": 20
+      }
+    },
+    {
+      "apiname": "skyrim_dragon_soul",
+      "name": "Alma de Dragão",
+      "description": "Absorva 10 almas de dragão",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.dragonSoulsAbsorbed",
+        "op": "GreaterOrEqual",
+        "expectedValue": 10
+      }
+    },
+    {
+      "apiname": "skyrim_level_50",
+      "name": "Nível 50",
+      "description": "Alcance o nível 50",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "player.level",
+        "op": "GreaterOrEqual",
+        "expectedValue": 50
+      }
+    },
+    {
+      "apiname": "skyrim_skill_100",
+      "name": "Mestre de Habilidade",
+      "description": "Alcance nível 100 em uma habilidade",
+      "condition": {
+        "type": "MultipleConditions",
+        "subConditions": [
+          { "saveKey": "skills.archery", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.block", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.destruction", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.illusion", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.conjuration", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.restoration", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.alteration", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.oneHanded", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.twoHanded", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.heavyArmor", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.lightArmor", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.sneak", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.lockpicking", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.pickpocket", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.speech", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.alchemy", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.enchanting", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.smithing", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.armor", "op": "GreaterOrEqual", "expectedValue": 100 },
+          { "saveKey": "skills.crafting", "op": "GreaterOrEqual", "expectedValue": 100 }
+        ],
+        "description": "Alcance 100 em qualquer habilidade"
+      }
+    },
+    {
+      "apiname": "skyrim_houses_5",
+      "name": "Proprietário",
+      "description": "Compre 5 casas",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.housesOwned",
+        "op": "GreaterOrEqual",
+        "expectedValue": 5
+      }
+    },
+    {
+      "apiname": "skyrim_bounty_10000",
+      "name": "Procurado",
+      "description": "Acumule uma recompenda de 10.000 septims",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.bounty",
+        "op": "GreaterOrEqual",
+        "expectedValue": 10000
+      }
+    },
+    {
+      "apiname": "skyrim_gold_50000",
+      "name": "Rico",
+      "description": "Acumule 50.000 septims",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.totalGoldEarned",
+        "op": "GreaterOrEqual",
+        "expectedValue": 50000
+      }
+    },
+    {
+      "apiname": "skyrim_kills_100",
+      "name": "Matador",
+      "description": "Mate 100 inimigos",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.totalKills",
+        "op": "GreaterOrEqual",
+        "expectedValue": 100
+      }
+    },
+    {
+      "apiname": "skyrim_kills_500",
+      "name": "Carniceiro",
+      "description": "Mate 500 inimigos",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.totalKills",
+        "op": "GreaterOrEqual",
+        "expectedValue": 500
+      }
+    },
+    {
+      "apiname": "skyrim_kills_1000",
+      "name": "Lenda",
+      "description": "Mate 1000 inimigos",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.totalKills",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1000
+      }
+    },
+    {
+      "apiname": "skyrim_playtime_100h",
+      "name": "Viciado",
+      "description": "Jogue por mais de 100 horas",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.playTimeHours",
+        "op": "GreaterOrEqual",
+        "expectedValue": 100
+      }
+    },
+    {
+      "apiname": "skyrim_playtime_500h",
+      "name": "Dedicado",
+      "description": "Jogue por mais de 500 horas",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.playTimeHours",
+        "op": "GreaterOrEqual",
+        "expectedValue": 500
+      }
+    },
+    {
+      "apiname": "skyrim_locations_50",
+      "name": "Explorador",
+      "description": "Descubra 50 locais",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.locationsDiscovered",
+        "op": "GreaterOrEqual",
+        "expectedValue": 50
+      }
+    },
+    {
+      "apiname": "skyrim_locations_100",
+      "name": "Cartógrafo",
+      "description": "Descubra 100 locais",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.locationsDiscovered",
+        "op": "GreaterOrEqual",
+        "expectedValue": 100
+      }
+    },
+    {
+      "apiname": "skyrim_dungeons_10",
+      "name": "Caçador de Masmorras",
+      "description": "Complete 10 masmorras",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.dungeonsCleared",
+        "op": "GreaterOrEqual",
+        "expectedValue": 10
+      }
+    },
+    {
+      "apiname": "skyrim_dungeons_50",
+      "name": "Mestre Explorador",
+      "description": "Complete 50 masmorras",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.dungeonsCleared",
+        "op": "GreaterOrEqual",
+        "expectedValue": 50
+      }
+    },
+    {
+      "apiname": "skyrim_marriage",
+      "name": "Casado",
+      "description": "Case-se com um NPC",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.married",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_adopt",
+      "name": "Adotivo",
+      "description": "Adote uma criança",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.childrenAdopted",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_guildmaster",
+      "name": "Mestre do Guildo",
+      "description": "Torne-se o Guildmaster dos Thieves Guild",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x0004939D",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_archmage",
+      "name": "Arquimago",
+      "description": "Torne-se o Arquimago do College of Winterhold",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x00043308",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_harthfire",
+      "name": "Casa dos Sonhos",
+      "description": "Construa uma casa com Hearthfire",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "stats.housesBuilt",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_dawnguard",
+      "name": "Guardião do Amanhecer",
+      "description": "Complete a questline da Dawnguard",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x000A866B",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    },
+    {
+      "apiname": "skyrim_dragonborn",
+      "name": "Dragonborn",
+      "description": "Complete a questline do Dragonborn DLC",
+      "condition": {
+        "type": "KeyValue",
+        "saveKey": "questlines.completes.0x024104E6",
+        "op": "GreaterOrEqual",
+        "expectedValue": 1
+      }
+    }
+  ]
+}

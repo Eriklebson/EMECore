@@ -1,0 +1,54 @@
+{
+  "gameId": "witcher3",
+  "gameName": "The Witcher 3: Wild Hunt",
+  "achievements": [
+    {
+      "apiname": "w3_main_quest",
+      "name": "Caçador de Monstros",
+      "description": "Complete a quest principal",
+      "condition": { "type": "KeyValue", "saveKey": "stat_quest", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "w3_level_50",
+      "name": "Mestre Caçador",
+      "description": "Alcance o nível 50",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "w3_kills_100",
+      "name": "Matador de Monstros",
+      "description": "Mate 100 monstros",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "w3_kills_500",
+      "name": "Lenda dos Caçadores",
+      "description": "Mate 500 monstros",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 500 }
+    },
+    {
+      "apiname": "w3_alchemy_20",
+      "name": "Alquimista",
+      "description": "Crie 20 poções",
+      "condition": { "type": "KeyValue", "saveKey": "stat_alchem", "op": "GreaterOrEqual", "expectedValue": 20 }
+    },
+    {
+      "apiname": "w3_craft_30",
+      "name": "Artesão",
+      "description": "Crie 30 itens",
+      "condition": { "type": "KeyValue", "saveKey": "stat_craft", "op": "GreaterOrEqual", "expectedValue": 30 }
+    },
+    {
+      "apiname": "w3_gwent",
+      "name": "Mestre do Gwent",
+      "description": "Jogue 50 partidas de Gwent",
+      "condition": { "type": "KeyValue", "saveKey": "stat_guard", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "w3_horse",
+      "name": "Jinete",
+      "description": "Viaje 100km com o cavalo",
+      "condition": { "type": "KeyValue", "saveKey": "stat_hors", "op": "GreaterOrEqual", "expectedValue": 100 }
+    }
+  ]
+}

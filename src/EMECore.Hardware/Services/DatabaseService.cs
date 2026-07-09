@@ -57,6 +57,8 @@ public class DatabaseService : IDatabaseService
         await cmd.ExecuteNonQueryAsync();
 
         try { using var m = _connection!.CreateCommand(); m.CommandText = "ALTER TABLE games ADD COLUMN genre TEXT NOT NULL DEFAULT ''"; await m.ExecuteNonQueryAsync(); } catch { }
+        try { using var m = _connection!.CreateCommand(); m.CommandText = "ALTER TABLE achievements ADD COLUMN progress INTEGER NOT NULL DEFAULT 0"; await m.ExecuteNonQueryAsync(); } catch { }
+        try { using var m = _connection!.CreateCommand(); m.CommandText = "ALTER TABLE achievements ADD COLUMN max_progress INTEGER NOT NULL DEFAULT 0"; await m.ExecuteNonQueryAsync(); } catch { }
     }
 
     public async Task<List<Game>> GetGamesAsync()
@@ -198,8 +200,8 @@ public class DatabaseService : IDatabaseService
         foreach (var a in achievements)
         {
             using var ins = _connection!.CreateCommand();
-            ins.CommandText = @"INSERT INTO achievements (game_id, apiname, achieved, unlocktime, name, description, icon, icongray, updated_at)
-                VALUES (@gid, @ap, @ach, @ut, @nm, @desc, @ic, @ig, @ua)";
+            ins.CommandText = @"INSERT INTO achievements (game_id, apiname, achieved, unlocktime, name, description, icon, icongray, progress, max_progress, updated_at)
+                VALUES (@gid, @ap, @ach, @ut, @nm, @desc, @ic, @ig, @prog, @maxprog, @ua)";
             ins.Parameters.AddWithValue("@gid", gameId);
             ins.Parameters.AddWithValue("@ap", a.Apiname);
             ins.Parameters.AddWithValue("@ach", a.Achieved ? 1 : 0);
@@ -208,6 +210,8 @@ public class DatabaseService : IDatabaseService
             ins.Parameters.AddWithValue("@desc", a.Description);
             ins.Parameters.AddWithValue("@ic", a.Icon);
             ins.Parameters.AddWithValue("@ig", a.Icongray);
+            ins.Parameters.AddWithValue("@prog", a.Progress);
+            ins.Parameters.AddWithValue("@maxprog", a.MaxProgress);
             ins.Parameters.AddWithValue("@ua", DateTime.UtcNow.ToString("o"));
             await ins.ExecuteNonQueryAsync();
         }
@@ -222,7 +226,7 @@ public class DatabaseService : IDatabaseService
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            list.Add(new Achievement
+            var a = new Achievement
             {
                 Id = reader.GetInt32(0), GameId = reader.GetString(1),
                 Apiname = reader.GetString(2), Achieved = reader.GetInt32(3) == 1,
@@ -231,7 +235,11 @@ public class DatabaseService : IDatabaseService
                 Icon = reader.IsDBNull(7) ? "" : reader.GetString(7),
                 Icongray = reader.IsDBNull(8) ? "" : reader.GetString(8),
                 UpdatedAt = DateTime.Parse(reader.GetString(9))
-            });
+            };
+            // columns 10, 11 are progress/max_progress (may not exist in old DBs)
+            try { a.Progress = reader.GetInt32(10); } catch { }
+            try { a.MaxProgress = reader.GetInt32(11); } catch { }
+            list.Add(a);
         }
         return list;
     }

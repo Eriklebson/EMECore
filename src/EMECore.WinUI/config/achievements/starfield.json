@@ -1,0 +1,54 @@
+{
+  "gameId": "starfield",
+  "gameName": "Starfield",
+  "achievements": [
+    {
+      "apiname": "sf_main_quest",
+      "name": "Explorador Estelar",
+      "description": "Complete a quest principal",
+      "condition": { "type": "KeyValue", "saveKey": "stat_quest", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "sf_level_50",
+      "name": "Veterano Espacial",
+      "description": "Alcance o nível 50",
+      "condition": { "type": "KeyValue", "saveKey": "stat_level", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "sf_kills_100",
+      "name": "Mercenário",
+      "description": "Mate 100 inimigos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_kill", "op": "GreaterOrEqual", "expectedValue": 100 }
+    },
+    {
+      "apiname": "sf_planets_20",
+      "name": "Planetólogo",
+      "description": "Visite 20 planetas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_planet", "op": "GreaterOrEqual", "expectedValue": 20 }
+    },
+    {
+      "apiname": "sf_ship_10",
+      "name": "Construtor de Naves",
+      "description": "Construa 10 naves",
+      "condition": { "type": "KeyValue", "saveKey": "stat_ship", "op": "GreaterOrEqual", "expectedValue": 10 }
+    },
+    {
+      "apiname": "sf_outposts_5",
+      "name": "Colonizador",
+      "description": "Construa 5 outposts",
+      "condition": { "type": "KeyValue", "saveKey": "stat_outpost", "op": "GreaterOrEqual", "expectedValue": 5 }
+    },
+    {
+      "apiname": "sf_skills_50",
+      "name": "Poliglota",
+      "description": "Desbloqueie 50 habilidades",
+      "condition": { "type": "KeyValue", "saveKey": "stat_skill", "op": "GreaterOrEqual", "expectedValue": 50 }
+    },
+    {
+      "apiname": "sf_craft_30",
+      "name": "Artesão Espacial",
+      "description": "Crie 30 itens",
+      "condition": { "type": "KeyValue", "saveKey": "stat_craft", "op": "GreaterOrEqual", "expectedValue": 30 }
+    }
+  ]
+}
