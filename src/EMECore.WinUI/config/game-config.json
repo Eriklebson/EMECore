@@ -1,0 +1,2736 @@
+{
+  "games": {
+    "skyrim_se": {
+      "name": "The Elder Scrolls V: Skyrim Special Edition",
+      "namePatterns": ["Skyrim Special Edition", "SkyrimSE"],
+      "steamAppIds": ["489830"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Skyrim Special Edition/Saves", "pattern": "*.ess" },
+        { "type": "localAppData", "path": "Skyrim/Saves", "pattern": "*.ess" }
+      ],
+      "parserType": "skyrim",
+      "achievementDb": "skyrim"
+    },
+    "skyrim": {
+      "name": "The Elder Scrolls V: Skyrim",
+      "namePatterns": ["Skyrim", "Skyrim Legacy"],
+      "steamAppIds": ["72850"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Skyrim/Saves", "pattern": "*.ess" },
+        { "type": "localAppData", "path": "Skyrim/Saves", "pattern": "*.ess" }
+      ],
+      "parserType": "skyrim",
+      "achievementDb": "skyrim"
+    },
+    "oblivion_remastered": {
+      "name": "The Elder Scrolls IV: Oblivion Remastered",
+      "namePatterns": ["Oblivion Remastered", "Oblivion"],
+      "steamAppIds": ["2623190"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "OblivionRemastered/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "oblivion_remastered"
+    },
+    "teso": {
+      "name": "The Elder Scrolls Online",
+      "namePatterns": ["Elder Scrolls Online", "ESO"],
+      "steamAppIds": ["306130"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "teso",
+      "note": "Online MMO, server-side progression"
+    },
+    "eldenring": {
+      "name": "Elden Ring",
+      "namePatterns": ["Elden Ring", "ELDEN RING"],
+      "steamAppIds": ["1245620"],
+      "saveLocations": [
+        { "type": "appData", "path": "EldenRing", "pattern": "*.sl2", "recursive": true }
+      ],
+      "parserType": "eldenring",
+      "achievementDb": "eldenring"
+    },
+    "eldenring_nightreign": {
+      "name": "Elden Ring: Nightreign",
+      "namePatterns": ["Nightreign", "Elden Ring Nightreign"],
+      "steamAppIds": ["2741640"],
+      "saveLocations": [
+        { "type": "appData", "path": "EldenRing", "pattern": "*.sl2", "recursive": true }
+      ],
+      "parserType": "eldenring",
+      "achievementDb": "eldenring_nightreign"
+    },
+    "palworld": {
+      "name": "Palworld",
+      "namePatterns": ["Palworld"],
+      "steamAppIds": ["1623730"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Pal/Saved/SaveGames", "pattern": "Level.sav", "recursive": true }
+      ],
+      "parserType": "palworld",
+      "achievementDb": "palworld"
+    },
+    "gtav": {
+      "name": "Grand Theft Auto V",
+      "namePatterns": ["GTA V", "GTA5", "Grand Theft Auto V"],
+      "steamAppIds": ["271590"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Rockstar Games/GTA V/Profiles", "pattern": "SGTA*", "recursive": true }
+      ],
+      "parserType": "gtav",
+      "achievementDb": "gtav"
+    },
+    "gta_enhanced": {
+      "name": "Grand Theft Auto V Enhanced",
+      "namePatterns": ["GTA V Enhanced", "GTA5 Enhanced"],
+      "steamAppIds": ["3144840"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Rockstar Games/GTA V/Profiles", "pattern": "SGTA*", "recursive": true }
+      ],
+      "parserType": "gtav",
+      "achievementDb": "gtav"
+    },
+    "blackmythwukong": {
+      "name": "Black Myth: Wukong",
+      "namePatterns": ["Black Myth", "Wukong", "BlackMythWukong"],
+      "steamAppIds": ["2358720"],
+      "saveLocations": [
+        { "type": "steamCommon", "path": "BlackMythWukong/b1/Saved/SaveGames", "pattern": "*.sav", "recursive": true },
+        { "type": "localAppData", "path": "b1/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "blackmythwukong",
+      "achievementDb": "blackmythwukong"
+    },
+    "monsterhunterwilds": {
+      "name": "Monster Hunter Wilds",
+      "namePatterns": ["Monster Hunter Wilds", "MHWilds"],
+      "steamAppIds": ["2246340"],
+      "saveLocations": [
+        { "type": "steamUserdata", "path": "2246340/remote/win64_save", "pattern": "data001Slot*.bin" }
+      ],
+      "parserType": "monsterhunterwilds",
+      "achievementDb": "monsterhunterwilds"
+    },
+    "monsterhunterworld": {
+      "name": "Monster Hunter: World",
+      "namePatterns": ["Monster Hunter World", "MHW"],
+      "steamAppIds": ["582010"],
+      "saveLocations": [
+        { "type": "steamUserdata", "path": "582010/remote", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "monsterhunterworld"
+    },
+    "monsterhunterriserise": {
+      "name": "Monster Hunter Rise",
+      "namePatterns": ["Monster Hunter Rise", "MHRise"],
+      "steamAppIds": ["1446780"],
+      "saveLocations": [
+        { "type": "steamUserdata", "path": "1446780/remote", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "monsterhunterriserise"
+    },
+    "forzahorizon6": {
+      "name": "Forza Horizon 6",
+      "namePatterns": ["Forza Horizon 6", "FH6"],
+      "steamAppIds": ["2483190"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "ForzaHorizon6/LocalStorage_Shared", "pattern": "C_ProfileData", "recursive": true }
+      ],
+      "parserType": "forzahorizon6",
+      "achievementDb": "forzahorizon6"
+    },
+    "forzahorizon5": {
+      "name": "Forza Horizon 5",
+      "namePatterns": ["Forza Horizon 5", "FH5"],
+      "steamAppIds": ["1551360"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "ForzaHorizon5", "pattern": "*.bin", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "forzahorizon5"
+    },
+    "forzamotorsport": {
+      "name": "Forza Motorsport",
+      "namePatterns": ["Forza Motorsport"],
+      "steamAppIds": ["2440510"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "forzamotorsport",
+      "note": "Online-focused, server-side progression"
+    },
+    "stellarblade": {
+      "name": "Stellar Blade",
+      "namePatterns": ["Stellar Blade", "StellarBlade"],
+      "steamAppIds": ["3489700"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "StellarBlade/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "stellarblade",
+      "achievementDb": "stellarblade"
+    },
+    "cyberpunk2077": {
+      "name": "Cyberpunk 2077",
+      "namePatterns": ["Cyberpunk 2077", "Cyberpunk"],
+      "steamAppIds": ["1091500"],
+      "saveLocations": [
+        { "type": "savedGames", "path": "CD Projekt Red/Cyberpunk 2077", "pattern": "*.json", "recursive": true }
+      ],
+      "parserType": "cyberpunk",
+      "achievementDb": "cyberpunk2077"
+    },
+    "daysgone": {
+      "name": "Days Gone",
+      "namePatterns": ["Days Gone", "DaysGone"],
+      "steamAppIds": ["1098040"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Days Gone/SaveGames", "pattern": "slot*.sav" }
+      ],
+      "parserType": "daysgone",
+      "achievementDb": "daysgone"
+    },
+    "witcher3": {
+      "name": "The Witcher 3: Wild Hunt",
+      "namePatterns": ["Witcher 3", "The Witcher 3", "Witcher3"],
+      "steamAppIds": ["292030"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "The Witcher 3/gamesaves", "pattern": "*.sav" }
+      ],
+      "parserType": "witcher3",
+      "achievementDb": "witcher3"
+    },
+    "baldursgate3": {
+      "name": "Baldur's Gate 3",
+      "namePatterns": ["Baldur's Gate 3", "BG3", "BaldursGate3"],
+      "steamAppIds": ["1086940"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Larian Studios/Baldur's Gate 3/PlayerProfiles/Public/Savegames/Story", "pattern": "*.lsv", "recursive": true }
+      ],
+      "parserType": "baldursgate3",
+      "achievementDb": "baldursgate3"
+    },
+    "hogwartslegacy": {
+      "name": "Hogwarts Legacy",
+      "namePatterns": ["Hogwarts Legacy", "HogwartsLegacy"],
+      "steamAppIds": ["990080"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Hogwarts Legacy/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "hogwartslegacy",
+      "achievementDb": "hogwartslegacy"
+    },
+    "rdr2": {
+      "name": "Red Dead Redemption 2",
+      "namePatterns": ["Red Dead Redemption 2", "RDR2", "RedDeadRedemption2"],
+      "steamAppIds": ["1174180"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Rockstar Games/Red Dead Redemption 2/Profiles", "pattern": "SRDR3*", "recursive": true }
+      ],
+      "parserType": "rdr2",
+      "achievementDb": "rdr2"
+    },
+    "fallout4": {
+      "name": "Fallout 4",
+      "namePatterns": ["Fallout 4", "Fallout4"],
+      "steamAppIds": ["377160"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Fallout4/Saves", "pattern": "*.fos" }
+      ],
+      "parserType": "creationengine",
+      "achievementDb": "fallout4"
+    },
+    "fallout76": {
+      "name": "Fallout 76",
+      "namePatterns": ["Fallout 76", "Fallout76"],
+      "steamAppIds": ["1150690"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "fallout76",
+      "note": "Online multiplayer, server-side progression"
+    },
+    "starfield": {
+      "name": "Starfield",
+      "namePatterns": ["Starfield"],
+      "steamAppIds": ["1716740"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Starfield/Saves", "pattern": "*.sfs" }
+      ],
+      "parserType": "creationengine",
+      "achievementDb": "starfield"
+    },
+    "diablo4": {
+      "name": "Diablo IV",
+      "namePatterns": ["Diablo IV", "Diablo 4", "DiabloIV"],
+      "steamAppIds": ["2344520"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "diablo4",
+      "note": "Server-side progression"
+    },
+    "counterstrike2": {
+      "name": "Counter-Strike 2",
+      "namePatterns": ["Counter-Strike 2", "CS2", "CSGO"],
+      "steamAppIds": ["730"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "counterstrike2",
+      "note": "Online multiplayer"
+    },
+    "dota2": {
+      "name": "Dota 2",
+      "namePatterns": ["Dota 2", "Dota2"],
+      "steamAppIds": ["570"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "dota2",
+      "note": "Online multiplayer"
+    },
+    "fortnite": {
+      "name": "Fortnite",
+      "namePatterns": ["Fortnite"],
+      "steamAppIds": [],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "fortnite",
+      "note": "Not on Steam, server-side progression"
+    },
+    "minecraft": {
+      "name": "Minecraft",
+      "namePatterns": ["Minecraft"],
+      "steamAppIds": [],
+      "saveLocations": [
+        { "type": "appData", "path": ".minecraft/saves", "pattern": "level.dat", "recursive": true }
+      ],
+      "parserType": "minecraft",
+      "achievementDb": "minecraft"
+    },
+    "zelda_tears": {
+      "name": "The Legend of Zelda: Tears of the Kingdom",
+      "namePatterns": ["Zelda Tears", "TotK", "Tears of the Kingdom"],
+      "steamAppIds": [],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "zelda_tears",
+      "note": "Nintendo Switch exclusive"
+    },
+    "godofwar": {
+      "name": "God of War (2018)",
+      "namePatterns": ["God of War", "GoW"],
+      "steamAppIds": ["1593500"],
+      "saveLocations": [
+        { "type": "savedGames", "path": "God of War", "pattern": "game.sav", "recursive": true }
+      ],
+      "parserType": "godofwar",
+      "achievementDb": "godofwar"
+    },
+    "godofwarragnarok": {
+      "name": "God of War Ragnarok",
+      "namePatterns": ["God of War Ragnarok", "GoW Ragnarok"],
+      "steamAppIds": ["2322010"],
+      "saveLocations": [
+        { "type": "savedGames", "path": "God of War Ragnarok", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "godofwarragnarok"
+    },
+    "helldivers2": {
+      "name": "Helldivers 2",
+      "namePatterns": ["Helldivers 2", "Helldivers2"],
+      "steamAppIds": ["553850"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "helldivers2",
+      "note": "Online multiplayer, server-side progression"
+    },
+    "kingdomcomedeliverance2": {
+      "name": "Kingdom Come: Deliverance II",
+      "namePatterns": ["Kingdom Come Deliverance 2", "KCD2", "KCD II"],
+      "steamAppIds": ["1771300"],
+      "saveLocations": [
+        { "type": "savedGames", "path": "KingdomComeDeliverance2", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "kingdomcomedeliverance2"
+    },
+    "kingdomcomedeliverance": {
+      "name": "Kingdom Come: Deliverance",
+      "namePatterns": ["Kingdom Come Deliverance", "KCD"],
+      "steamAppIds": ["379430"],
+      "saveLocations": [
+        { "type": "savedGames", "path": "KingdomComeDeliverance", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "kingdomcomedeliverance"
+    },
+    "clairobscur": {
+      "name": "Clair Obscur: Expedition 33",
+      "namePatterns": ["Clair Obscur", "Expedition 33"],
+      "steamAppIds": ["1903340"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Expedition33/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "clairobscur"
+    },
+    "splitfiction": {
+      "name": "Split Fiction",
+      "namePatterns": ["Split Fiction"],
+      "steamAppIds": ["2290170"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "splitfiction",
+      "note": "Co-op focused, limited local saves"
+    },
+    "borderlands4": {
+      "name": "Borderlands 4",
+      "namePatterns": ["Borderlands 4", "BL4"],
+      "steamAppIds": ["3421820"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Borderlands 4/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "borderlands4"
+    },
+    "doom_dark_ages": {
+      "name": "DOOM: The Dark Ages",
+      "namePatterns": ["DOOM Dark Ages", "Dark Ages"],
+      "steamAppIds": ["3126140"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "DOOMDarkAges/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "doom_dark_ages"
+    },
+    "duneawakening": {
+      "name": "Dune: Awakening",
+      "namePatterns": ["Dune Awakening", "Dune: Awakening"],
+      "steamAppIds": ["2092710"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "duneawakening",
+      "note": "Online survival, server-side progression"
+    },
+    "schedule1": {
+      "name": "Schedule I",
+      "namePatterns": ["Schedule I", "Schedule 1"],
+      "steamAppIds": ["3164500"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "schedule1",
+      "note": "Online co-op, server-side"
+    },
+    "repo": {
+      "name": "R.E.P.O.",
+      "namePatterns": ["REPO", "R.E.P.O."],
+      "steamAppIds": ["3241660"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "repo",
+      "note": "Online co-op, server-side"
+    },
+    "arcraiders": {
+      "name": "ARC Raiders",
+      "namePatterns": ["ARC Raiders"],
+      "steamAppIds": ["2073850"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "arcraiders",
+      "note": "Online extraction shooter, server-side"
+    },
+    "marvelrivals": {
+      "name": "Marvel Rivals",
+      "namePatterns": ["Marvel Rivals"],
+      "steamAppIds": ["2767030"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "marvelrivals",
+      "note": "Online hero shooter, server-side"
+    },
+    "apexlegends": {
+      "name": "Apex Legends",
+      "namePatterns": ["Apex Legends", "Apex"],
+      "steamAppIds": ["1172470"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "apexlegends",
+      "note": "Online multiplayer, server-side"
+    },
+    "callofduty": {
+      "name": "Call of Duty",
+      "namePatterns": ["Call of Duty", "COD"],
+      "steamAppIds": ["2933620"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "callofduty",
+      "note": "Online multiplayer, server-side"
+    },
+    "battlefield6": {
+      "name": "Battlefield 6",
+      "namePatterns": ["Battlefield 6", "BF6"],
+      "steamAppIds": ["2436760"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "battlefield6",
+      "note": "Online multiplayer, server-side"
+    },
+    "battlefield2042": {
+      "name": "Battlefield 2042",
+      "namePatterns": ["Battlefield 2042", "BF2042"],
+      "steamAppIds": ["1517290"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "battlefield2042",
+      "note": "Online multiplayer"
+    },
+    "battlefieldv": {
+      "name": "Battlefield V",
+      "namePatterns": ["Battlefield V", "BFV"],
+      "steamAppIds": ["1238810"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "battlefieldv",
+      "note": "Online multiplayer"
+    },
+    "battlefield1": {
+      "name": "Battlefield 1",
+      "namePatterns": ["Battlefield 1", "BF1"],
+      "steamAppIds": ["1238840"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "battlefield1",
+      "note": "Online multiplayer"
+    },
+    "stardewvalley": {
+      "name": "Stardew Valley",
+      "namePatterns": ["Stardew Valley"],
+      "steamAppIds": ["413150"],
+      "saveLocations": [
+        { "type": "appData", "path": "StardewValley/Saves", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "stardewvalley"
+    },
+    "valheim": {
+      "name": "Valheim",
+      "namePatterns": ["Valheim"],
+      "steamAppIds": ["892970"],
+      "saveLocations": [
+        { "type": "appData", "path": ".local/share/Steam/userdata", "pattern": "world.db", "recursive": false }
+      ],
+      "parserType": "generic",
+      "achievementDb": "valheim"
+    },
+    "terraria": {
+      "name": "Terraria",
+      "namePatterns": ["Terraria"],
+      "steamAppIds": ["105600"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Terraria", "pattern": "*.wld", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "terraria"
+    },
+    "nomsky": {
+      "name": "No Man's Sky",
+      "namePatterns": ["No Man's Sky", "NMS"],
+      "steamAppIds": ["275850"],
+      "saveLocations": [
+        { "type": "appData", "path": "HelloGames/NMS", "pattern": "*.hg", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "nomsky"
+    },
+    "dontstarve": {
+      "name": "Don't Starve Together",
+      "namePatterns": ["Don't Starve Together", "DST"],
+      "steamAppIds": ["322330"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Klei/DoNotStarveTogether", "pattern": "cluster.ini", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dontstarve"
+    },
+    "subnautica": {
+      "name": "Subnautica",
+      "namePatterns": ["Subnautica"],
+      "steamAppIds": ["264710"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "UnknownWorlds/Subnautica/SNAppData", "pattern": "*.bin", "recursive": false }
+      ],
+      "parserType": "generic",
+      "achievementDb": "subnautica"
+    },
+    "subnauticabelowzero": {
+      "name": "Subnautica: Below Zero",
+      "namePatterns": ["Subnautica Below Zero", "Below Zero"],
+      "steamAppIds": ["848370"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "UnknownWorlds/SubnauticaZero", "pattern": "*.bin", "recursive": false }
+      ],
+      "parserType": "generic",
+      "achievementDb": "subnauticabelowzero"
+    },
+    "raft": {
+      "name": "Raft",
+      "namePatterns": ["Raft"],
+      "steamAppIds": ["648800"],
+      "saveLocations": [
+        { "type": "appData", "path": "Raft", "pattern": "*.raft", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "raft"
+    },
+    "satisfactory": {
+      "name": "Satisfactory",
+      "namePatterns": ["Satisfactory"],
+      "steamAppIds": ["526800"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "FactoryGame/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "satisfactory"
+    },
+    "factorio": {
+      "name": "Factorio",
+      "namePatterns": ["Factorio"],
+      "steamAppIds": ["427520"],
+      "saveLocations": [
+        { "type": "appData", "path": ".factorio/saves", "pattern": "*.zip" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "factorio"
+    },
+    "rimworld": {
+      "name": "RimWorld",
+      "namePatterns": ["RimWorld"],
+      "steamAppIds": ["294100"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Ludeon Studios/RimWorld by Ludeon Studios/Saves", "pattern": "*.rws" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "rimworld"
+    },
+    "cities_skylines": {
+      "name": "Cities: Skylines",
+      "namePatterns": ["Cities Skylines", "Cities: Skylines"],
+      "steamAppIds": ["255710"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Paradox Interactive/Cities_Skylines", "pattern": "*.crp" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "cities_skylines"
+    },
+    "cities_skylines2": {
+      "name": "Cities: Skylines II",
+      "namePatterns": ["Cities Skylines 2", "Cities: Skylines II"],
+      "steamAppIds": ["949230"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Colossal Order/Cities Skylines II/Saves", "pattern": "*.cok", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "cities_skylines2"
+    },
+    "civilization6": {
+      "name": "Sid Meier's Civilization VI",
+      "namePatterns": ["Civilization 6", "Civ 6", "Civ VI"],
+      "steamAppIds": ["289070"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Sid Meier's Civilization VI", "pattern": "*.Civ6Save" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "civilization6"
+    },
+    "civilization7": {
+      "name": "Sid Meier's Civilization VII",
+      "namePatterns": ["Civilization 7", "Civ 7", "Civ VII"],
+      "steamAppIds": ["1295660"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Sid Meier's Civilization VII", "pattern": "*.Civ7Save" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "civilization7"
+    },
+    "hearts_of_iron4": {
+      "name": "Hearts of Iron IV",
+      "namePatterns": ["Hearts of Iron 4", "HOI4"],
+      "steamAppIds": ["394360"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Paradox Interactive/Hearts of Iron IV/save games", "pattern": "*.json" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "hearts_of_iron4"
+    },
+    "euro_universalis4": {
+      "name": "Europa Universalis IV",
+      "namePatterns": ["Europa Universalis 4", "EU4"],
+      "steamAppIds": ["236850"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Paradox Interactive/Europa Universalis IV/save games", "pattern": "*.eu4" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "euro_universalis4"
+    },
+    "crusaderkings3": {
+      "name": "Crusader Kings III",
+      "namePatterns": ["Crusader Kings 3", "CK3"],
+      "steamAppIds": ["1158310"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Paradox Interactive/Crusader Kings III/save games", "pattern": "*.ck3" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "crusaderkings3"
+    },
+    "stellaris": {
+      "name": "Stellaris",
+      "namePatterns": ["Stellaris"],
+      "steamAppIds": ["281990"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Paradox Interactive/Stellaris/save games", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "stellaris"
+    },
+    "totalwar_warhammer3": {
+      "name": "Total War: WARHAMMER III",
+      "namePatterns": ["Total War Warhammer 3", "TWW3"],
+      "steamAppIds": ["1142710"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "The Creative Assembly/Warhammer3/save_games", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "totalwar_warhammer3"
+    },
+    "anno117": {
+      "name": "ANNO 117: Pax Romana",
+      "namePatterns": ["ANNO 117", "Anno 117"],
+      "steamAppIds": ["3527940"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "anno117",
+      "note": "New release, save format TBD"
+    },
+    "reddeadredemption2": {
+      "name": "Red Dead Redemption 2",
+      "namePatterns": ["Red Dead Redemption 2", "RDR2"],
+      "steamAppIds": ["1174180"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Rockstar Games/Red Dead Redemption 2/Profiles", "pattern": "SRDR3*" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "reddeadredemption2"
+    },
+    "ghostoftsushima": {
+      "name": "Ghost of Tsushima: Director's Cut",
+      "namePatterns": ["Ghost of Tsushima", "GoT"],
+      "steamAppIds": ["2215430"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "GhostOfTsushima/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "ghostoftsushima"
+    },
+    "horizonzerodawn": {
+      "name": "Horizon Zero Dawn: Complete Edition",
+      "namePatterns": ["Horizon Zero Dawn", "HZD"],
+      "steamAppIds": ["1151640"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Horizon Zero Dawn/SavedGame", "pattern": "*.dat" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "horizonzerodawn"
+    },
+    "horizonforbiddenwest": {
+      "name": "Horizon Forbidden West: Complete Edition",
+      "namePatterns": ["Horizon Forbidden West", "HFW"],
+      "steamAppIds": ["2450940"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Horizon Forbidden West/Saved Games", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "horizonforbiddenwest"
+    },
+    "spidermanmm": {
+      "name": "Marvel's Spider-Man: Miles Morales",
+      "namePatterns": ["Spider-Man Miles Morales", "Miles Morales"],
+      "steamAppIds": ["1812620"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Marvel's Spider-Man Remastered", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "spidermanmm"
+    },
+    "spidermanremastered": {
+      "name": "Marvel's Spider-Man Remastered",
+      "namePatterns": ["Spider-Man Remastered", "Spider-Man PC"],
+      "steamAppIds": ["1812620"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Marvel's Spider-Man Remastered", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "spidermanremastered"
+    },
+    "spiderman2": {
+      "name": "Marvel's Spider-Man 2",
+      "namePatterns": ["Spider-Man 2", "SpiderMan2"],
+      "steamAppIds": ["2417630"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Marvel's Spider-Man 2", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "spiderman2"
+    },
+    "lastofus": {
+      "name": "The Last of Us Part I",
+      "namePatterns": ["The Last of Us", "TLOU"],
+      "steamAppIds": ["1888160"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "The Last of Us Part I", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "lastofus"
+    },
+    "lastofus2": {
+      "name": "The Last of Us Part II Remastered",
+      "namePatterns": ["The Last of Us Part II", "TLOU2"],
+      "steamAppIds": ["2531310"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "The Last of Us Part II", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "lastofus2"
+    },
+    "uncharted": {
+      "name": "Uncharted: Legacy of Thieves Collection",
+      "namePatterns": ["Uncharted", "Legacy of Thieves"],
+      "steamAppIds": ["1659420"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Uncharted Legacy of Thieves", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "uncharted"
+    },
+    "returnal": {
+      "name": "Returnal",
+      "namePatterns": ["Returnal"],
+      "steamAppIds": ["1594330"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Returnal/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "returnal"
+    },
+    "demonsouls": {
+      "name": "Demon's Souls",
+      "namePatterns": ["Demon's Souls", "Demons Souls"],
+      "steamAppIds": [],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "demonsouls",
+      "note": "PS5 exclusive"
+    },
+    "dark_souls1": {
+      "name": "DARK SOULS: REMASTERED",
+      "namePatterns": ["Dark Souls Remastered", "Dark Souls 1"],
+      "steamAppIds": ["570940"],
+      "saveLocations": [
+        { "type": "appData", "path": "DarkSoulsRemastered", "pattern": "*.sl2", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dark_souls1"
+    },
+    "dark_souls2": {
+      "name": "DARK SOULS II: Scholar of the First Sin",
+      "namePatterns": ["Dark Souls 2", "DS2"],
+      "steamAppIds": ["335300"],
+      "saveLocations": [
+        { "type": "appData", "path": "DarkSoulsII", "pattern": "*.sl2", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dark_souls2"
+    },
+    "dark_souls3": {
+      "name": "DARK SOULS III",
+      "namePatterns": ["Dark Souls 3", "DS3"],
+      "steamAppIds": ["374320"],
+      "saveLocations": [
+        { "type": "appData", "path": "DarkSoulsIII", "pattern": "*.sl2", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dark_souls3"
+    },
+    "sekiro": {
+      "name": "Sekiro: Shadows Die Twice",
+      "namePatterns": ["Sekiro"],
+      "steamAppIds": ["814380"],
+      "saveLocations": [
+        { "type": "appData", "path": "Sekiro", "pattern": "*.sl2", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "sekiro"
+    },
+    "liesofp": {
+      "name": "Lies of P",
+      "namePatterns": ["Lies of P", "LoP"],
+      "steamAppIds": ["1458140"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "LiesofP/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "liesofp"
+    },
+    "wo_long": {
+      "name": "Wo Long: Fallen Dynasty",
+      "namePatterns": ["Wo Long", "WoLong"],
+      "steamAppIds": ["1448440"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "WoLong/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "wo_long"
+    },
+    "ninel_solace": {
+      "name": "Nine Sols",
+      "namePatterns": ["Nine Sols"],
+      "steamAppIds": ["1332010"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "NineSols/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "ninel_solace"
+    },
+    "deadcells": {
+      "name": "Dead Cells",
+      "namePatterns": ["Dead Cells"],
+      "steamAppIds": ["588650"],
+      "saveLocations": [
+        { "type": "appData", "path": "DeadCells", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "deadcells"
+    },
+    "hollowknight": {
+      "name": "Hollow Knight",
+      "namePatterns": ["Hollow Knight"],
+      "steamAppIds": ["367520"],
+      "saveLocations": [
+        { "type": "appData", "path": "Hollow Knight", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "hollowknight"
+    },
+    "hollowknight_silksong": {
+      "name": "Hollow Knight: Silksong",
+      "namePatterns": ["Silksong", "Hollow Knight Silksong"],
+      "steamAppIds": ["1030300"],
+      "saveLocations": [
+        { "type": "appData", "path": "Hollow Knight Silksong", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "hollowknight_silksong"
+    },
+    "cuphead": {
+      "name": "Cuphead",
+      "namePatterns": ["Cuphead"],
+      "steamAppIds": ["268910"],
+      "saveLocations": [
+        { "type": "appData", "path": "Cuphead", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "cuphead"
+    },
+    "celeste": {
+      "name": "Celeste",
+      "namePatterns": ["Celeste"],
+      "steamAppIds": ["504230"],
+      "saveLocations": [
+        { "type": "appData", "path": "Celeste", "pattern": "*.celeste", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "celeste"
+    },
+    "ori_will_of_wisps": {
+      "name": "Ori and the Will of the Wisps",
+      "namePatterns": ["Ori Will of the Wisps", "Ori 2"],
+      "steamAppIds": ["261570"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ori and the Will of the Wisps", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "ori_will_of_wisps"
+    },
+    "blasphemous": {
+      "name": "Blasphemous",
+      "namePatterns": ["Blasphemous"],
+      "steamAppIds": ["774361"],
+      "saveLocations": [
+        { "type": "appData", "path": "TheGameKitchen/Blasphemous", "pattern": "*.save", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "blasphemous"
+    },
+    "bloodstained": {
+      "name": "Bloodstained: Ritual of the Night",
+      "namePatterns": ["Bloodstained", "RotN"],
+      "steamAppIds": ["698640"],
+      "saveLocations": [
+        { "type": "appData", "path": "BloodstainedRotN/SaveData", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "bloodstained"
+    },
+    "tales_of_aria": {
+      "name": "Tales of Arise",
+      "namePatterns": ["Tales of Arise"],
+      "steamAppIds": ["740130"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Bandai Namco/Tales of Arise", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "tales_of_aria"
+    },
+    "finalfantasy7remake": {
+      "name": "FINAL FANTASY VII REMAKE INTERGRADE",
+      "namePatterns": ["FF7 Remake", "Final Fantasy VII Remake"],
+      "steamAppIds": ["1462040"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Documents/SQUARE ENIX/FINAL FANTASY VII REMAKE", "pattern": "*.save", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "finalfantasy7remake"
+    },
+    "finalfantasy7rebirth": {
+      "name": "FINAL FANTASY VII REBIRTH",
+      "namePatterns": ["FF7 Rebirth", "Final Fantasy VII Rebirth"],
+      "steamAppIds": ["2909400"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Documents/SQUARE ENIX/FINAL FANTASY VII REBIRTH", "pattern": "*.save", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "finalfantasy7rebirth"
+    },
+    "finalfantasy15": {
+      "name": "FINAL FANTASY XV WINDOWS EDITION",
+      "namePatterns": ["FF15", "Final Fantasy XV", "FFXV"],
+      "steamAppIds": ["637650"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Documents/SQUARE ENIX/FINAL FANTASY XV", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "finalfantasy15"
+    },
+    "finalfantasy16": {
+      "name": "FINAL FANTASY XVI",
+      "namePatterns": ["FF16", "Final Fantasy XVI", "FFXVI"],
+      "steamAppIds": ["2515020"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Documents/SQUARE ENIX/FINAL FANTASY XVI", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "finalfantasy16"
+    },
+    "persona3reload": {
+      "name": "Persona 3 Reload",
+      "namePatterns": ["Persona 3 Reload", "P3R"],
+      "steamAppIds": ["2161700"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "MegatonMusashi/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "persona3reload"
+    },
+    "persona5royal": {
+      "name": "Persona 5 Royal",
+      "namePatterns": ["Persona 5 Royal", "P5R"],
+      "steamAppIds": ["1687950"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "MegatonMusashi/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "persona5royal"
+    },
+    "metaphor": {
+      "name": "Metaphor: ReFantazio",
+      "namePatterns": ["Metaphor ReFantazio", "Metaphor"],
+      "steamAppIds": ["2679460"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "MetaphorReFantazio/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "metaphor"
+    },
+    "like_dragon_infinite": {
+      "name": "Like a Dragon: Infinite Wealth",
+      "namePatterns": ["Like a Dragon Infinite Wealth", "LaDIW"],
+      "steamAppIds": ["2072450"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "RGGStudio/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "like_dragon_infinite"
+    },
+    "like_dragon_gaiden": {
+      "name": "Like a Dragon Gaiden: The Man Who Erased His Name",
+      "namePatterns": ["Like a Dragon Gaiden", "LaDG"],
+      "steamAppIds": ["2375940"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "RGGStudio/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "like_dragon_gaiden"
+    },
+    "yakuza0": {
+      "name": "Yakuza 0",
+      "namePatterns": ["Yakuza 0", "Yakuza0"],
+      "steamAppIds": ["638970"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SEGA/Yakuza0/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "yakuza0"
+    },
+    "yakuza_kiwami": {
+      "name": "Yakuza Kiwami",
+      "namePatterns": ["Yakuza Kiwami"],
+      "steamAppIds": ["834530"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SEGA/YakuzaKiwami/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "yakuza_kiwami"
+    },
+    "yakuza_kiwami2": {
+      "name": "Yakuza Kiwami 2",
+      "namePatterns": ["Yakuza Kiwami 2"],
+      "steamAppIds": ["927380"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SEGA/YakuzaKiwami2/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "yakuza_kiwami2"
+    },
+    "yakuza3456": {
+      "name": "Yakuza 3-6 Collection",
+      "namePatterns": ["Yakuza 3", "Yakuza 4", "Yakuza 5", "Yakuza 6"],
+      "steamAppIds": ["1088710", "1105510", "1105520", "1388590"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SEGA/Yakuza/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "yakuza3456"
+    },
+    "likeadragon_ishin": {
+      "name": "Like a Dragon: Ishin!",
+      "namePatterns": ["Ishin", "Like a Dragon Ishin"],
+      "steamAppIds": ["1790130"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "RGGStudio/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "likeadragon_ishin"
+    },
+    "dragons_dogma2": {
+      "name": "Dragon's Dogma 2",
+      "namePatterns": ["Dragon's Dogma 2", "DD2"],
+      "steamAppIds": ["2054970"],
+      "saveLocations": [
+        { "type": "appData", "path": "Capcom/DD2", "pattern": "*.bin", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dragons_dogma2"
+    },
+    "dragons_dogma": {
+      "name": "Dragon's Dogma: Dark Arisen",
+      "namePatterns": ["Dragon's Dogma", "DD1"],
+      "steamAppIds": ["367500"],
+      "saveLocations": [
+        { "type": "appData", "path": "Capcom/DDDA", "pattern": "*.bin", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dragons_dogma"
+    },
+    "starwarsjedi": {
+      "name": "Star Wars Jedi: Fallen Order",
+      "namePatterns": ["Jedi Fallen Order", "Star Wars Jedi"],
+      "steamAppIds": ["1172380"],
+      "saveLocations": [
+        { "type": "appData", "path": "Respawn/JediFallenOrder/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "starwarsjedi"
+    },
+    "starwarsjedi2": {
+      "name": "Star Wars Jedi: Survivor",
+      "namePatterns": ["Jedi Survivor", "Star Wars Jedi Survivor"],
+      "steamAppIds": ["1774540"],
+      "saveLocations": [
+        { "type": "appData", "path": "Respawn/JediSurvivor/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "starwarsjedi2"
+    },
+    "avowed": {
+      "name": "Avowed",
+      "namePatterns": ["Avowed"],
+      "steamAppIds": ["2457220"],
+      "saveLocations": [
+        { "type": "savedGames", "path": "Avowed", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "avowed"
+    },
+    "outerworlds2": {
+      "name": "The Outer Worlds 2",
+      "namePatterns": ["Outer Worlds 2", "The Outer Worlds 2"],
+      "steamAppIds": ["2448650"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/The Outer Worlds 2", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "outerworlds2"
+    },
+    "outerworlds": {
+      "name": "The Outer Worlds",
+      "namePatterns": ["Outer Worlds", "The Outer Worlds"],
+      "steamAppIds": ["578650"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/The Outer Worlds", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "outerworlds"
+    },
+    "indianajones": {
+      "name": "Indiana Jones and the Great Circle",
+      "namePatterns": ["Indiana Jones", "Great Circle"],
+      "steamAppIds": ["2677660"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "IndianaJones/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "indianajones"
+    },
+    "dyinglight": {
+      "name": "Dying Light",
+      "namePatterns": ["Dying Light"],
+      "steamAppIds": ["239140"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Dying Light/out/profile", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dyinglight"
+    },
+    "dyinglight2": {
+      "name": "Dying Light 2: Stay Human",
+      "namePatterns": ["Dying Light 2", "DL2"],
+      "steamAppIds": ["1531970"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "dying light 2/out/profile", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dyinglight2"
+    },
+    "saintsrow": {
+      "name": "Saints Row",
+      "namePatterns": ["Saints Row"],
+      "steamAppIds": ["742420"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SaintsRow/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "saintsrow"
+    },
+    "mafia1definitive": {
+      "name": "Mafia: Definitive Edition",
+      "namePatterns": ["Mafia Definitive Edition", "Mafia 1 DE"],
+      "steamAppIds": ["1030840"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Hangar 13/Mafia Definitive Edition", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "mafia1definitive"
+    },
+    "mafia2definitive": {
+      "name": "Mafia II: Definitive Edition",
+      "namePatterns": ["Mafia 2 Definitive Edition", "Mafia 2 DE"],
+      "steamAppIds": ["1120770"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Hangar 13/Mafia II Definitive Edition", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "mafia2definitive"
+    },
+    "mafia3": {
+      "name": "Mafia III",
+      "namePatterns": ["Mafia 3"],
+      "steamAppIds": ["360430"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Hangar 13/Mafia III", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "mafia3"
+    },
+    "hitman3": {
+      "name": "HITMAN 3",
+      "namePatterns": ["Hitman 3", "HITMAN 3"],
+      "steamAppIds": ["1659040"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "IO Interactive/HITMAN 3", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "hitman3"
+    },
+    "thief_simulator2": {
+      "name": "Thief Simulator 2",
+      "namePatterns": ["Thief Simulator 2"],
+      "steamAppIds": ["2139490"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "ThiefSimulator2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "thief_simulator2"
+    },
+    "ready_or_not": {
+      "name": "Ready or Not",
+      "namePatterns": ["Ready or Not"],
+      "steamAppIds": ["1144200"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "ReadyOrNot/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "ready_or_not"
+    },
+    "phasmophobia": {
+      "name": "Phasmophobia",
+      "namePatterns": ["Phasmophobia"],
+      "steamAppIds": ["739630"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "phasmophobia",
+      "note": "Online co-op, server-side progression"
+    },
+    "lethalcompany": {
+      "name": "Lethal Company",
+      "namePatterns": ["Lethal Company"],
+      "steamAppIds": ["1966720"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "lethalcompany",
+      "note": "Online co-op, no local saves"
+    },
+    "7daystodie": {
+      "name": "7 Days to Die",
+      "namePatterns": ["7 Days to Die", "7DTD"],
+      "steamAppIds": ["251570"],
+      "saveLocations": [
+        { "type": "appData", "path": "7DaysToDie/Saves", "pattern": "*.tet", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "7daystodie"
+    },
+    "project_zomboid": {
+      "name": "Project Zomboid",
+      "namePatterns": ["Project Zomboid"],
+      "steamAppIds": ["108600"],
+      "saveLocations": [
+        { "type": "appData", "path": "ProjectZomboid/Saves", "pattern": "*.bin", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "project_zomboid"
+    },
+    "state_of_decay2": {
+      "name": "State of Decay 2",
+      "namePatterns": ["State of Decay 2", "SoD2"],
+      "steamAppIds": ["495420"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "StateOfDecay2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "state_of_decay2"
+    },
+    "conan_exiles": {
+      "name": "Conan Exiles",
+      "namePatterns": ["Conan Exiles"],
+      "steamAppIds": ["443030"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "ConanExiles/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "conan_exiles"
+    },
+    "ark_survival": {
+      "name": "ARK: Survival Evolved",
+      "namePatterns": ["ARK Survival Evolved", "ARK"],
+      "steamAppIds": ["346110"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "ARK/Saved", "pattern": "*.ark", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "ark_survival"
+    },
+    "ark_ascended": {
+      "name": "ARK: Survival Ascended",
+      "namePatterns": ["ARK Ascended", "ASA"],
+      "steamAppIds": ["2399830"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "ark_ascended",
+      "note": "Server-side saves, requires Nitrado servers"
+    },
+    "rust": {
+      "name": "Rust",
+      "namePatterns": ["Rust"],
+      "steamAppIds": ["252490"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "rust",
+      "note": "Online multiplayer, server-side"
+    },
+    "dayz": {
+      "name": "DayZ",
+      "namePatterns": ["DayZ"],
+      "steamAppIds": ["221100"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "dayz",
+      "note": "Online multiplayer, server-side"
+    },
+    "scum": {
+      "name": "SCUM",
+      "namePatterns": ["SCUM"],
+      "steamAppIds": ["515220"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "scum",
+      "note": "Online multiplayer, server-side"
+    },
+    "oncehuman": {
+      "name": "Once Human",
+      "namePatterns": ["Once Human"],
+      "steamAppIds": ["2139460"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "oncehuman",
+      "note": "Online multiplayer, server-side"
+    },
+    "thefirstdescendant": {
+      "name": "The First Descendant",
+      "namePatterns": ["The First Descendant", "TFD"],
+      "steamAppIds": ["2074920"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "thefirstdescendant",
+      "note": "Online multiplayer, server-side"
+    },
+    "pathofexile": {
+      "name": "Path of Exile",
+      "namePatterns": ["Path of Exile", "PoE"],
+      "steamAppIds": ["238960"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "pathofexile",
+      "note": "Online multiplayer, server-side"
+    },
+    "pathofexile2": {
+      "name": "Path of Exile 2",
+      "namePatterns": ["Path of Exile 2", "PoE2"],
+      "steamAppIds": ["2694490"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "pathofexile2",
+      "note": "Online multiplayer, server-side"
+    },
+    "warframe": {
+      "name": "Warframe",
+      "namePatterns": ["Warframe"],
+      "steamAppIds": ["230410"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "warframe",
+      "note": "Online multiplayer, server-side"
+    },
+    "destiny2": {
+      "name": "Destiny 2",
+      "namePatterns": ["Destiny 2"],
+      "steamAppIds": ["1085660"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "destiny2",
+      "note": "Online multiplayer, server-side"
+    },
+    "overwatch2": {
+      "name": "Overwatch 2",
+      "namePatterns": ["Overwatch 2", "OW2"],
+      "steamAppIds": ["2357570"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "overwatch2",
+      "note": "Online multiplayer, server-side"
+    },
+    "rainbow6": {
+      "name": "Tom Clancy's Rainbow Six Siege",
+      "namePatterns": ["Rainbow Six Siege", "R6S"],
+      "steamAppIds": ["359550"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "rainbow6",
+      "note": "Online multiplayer, server-side"
+    },
+    "valorant": {
+      "name": "VALORANT",
+      "namePatterns": ["Valorant"],
+      "steamAppIds": [],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "valorant",
+      "note": "Not on Steam, server-side"
+    },
+    "apexlegends": {
+      "name": "Apex Legends",
+      "namePatterns": ["Apex Legends"],
+      "steamAppIds": ["1172470"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "apexlegends",
+      "note": "Online multiplayer, server-side"
+    },
+    "naraka": {
+      "name": "NARAKA: BLADEPOINT",
+      "namePatterns": ["Naraka Bladepoint", "NARAKA"],
+      "steamAppIds": ["1203220"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "naraka",
+      "note": "Online multiplayer, server-side"
+    },
+    "warthunder": {
+      "name": "War Thunder",
+      "namePatterns": ["War Thunder"],
+      "steamAppIds": ["236390"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "warthunder",
+      "note": "Online multiplayer, server-side"
+    },
+    "worldofwarships": {
+      "name": "World of Warships",
+      "namePatterns": ["World of Warships"],
+      "steamAppIds": ["552990"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "worldofwarships",
+      "note": "Online multiplayer, server-side"
+    },
+    "elitedangerous": {
+      "name": "Elite Dangerous",
+      "namePatterns": ["Elite Dangerous"],
+      "steamAppIds": ["359310"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "elitedangerous",
+      "note": "Online multiplayer, server-side"
+    },
+    "nba2k25": {
+      "name": "NBA 2K25",
+      "namePatterns": ["NBA 2K25"],
+      "steamAppIds": ["2348910"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "nba2k25",
+      "note": "Online-focused, server-side progression"
+    },
+    "nba2k26": {
+      "name": "NBA 2K26",
+      "namePatterns": ["NBA 2K26"],
+      "steamAppIds": ["3280730"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "nba2k26",
+      "note": "Online-focused, server-side progression"
+    },
+    "easportsfc25": {
+      "name": "EA Sports FC 25",
+      "namePatterns": ["EA FC 25", "FC 25"],
+      "steamAppIds": ["2668510"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "easportsfc25",
+      "note": "Online-focused, server-side progression"
+    },
+    "easportsfc26": {
+      "name": "EA Sports FC 26",
+      "namePatterns": ["EA FC 26", "FC 26"],
+      "steamAppIds": ["3445700"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "easportsfc26",
+      "note": "Online-focused, server-side progression"
+    },
+    "f1_25": {
+      "name": "F1 25",
+      "namePatterns": ["F1 25"],
+      "steamAppIds": ["2748550"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/F1 25", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "f1_25"
+    },
+    "f1_24": {
+      "name": "F1 24",
+      "namePatterns": ["F1 24"],
+      "steamAppIds": ["2488620"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/F1 24", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "f1_24"
+    },
+    "ufc5": {
+      "name": "EA Sports UFC 5",
+      "namePatterns": ["UFC 5"],
+      "steamAppIds": ["2990570"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "ufc5",
+      "note": "Online-focused"
+    },
+    "madden25": {
+      "name": "Madden NFL 25",
+      "namePatterns": ["Madden 25", "Madden NFL 25"],
+      "steamAppIds": ["2490470"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "madden25",
+      "note": "Online-focused"
+    },
+    "thefinals": {
+      "name": "THE FINALS",
+      "namePatterns": ["The Finals", "FINALS"],
+      "steamAppIds": ["2073850"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "thefinals",
+      "note": "Online multiplayer, server-side"
+    },
+    "deltaforce": {
+      "name": "Delta Force",
+      "namePatterns": ["Delta Force", "DF"],
+      "steamAppIds": ["2507950"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "deltaforce",
+      "note": "Online multiplayer, server-side"
+    },
+    "hunt_showdown": {
+      "name": "Hunt: Showdown 1896",
+      "namePatterns": ["Hunt Showdown", "Hunt 1896"],
+      "steamAppIds": ["594630"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "hunt_showdown",
+      "note": "Online multiplayer, server-side"
+    },
+    "escapefromtarkov": {
+      "name": "Escape from Tarkov",
+      "namePatterns": ["Escape from Tarkov", "EFT"],
+      "steamAppIds": [],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "escapefromtarkov",
+      "note": "Standalone launcher, server-side"
+    },
+    "grayzonewarfare": {
+      "name": "Gray Zone Warfare",
+      "namePatterns": ["Gray Zone Warfare", "GZW"],
+      "steamAppIds": ["2479170"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "grayzonewarfare",
+      "note": "Online extraction shooter, server-side"
+    },
+    "stalker2": {
+      "name": "S.T.A.L.K.E.R. 2: Heart of Chornobyl",
+      "namePatterns": ["STALKER 2", "Heart of Chornobyl"],
+      "steamAppIds": ["1643320"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Stalker2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "stalker2"
+    },
+    "metroexodus": {
+      "name": "Metro Exodus",
+      "namePatterns": ["Metro Exodus"],
+      "steamAppIds": ["412020"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Metro Exodus", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "metroexodus"
+    },
+    "metrolastlight": {
+      "name": "Metro: Last Light Redux",
+      "namePatterns": ["Metro Last Light", "Metro Redux"],
+      "steamAppIds": ["286600"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Metro Last Light Redux", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "metrolastlight"
+    },
+    "far_cry6": {
+      "name": "Far Cry 6",
+      "namePatterns": ["Far Cry 6", "FC6"],
+      "steamAppIds": ["2369390"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/FarCry6/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "far_cry6"
+    },
+    "far_cry5": {
+      "name": "Far Cry 5",
+      "namePatterns": ["Far Cry 5", "FC5"],
+      "steamAppIds": ["315250"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/FarCry5/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "far_cry5"
+    },
+    "assassinscreed_shadows": {
+      "name": "Assassin's Creed Shadows",
+      "namePatterns": ["AC Shadows", "Assassin's Creed Shadows"],
+      "steamAppIds": ["3303870"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/ACShadows/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "assassinscreed_shadows"
+    },
+    "assassinscreed_odyssey": {
+      "name": "Assassin's Creed Odyssey",
+      "namePatterns": ["AC Odyssey"],
+      "steamAppIds": ["812140"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/ACOdyssey/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "assassinscreed_odyssey"
+    },
+    "assassinscreed_valhalla": {
+      "name": "Assassin's Creed Valhalla",
+      "namePatterns": ["AC Valhalla"],
+      "steamAppIds": ["2208920"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/ACValhalla/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "assassinscreed_valhalla"
+    },
+    "watchdogs_legion": {
+      "name": "Watch Dogs: Legion",
+      "namePatterns": ["Watch Dogs Legion"],
+      "steamAppIds": ["2239550"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/WatchDogsLegion/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "watchdogs_legion"
+    },
+    "watchdogs2": {
+      "name": "Watch Dogs 2",
+      "namePatterns": ["Watch Dogs 2", "WD2"],
+      "steamAppIds": ["447040"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/WatchDogs2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "watchdogs2"
+    },
+    "the_division2": {
+      "name": "Tom Clancy's The Division 2",
+      "namePatterns": ["The Division 2", "Division 2"],
+      "steamAppIds": ["2221490"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "the_division2",
+      "note": "Online multiplayer, server-side"
+    },
+    "the_division": {
+      "name": "Tom Clancy's The Division",
+      "namePatterns": ["The Division", "Division 1"],
+      "steamAppIds": ["365590"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "the_division",
+      "note": "Online multiplayer, server-side"
+    },
+    "splintercell_conviction": {
+      "name": "Tom Clancy's Splinter Cell: Conviction",
+      "namePatterns": ["Splinter Cell Conviction"],
+      "steamAppIds": ["355780"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Ubisoft/Splinter Cell Conviction", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "splintercell_conviction"
+    },
+    "blacklist": {
+      "name": "Tom Clancy's Splinter Cell: Blacklist",
+      "namePatterns": ["Splinter Cell Blacklist"],
+      "steamAppIds": ["235600"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Ubisoft/Splinter Cell Blacklist", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "blacklist"
+    },
+    "anemals": {
+      "name": "ANIMALS",
+      "namePatterns": ["ANIMALS"],
+      "steamAppIds": [],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "anemals",
+      "note": "Placeholder"
+    },
+    "manor_lords": {
+      "name": "Manor Lords",
+      "namePatterns": ["Manor Lords"],
+      "steamAppIds": ["1363080"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "ManorLords/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "manor_lords"
+    },
+    "cityskylines2": {
+      "name": "Cities: Skylines II",
+      "namePatterns": ["Cities Skylines 2"],
+      "steamAppIds": ["949230"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Colossal Order/Cities Skylines II/Saves", "pattern": "*.cok", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "cityskylines2"
+    },
+    "farming_sim25": {
+      "name": "Farming Simulator 25",
+      "namePatterns": ["Farming Simulator 25", "FS25"],
+      "steamAppIds": ["2300310"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/FarmingSimulator2025", "pattern": "*.xml" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "farming_sim25"
+    },
+    "farming_sim22": {
+      "name": "Farming Simulator 22",
+      "namePatterns": ["Farming Simulator 22", "FS22"],
+      "steamAppIds": ["1248130"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/FarmingSimulator2022", "pattern": "*.xml" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "farming_sim22"
+    },
+    "eurotruck": {
+      "name": "Euro Truck Simulator 2",
+      "namePatterns": ["Euro Truck Simulator", "ETS2"],
+      "steamAppIds": ["227300"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Euro Truck Simulator 2", "pattern": "*.ets2" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "eurotruck"
+    },
+    "americantruck": {
+      "name": "American Truck Simulator",
+      "namePatterns": ["American Truck Simulator", "ATS"],
+      "steamAppIds": ["270880"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "American Truck Simulator", "pattern": "*.ats" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "americantruck"
+    },
+    "planetcoaster2": {
+      "name": "Planet Coaster 2",
+      "namePatterns": ["Planet Coaster 2"],
+      "steamAppIds": ["2402890"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "PlanetCoaster2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "planetcoaster2"
+    },
+    "planetcoaster": {
+      "name": "Planet Coaster",
+      "namePatterns": ["Planet Coaster"],
+      "steamAppIds": ["493340"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Planet Coaster/Saves", "pattern": "*.seav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "planetcoaster"
+    },
+    "two_point_museum": {
+      "name": "Two Point Museum",
+      "namePatterns": ["Two Point Museum"],
+      "steamAppIds": ["2199340"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "TwoPointMuseum/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "two_point_museum"
+    },
+    "two_point_hospital": {
+      "name": "Two Point Hospital",
+      "namePatterns": ["Two Point Hospital"],
+      "steamAppIds": ["535930"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "TwoPointHospital/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "two_point_hospital"
+    },
+    "house_flipper2": {
+      "name": "House Flipper 2",
+      "namePatterns": ["House Flipper 2"],
+      "steamAppIds": ["1170210"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "HouseFlipper2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "house_flipper2"
+    },
+    "house_flipper": {
+      "name": "House Flipper",
+      "namePatterns": ["House Flipper"],
+      "steamAppIds": ["613100"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "HouseFlipper/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "house_flipper"
+    },
+    "powerwash_sim": {
+      "name": "PowerWash Simulator",
+      "namePatterns": ["PowerWash Simulator"],
+      "steamAppIds": ["1290090"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "PowerWashSimulator/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "powerwash_sim"
+    },
+    "cooking_simulator": {
+      "name": "Cooking Simulator",
+      "namePatterns": ["Cooking Simulator"],
+      "steamAppIds": ["641320"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "CookingSimulator/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "cooking_simulator"
+    },
+    "supermarket_sim": {
+      "name": "Supermarket Simulator",
+      "namePatterns": ["Supermarket Simulator"],
+      "steamAppIds": ["2655820"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SupermarketSimulator/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "supermarket_sim"
+    },
+    "the Sims 4": {
+      "name": "The Sims 4",
+      "namePatterns": ["Sims 4", "The Sims 4"],
+      "steamAppIds": ["1222670"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Electronic Arts/The Sims 4", "pattern": "*.save" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "thesims4"
+    },
+    "inzoi": {
+      "name": "inZOI",
+      "namePatterns": ["inZOI", "inzoi"],
+      "steamAppIds": ["2456740"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "inZOI/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "inzoi"
+    },
+    "totalwar_three_kingdoms": {
+      "name": "Total War: THREE KINGDOMS",
+      "namePatterns": ["Total War Three Kingdoms"],
+      "steamAppIds": ["779340"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "The Creative Assembly/ThreeKingdoms/save_games", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "totalwar_three_kingdoms"
+    },
+    "totalwar_pharaoh": {
+      "name": "Total War: PHARAOH",
+      "namePatterns": ["Total War Pharaoh"],
+      "steamAppIds": ["1504410"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "The Creative Assembly/Pharaoh/save_games", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "totalwar_pharaoh"
+    },
+    "totalwar_warhammer2": {
+      "name": "Total War: WARHAMMER II",
+      "namePatterns": ["Total War Warhammer 2", "TWW2"],
+      "steamAppIds": ["594570"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "The Creative Assembly/Warhammer2/save_games", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "totalwar_warhammer2"
+    },
+    "anno1800": {
+      "name": "ANNO 1800",
+      "namePatterns": ["Anno 1800"],
+      "steamAppIds": ["576500"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Anno 1800", "pattern": "*.a1800", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "anno1800"
+    },
+    "sins_of_a_solar_empire2": {
+      "name": "Sins of a Solar Empire II",
+      "namePatterns": ["Sins of a Solar Empire 2"],
+      "steamAppIds": ["2754490"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Games/Sins of a Solar Empire II", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "sins_of_a_solar_empire2"
+    },
+    "mount_and_blade2": {
+      "name": "Mount & Blade II: Bannerlord",
+      "namePatterns": ["Bannerlord", "Mount Blade 2"],
+      "steamAppIds": ["261550"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Mount and Blade II Bannerlord/GameSaves", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "mount_and_blade2"
+    },
+    "mount_and_blade": {
+      "name": "Mount & Blade: Warband",
+      "namePatterns": ["Mount Blade Warband", "Warband"],
+      "steamAppIds": ["48700"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Mount&Blade Warband/SaveGames", "pattern": "*.sav" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "mount_and_blade"
+    },
+    "x4_foundations": {
+      "name": "X4: Foundations",
+      "namePatterns": ["X4 Foundations", "X4"],
+      "steamAppIds": ["400710"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "Egosoft/X4", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "x4_foundations"
+    },
+    "v_rising": {
+      "name": "V Rising",
+      "namePatterns": ["V Rising"],
+      "steamAppIds": ["1604030"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "VRising/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "v_rising"
+    },
+    "grounded": {
+      "name": "Grounded",
+      "namePatterns": ["Grounded"],
+      "steamAppIds": ["962130"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Grounded/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "grounded"
+    },
+    "sea_of_thieves": {
+      "name": "Sea of Thieves",
+      "namePatterns": ["Sea of Thieves"],
+      "steamAppIds": ["1172470"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "sea_of_thieves",
+      "note": "Online multiplayer, server-side"
+    },
+    "pubg": {
+      "name": "PUBG: BATTLEGROUNDS",
+      "namePatterns": ["PUBG", "PUBG Battlegrounds"],
+      "steamAppIds": ["578080"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "pubg",
+      "note": "Online multiplayer, server-side"
+    },
+    "tetris_effect": {
+      "name": "Tetris Effect: Connected",
+      "namePatterns": ["Tetris Effect"],
+      "steamAppIds": ["1064220"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "TetrisEffect/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "tetris_effect"
+    },
+    "sonic_frontiers": {
+      "name": "Sonic Frontiers",
+      "namePatterns": ["Sonic Frontiers"],
+      "steamAppIds": ["1794960"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SonicFrontiers/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "sonic_frontiers"
+    },
+    "sonic_superstars": {
+      "name": "Sonic Superstars",
+      "namePatterns": ["Sonic Superstars"],
+      "steamAppIds": ["2344420"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SonicSuperstars/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "sonic_superstars"
+    },
+    "nier_automata": {
+      "name": "NieR:Automata",
+      "namePatterns": ["NieR Automata", "NieR:Automata"],
+      "steamAppIds": ["524220"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Documents/My Games/NieR:Automata", "pattern": "*.dat" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "nier_automata"
+    },
+    "nier_replicant": {
+      "name": "NieR Replicant ver.1.22474487139...",
+      "namePatterns": ["NieR Replicant"],
+      "steamAppIds": ["1216920"],
+      "saveLocations": [
+        { "type": "myDocuments", "path": "My Documents/My Games/NieR Replicant", "pattern": "*.dat" }
+      ],
+      "parserType": "generic",
+      "achievementDb": "nier_replicant"
+    },
+    "persona4golden": {
+      "name": "Persona 4 Golden",
+      "namePatterns": ["Persona 4 Golden", "P4G"],
+      "steamAppIds": ["1113000"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "MegatonMusashi/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "persona4golden"
+    },
+    "persona4arena": {
+      "name": "Persona 4 Arena Ultimax",
+      "namePatterns": ["Persona 4 Arena"],
+      "steamAppIds": ["1382330"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "MegatonMusashi/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "persona4arena"
+    },
+    "dragonball_sparking": {
+      "name": "DRAGON BALL: Sparking! ZERO",
+      "namePatterns": ["Dragon Ball Sparking Zero", "Sparking Zero"],
+      "steamAppIds": ["1790600"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SparkingZero/Steam", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dragonball_sparking"
+    },
+    "streetfighter6": {
+      "name": "Street Fighter 6",
+      "namePatterns": ["Street Fighter 6", "SF6"],
+      "steamAppIds": ["1222940"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "StreetFighter6/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "streetfighter6"
+    },
+    "tekken8": {
+      "name": "TEKKEN 8",
+      "namePatterns": ["Tekken 8"],
+      "steamAppIds": ["1778820"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Tekken8/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "tekken8"
+    },
+    "mortal_kombat1": {
+      "name": "Mortal Kombat 1",
+      "namePatterns": ["Mortal Kombat 1", "MK1"],
+      "steamAppIds": ["1971870"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "MortalKombat1/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "mortal_kombat1"
+    },
+    "granblue_fantasy_relink": {
+      "name": "Granblue Fantasy: Relink",
+      "namePatterns": ["Granblue Fantasy Relink", "GBFR"],
+      "steamAppIds": ["881020"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "GBFR/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "granblue_fantasy_relink"
+    },
+    "star_wars_outlaws": {
+      "name": "Star Wars Outlaws",
+      "namePatterns": ["Star Wars Outlaws"],
+      "steamAppIds": ["2733120"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Ubisoft/StarWarsOutlaws/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "star_wars_outlaws"
+    },
+    "alan_wake2": {
+      "name": "Alan Wake 2",
+      "namePatterns": ["Alan Wake 2"],
+      "steamAppIds": ["2437260"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "AlanWake2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "alan_wake2"
+    },
+    "silent_hill2": {
+      "name": "Silent Hill 2",
+      "namePatterns": ["Silent Hill 2", "SH2"],
+      "steamAppIds": ["2124490"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SilentHill2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "silent_hill2"
+    },
+    "resident_evil4": {
+      "name": "Resident Evil 4",
+      "namePatterns": ["Resident Evil 4", "RE4"],
+      "steamAppIds": ["2050650"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/RESIDENT EVIL 4", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil4"
+    },
+    "resident_evil4_og": {
+      "name": "Resident Evil 4 (2005)",
+      "namePatterns": ["Resident Evil 4 Classic", "RE4 Classic"],
+      "steamAppIds": ["254700"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/RESIDENT EVIL 4", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil4_og"
+    },
+    "resident_evil_village": {
+      "name": "Resident Evil Village",
+      "namePatterns": ["Resident Evil Village", "RE Village", "RE8"],
+      "steamAppIds": ["1196590"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/RESIDENT EVIL VILLAGE", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil_village"
+    },
+    "resident_evil_2": {
+      "name": "Resident Evil 2",
+      "namePatterns": ["Resident Evil 2 Remake", "RE2"],
+      "steamAppIds": ["883710"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/RESIDENT EVIL 2", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil_2"
+    },
+    "resident_evil_3": {
+      "name": "Resident Evil 3",
+      "namePatterns": ["Resident Evil 3 Remake", "RE3"],
+      "steamAppIds": ["952060"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/RESIDENT EVIL 3", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil_3"
+    },
+    "resident_evil_7": {
+      "name": "Resident Evil 7: Biohazard",
+      "namePatterns": ["Resident Evil 7", "RE7"],
+      "steamAppIds": ["418370"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/RESIDENT EVIL 7", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil_7"
+    },
+    "resident_evil_revelations": {
+      "name": "Resident Evil Revelations",
+      "namePatterns": ["Resident Evil Revelations", "REV1"],
+      "steamAppIds": ["222040"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/Resident Evil Revelations", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil_revelations"
+    },
+    "resident_evil_revelations2": {
+      "name": "Resident Evil Revelations 2",
+      "namePatterns": ["Resident Evil Revelations 2", "REV2"],
+      "steamAppIds": ["287290"],
+      "saveLocations": [
+        { "type": "appData", "path": "CAPCOM/Resident Evil Revelations 2", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "resident_evil_revelations2"
+    },
+    "dead_space": {
+      "name": "Dead Space (2023)",
+      "namePatterns": ["Dead Space Remake", "Dead Space 2023"],
+      "steamAppIds": ["1693980"],
+      "saveLocations": [
+        { "type": "appData", "path": "Motive/Dead Space/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "dead_space"
+    },
+    "evil_within": {
+      "name": "The Evil Within",
+      "namePatterns": ["Evil Within"],
+      "steamAppIds": ["26800"],
+      "saveLocations": [
+        { "type": "appData", "path": "Bethesda/TheEvilWithin", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "evil_within"
+    },
+    "evil_within2": {
+      "name": "The Evil Within 2",
+      "namePatterns": ["Evil Within 2"],
+      "steamAppIds": ["730820"],
+      "saveLocations": [
+        { "type": "appData", "path": "Bethesda/TheEvilWithin2", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "evil_within2"
+    },
+    "outlast": {
+      "name": "Outlast",
+      "namePatterns": ["Outlast"],
+      "steamAppIds": ["238320"],
+      "saveLocations": [
+        { "type": "appData", "path": "Red Barrels/Outlast", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "outlast"
+    },
+    "outlast2": {
+      "name": "Outlast 2",
+      "namePatterns": ["Outlast 2"],
+      "steamAppIds": ["414700"],
+      "saveLocations": [
+        { "type": "appData", "path": "Red Barrels/Outlast 2", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "outlast2"
+    },
+    "visage": {
+      "name": "Visage",
+      "namePatterns": ["Visage"],
+      "steamAppIds": ["755310"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SadSquareStudio/Visage/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "visage"
+    },
+    "soma": {
+      "name": "SOMA",
+      "namePatterns": ["SOMA"],
+      "steamAppIds": ["282140"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Frictional Games/SOMA", "pattern": "*.bin", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "soma"
+    },
+    "amnesia_rebirth": {
+      "name": "Amnesia: Rebirth",
+      "namePatterns": ["Amnesia Rebirth"],
+      "steamAppIds": ["1245560"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Frictional Games/Amnesia Rebirth", "pattern": "*.bin", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "amnesia_rebirth"
+    },
+    "amnesia_the_bunker": {
+      "name": "Amnesia: The Bunker",
+      "namePatterns": ["Amnesia The Bunker"],
+      "steamAppIds": ["1958160"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Frictional Games/Amnesia The Bunker", "pattern": "*.bin", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "amnesia_the_bunker"
+    },
+    "dead_by_daylight": {
+      "name": "Dead by Daylight",
+      "namePatterns": ["Dead by Daylight", "DBD"],
+      "steamAppIds": ["381210"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "dead_by_daylight",
+      "note": "Online multiplayer, server-side"
+    },
+    "liarsbar": {
+      "name": "Liar's Bar",
+      "namePatterns": ["Liar's Bar", "Liars Bar"],
+      "steamAppIds": ["2881650"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "liarsbar",
+      "note": "Online multiplayer, server-side"
+    },
+    "chained_together": {
+      "name": "Chained Together",
+      "namePatterns": ["Chained Together"],
+      "steamAppIds": ["2109380"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "chained_together",
+      "note": "Online co-op, server-side"
+    },
+    "it_takes_two": {
+      "name": "It Takes Two",
+      "namePatterns": ["It Takes Two"],
+      "steamAppIds": ["1426210"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "it_takes_two",
+      "note": "Co-op only, server-side"
+    },
+    "overcooked2": {
+      "name": "Overcooked! 2",
+      "namePatterns": ["Overcooked 2"],
+      "steamAppIds": ["728500"],
+      "saveLocations": [
+        { "type": "appData", "path": "GhostTownGames/Overcooked2", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "overcooked2"
+    },
+    "human_fall_flat": {
+      "name": "Human: Fall Flat",
+      "namePatterns": ["Human Fall Flat"],
+      "steamAppIds": ["477800"],
+      "saveLocations": [
+        { "type": "appData", "path": "NoBrakesGames/HumanFallFlat", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "human_fall_flat"
+    },
+    "goose_goose_duck": {
+      "name": "Goose Goose Duck",
+      "namePatterns": ["Goose Goose Duck", "GGD"],
+      "steamAppIds": ["1568590"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "goose_goose_duck",
+      "note": "Online multiplayer, server-side"
+    },
+    "among_us": {
+      "name": "Among Us",
+      "namePatterns": ["Among Us"],
+      "steamAppIds": ["945360"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "among_us",
+      "note": "Online multiplayer, server-side"
+    },
+    "party_animals": {
+      "name": "Party Animals",
+      "namePatterns": ["Party Animals"],
+      "steamAppIds": ["1260320"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "party_animals",
+      "note": "Online multiplayer, server-side"
+    },
+    "brawlhalla": {
+      "name": "Brawlhalla",
+      "namePatterns": ["Brawlhalla"],
+      "steamAppIds": ["291550"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "brawlhalla",
+      "note": "Online multiplayer, server-side"
+    },
+    "rocket_league": {
+      "name": "Rocket League",
+      "namePatterns": ["Rocket League"],
+      "steamAppIds": ["252950"],
+      "saveLocations": [
+        { "type": "appData", "path": "Epic/RocketLeague", "pattern": "*.replay", "recursive": true }
+      ],
+      "parserType": "none",
+      "achievementDb": "rocket_league",
+      "note": "Online multiplayer, server-side"
+    },
+    "slay_the_spire": {
+      "name": "Slay the Spire",
+      "namePatterns": ["Slay the Spire"],
+      "steamAppIds": ["646570"],
+      "saveLocations": [
+        { "type": "appData", "path": "SlayTheSpire", "pattern": "*.replay", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "slay_the_spire"
+    },
+    "balatro": {
+      "name": "Balatro",
+      "namePatterns": ["Balatro"],
+      "steamAppIds": ["2379780"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Balatro", "pattern": "*.jkr", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "balatro"
+    },
+    "hades": {
+      "name": "Hades",
+      "namePatterns": ["Hades"],
+      "steamAppIds": ["1145360"],
+      "saveLocations": [
+        { "type": "appData", "path": "Hades", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "hades"
+    },
+    "hades2": {
+      "name": "Hades II",
+      "namePatterns": ["Hades 2", "Hades II"],
+      "steamAppIds": ["1145350"],
+      "saveLocations": [
+        { "type": "appData", "path": "HadesII", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "hades2"
+    },
+    "brotato": {
+      "name": "Brotato",
+      "namePatterns": ["Brotato"],
+      "steamAppIds": ["1942280"],
+      "saveLocations": [
+        { "type": "appData", "path": "Brotato", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "brotato"
+    },
+    "vampire_survivors": {
+      "name": "Vampire Survivors",
+      "namePatterns": ["Vampire Survivors"],
+      "steamAppIds": ["1794680"],
+      "saveLocations": [
+        { "type": "appData", "path": "VampireSurvivors", "pattern": "*.dat", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "vampire_survivors"
+    },
+    "soulstone_survivors": {
+      "name": "Soulstone Survivors",
+      "namePatterns": ["Soulstone Survivors"],
+      "steamAppIds": ["2066020"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "SoulstoneSurvivors/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "soulstone_survivors"
+    },
+    "deep_rock_galactic": {
+      "name": "Deep Rock Galactic",
+      "namePatterns": ["Deep Rock Galactic"],
+      "steamAppIds": ["548430"],
+      "saveLocations": [
+        { "type": "appData", "path": "GhostShipGames/DeepRockGalactic", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "deep_rock_galactic"
+    },
+    "risk_of_rain2": {
+      "name": "Risk of Rain 2",
+      "namePatterns": ["Risk of Rain 2"],
+      "steamAppIds": ["632360"],
+      "saveLocations": [
+        { "type": "appData", "path": "Risk of Rain 2", "pattern": "*.run", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "risk_of_rain2"
+    },
+    "robocop": {
+      "name": "RoboCop: Rogue City",
+      "namePatterns": ["RoboCop Rogue City"],
+      "steamAppIds": ["1281990"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "RoboCopRogueCity/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "robocop"
+    },
+    "the_surge": {
+      "name": "The Surge",
+      "namePatterns": ["The Surge"],
+      "steamAppIds": ["378540"],
+      "saveLocations": [
+        { "type": "appData", "path": "Deck13/TheSurge", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "the_surge"
+    },
+    "the_surge2": {
+      "name": "The Surge 2",
+      "namePatterns": ["The Surge 2"],
+      "steamAppIds": ["644830"],
+      "saveLocations": [
+        { "type": "appData", "path": "Deck13/TheSurge2", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "the_surge2"
+    },
+    "lords_of_the_fallen": {
+      "name": "Lords of the Fallen (2023)",
+      "namePatterns": ["Lords of the Fallen"],
+      "steamAppIds": ["1501750"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "LordsOfTheFallen/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "lords_of_the_fallen"
+    },
+    "remnant2": {
+      "name": "Remnant 2",
+      "namePatterns": ["Remnant 2"],
+      "steamAppIds": ["1282730"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Remnant2/Saved/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "remnant2"
+    },
+    "remnant": {
+      "name": "Remnant: From the Ashes",
+      "namePatterns": ["Remnant From the Ashes", "Remnant 1"],
+      "steamAppIds": ["659323"],
+      "saveLocations": [
+        { "type": "localAppData", "path": "Remnant/SaveGames", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "remnant"
+    },
+    "black_mesa": {
+      "name": "Black Mesa",
+      "namePatterns": ["Black Mesa"],
+      "steamAppIds": ["362890"],
+      "saveLocations": [
+        { "type": "appData", "path": "BlackMesa/save", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "black_mesa"
+    },
+    "half_life_alyx": {
+      "name": "Half-Life: Alyx",
+      "namePatterns": ["Half-Life Alyx", "HLA"],
+      "steamAppIds": ["546560"],
+      "saveLocations": [
+        { "type": "appData", "path": "Half-Life Alyx/hlvr", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "half_life_alyx"
+    },
+    "portal2": {
+      "name": "Portal 2",
+      "namePatterns": ["Portal 2"],
+      "steamAppIds": ["620"],
+      "saveLocations": [
+        { "type": "appData", "path": "Portal 2/portal2/save", "pattern": "*.sav", "recursive": true }
+      ],
+      "parserType": "generic",
+      "achievementDb": "portal2"
+    },
+    "left4dead2": {
+      "name": "Left 4 Dead 2",
+      "namePatterns": ["Left 4 Dead 2", "L4D2"],
+      "steamAppIds": ["550"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "left4dead2",
+      "note": "Online multiplayer"
+    },
+    "team_fortress2": {
+      "name": "Team Fortress 2",
+      "namePatterns": ["Team Fortress 2", "TF2"],
+      "steamAppIds": ["440"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "team_fortress2",
+      "note": "Online multiplayer"
+    },
+    "garrys_mod": {
+      "name": "Garry's Mod",
+      "namePatterns": ["Garry's Mod", "GMod"],
+      "steamAppIds": ["4000"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "garrys_mod",
+      "note": "Sandbox, no structured progression"
+    },
+    "wallpaper_engine": {
+      "name": "Wallpaper Engine",
+      "namePatterns": ["Wallpaper Engine"],
+      "steamAppIds": ["431960"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "wallpaper_engine",
+      "note": "Utility, no game progression"
+    },
+    "aimlabs": {
+      "name": "Aim Lab",
+      "namePatterns": ["Aim Lab", "Aimlabs"],
+      "steamAppIds": ["714010"],
+      "saveLocations": [],
+      "parserType": "none",
+      "achievementDb": "aimlabs",
+      "note": "Training tool, server-side stats"
+    }
+  }
+}

@@ -36,6 +36,7 @@ public sealed partial class MainWindow : Window
 
     private List<Achievement>? _lastAchievements;
     private MonitorWindow? _monitorWindow;
+    private Game? _monitoredGame;
 
     public MainWindow()
     {
@@ -51,12 +52,12 @@ public sealed partial class MainWindow : Window
         var steamStoreService = new SteamStoreService();
         var gameScannerService = new GameScannerService(steamStoreService);
         ViewModel = new MainViewModel(databaseService, gameScannerService, steamStoreService);
-        _achievementService = new AchievementService();
+        _achievementService = new AchievementService(databaseService);
         _saveMonitor = new SaveMonitorService();
         _saveDiscovery = new SaveDiscoveryService();
         _saveParser = new SaveParserService();
         _saveAchievementProvider = new SaveBasedAchievementProvider(_saveDiscovery, _saveParser);
-        _achievementChecker = new AchievementCheckerService(_saveAchievementProvider);
+        _achievementChecker = new AchievementCheckerService(_saveAchievementProvider, databaseService);
 
         var rootGrid = new Grid { Background = new SolidColorBrush(SteamColors.Dark) };
         rootGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(40) });
@@ -137,6 +138,14 @@ public sealed partial class MainWindow : Window
 
         Closed += (_, _) =>
         {
+            try
+            {
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                var wid = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                var aw = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(wid);
+                SettingsService.Set("window_x", aw.Position.X.ToString());
+                SettingsService.Set("window_y", aw.Position.Y.ToString());
+            } catch { }
             _saveMonitor.Dispose();
             _monitorWindow?.Close();
             try { ViewModel.CloseDatabaseSync(); } catch { }
@@ -162,6 +171,14 @@ public sealed partial class MainWindow : Window
         var appWindow = AppWindow.GetFromWindowId(windowId);
 
         appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 1400, Height = 900 });
+
+        var savedX = SettingsService.Get("window_x", "");
+        var savedY = SettingsService.Get("window_y", "");
+        if (!string.IsNullOrEmpty(savedX) && !string.IsNullOrEmpty(savedY)
+            && int.TryParse(savedX, out var sx) && int.TryParse(savedY, out var sy))
+        {
+            appWindow.Move(new Windows.Graphics.PointInt32 { X = sx, Y = sy });
+        }
 
         appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
         var titleBarObj = appWindow.TitleBar;
@@ -213,7 +230,6 @@ public sealed partial class MainWindow : Window
         };
 
         _saveMonitor.OnAchievementUnlocked += OnAchievementUnlocked;
-        _saveMonitor.StartMonitoring();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -279,7 +295,34 @@ public sealed partial class MainWindow : Window
                 }
             }
             _lastAchievements = achievements;
+
+            // Iniciar monitoramento de save em tempo real
+            StartSaveMonitor(ViewModel.SelectedGame);
         }
+        else if (page != "detail")
+        {
+            StopSaveMonitor();
+        }
+    }
+
+    private void StartSaveMonitor(Game game)
+    {
+        StopSaveMonitor();
+
+        if (!_achievementService.HasParserFor(game)) return;
+
+        var info = _achievementService.GetSaveMonitorInfo(game);
+        if (info == null) return;
+
+        var (savePath, parseFunc, gameName) = info.Value;
+        _saveMonitor.StartMonitoring(savePath, parseFunc, gameName);
+        _monitoredGame = game;
+    }
+
+    private void StopSaveMonitor()
+    {
+        _saveMonitor.StopMonitoring();
+        _monitoredGame = null;
     }
 
     private static Windows.UI.Color ParseColor(string hex)
@@ -340,12 +383,12 @@ public sealed partial class MainWindow : Window
         notification.Show(testAchievement, "Stellar Blade");
     }
 
-    private void OnAchievementUnlocked(Achievement achievement)
+    private void OnAchievementUnlocked(Achievement achievement, string gameName)
     {
         DispatcherQueue.TryEnqueue(async () =>
         {
             var notification = new AchievementNotificationWindow();
-            notification.Show(achievement, "Stellar Blade");
+            notification.Show(achievement, gameName);
             await Task.Delay(500);
         });
     }

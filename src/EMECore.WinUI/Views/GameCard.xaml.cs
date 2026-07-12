@@ -58,7 +58,13 @@ public sealed partial class GameCard : UserControl
         var w = new Border { Child=o, Background=new SolidColorBrush(Microsoft.UI.Colors.Transparent), Margin=new Thickness(6) };
         w.PointerEntered += (_, _) => { _hover.Opacity=1; _name.Foreground=Design.C.PriB; _coverBorder.BorderBrush=new SolidColorBrush(Windows.UI.Color.FromArgb(0x80,0x4C,0xCB,0xA0)); };
         w.PointerExited += (_, _) => { _hover.Opacity=0; _name.Foreground=Design.C.FgB; _coverBorder.BorderBrush=Design.C.BorB; };
-        w.Tapped += (_, _) => { if(_game!=null)GameClicked?.Invoke(this,_game); };
+        w.Tapped += (_, e) =>
+        {
+            var src = e.OriginalSource as DependencyObject;
+            while (src != null && src != pb && src != w) src = VisualTreeHelper.GetParent(src);
+            if (src == pb) return;
+            if(_game!=null)GameClicked?.Invoke(this,_game);
+        };
         Content=w;
     }
 

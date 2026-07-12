@@ -275,7 +275,7 @@ public sealed partial class GameDetailPage : UserControl
                 {
                     try
                     {
-                        var imgPath = await _imgSvc.GetAchievementImageAsync(_game.SteamAppId, ach.Apiname, ach.Achieved, _game.Name);
+                        var imgPath = await _imgSvc.GetAchievementImageAsync(_game.SteamAppId, ach.Apiname, ach.Achieved, _game.Name, ach.Name, ach.Icon, ach.Icongray);
                         if (!string.IsNullOrEmpty(imgPath) && File.Exists(imgPath))
                         {
                             var capturedPath = imgPath;

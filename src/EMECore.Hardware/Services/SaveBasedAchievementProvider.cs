@@ -23,12 +23,20 @@ public class SaveBasedAchievementProvider : IAchievementProvider
     public bool CanHandle(Game game)
     {
         if (IsOnlineOnly(game)) return false;
+        if (HasHardcodedDetection(game)) return true;
         try
         {
             var locations = _saveDiscovery.GetKnownSaveLocations(game);
             return locations.Any(l => !string.IsNullOrEmpty(l.DirectoryPath) && Directory.Exists(l.DirectoryPath));
         }
         catch { return false; }
+    }
+
+    private static bool HasHardcodedDetection(Game game)
+    {
+        return IsSkyrim(game) || IsFallout4(game) || IsStarfield(game) ||
+               IsWitcher3(game) || IsCyberpunk(game) || IsEldenRing(game) ||
+               IsBaldursGate3(game) || IsHogwartsLegacy(game);
     }
 
     public async Task<List<Achievement>> GetAchievementsAsync(Game game)

@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Shapes;
+using System.Runtime.InteropServices;
 using System.Numerics;
 using System.Collections.ObjectModel;
 using EMECore.Core.Models;
@@ -129,6 +130,8 @@ public sealed partial class MonitorWindow : Window
 
     // Gamepad real-time
     private DispatcherTimer _gamepadTimer = null!;
+    private TextBlock _gpStatusText = null!;
+    private TextBlock _gpHwCompactStatus = null!;
     private int _gamepadPollCount = 0;
     private Border _gpBtnA = null!, _gpBtnB = null!, _gpBtnX = null!, _gpBtnY = null!;
     private Border _gpBtnLB = null!, _gpBtnRB = null!;
@@ -140,9 +143,13 @@ public sealed partial class MonitorWindow : Window
     private TextBlock _gpLtText = null!, _gpRtText = null!;
     private FrameworkElement _gpLeftStickCanvas = null!, _gpRightStickCanvas = null!;
     private Ellipse _gpLeftStickDot = null!, _gpRightStickDot = null!;
-    private Ellipse _gpLeftTriggerDot = null!, _gpRightTriggerDot = null!;
     private double _gpLsCenterX, _gpLsCenterY, _gpRsCenterX, _gpRsCenterY;
     private GamepadInfo _lastGamepadState = new();
+    private Grid? _gpSharedVisual;
+    private FrameworkElement? _gpSharedVisualParent;
+    private TextBlock? _gpLtIndicator, _gpRtIndicator;
+    private Ellipse? _gpLtMiniDot, _gpRtMiniDot;
+    private StackPanel? _gpHwHeaderRow;
 
     // Cached hardware data — Collect() result reused by StressMetrics
     private HardwareStats? _lastCollect;
@@ -153,6 +160,9 @@ public sealed partial class MonitorWindow : Window
     private readonly Dictionary<string, StackPanel> _collapsedContent = new();
     private readonly Dictionary<string, Border> _cardBorders = new();
     private readonly Dictionary<string, Button> _toggleButtons = new();
+
+    // Modular card layout
+    private readonly Dictionary<string, Border> _hardwareCards = new();
 
     // WMI refresh counter — refresh RAM/Disks every 5 seconds (10 ticks × 500ms)
     private int _wmiTickCounter = 0;
@@ -196,6 +206,15 @@ public sealed partial class MonitorWindow : Window
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
         appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 960, Height = 640 });
 
+        // Min size 640x480
+        var presenter = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId).Presenter as Microsoft.UI.Windowing.OverlappedPresenter;
+        if (presenter != null)
+        {
+            presenter.IsResizable = true;
+            presenter.IsMaximizable = true;
+            presenter.IsMinimizable = true;
+        }
+
         // Dark title bar
         var titleBar = appWindow.TitleBar;
         titleBar.ExtendsContentIntoTitleBar = false;
@@ -223,6 +242,9 @@ public sealed partial class MonitorWindow : Window
         // Defer full UI build + data load to after first frame renders
         _ = BuildAndLoadAsync();
     }
+
+    private bool _isResizing = false;
+    private double _lastGoodHeight = 640;
 
     private async Task BuildAndLoadAsync()
     {
@@ -326,12 +348,7 @@ public sealed partial class MonitorWindow : Window
         header.Children.Add(new TextBlock { Text = "Monitoramento em tempo real do seu sistema", FontSize = 13, Foreground = SubtleText });
         contentStack.Children.Add(header);
 
-        // ===== ROW 1: Motherboard + RAM =====
-        var row1 = new Grid { ColumnSpacing = 16 };
-        row1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        // Motherboard Card
+        // ===== Motherboard Card =====
         var mbCard = CreateCard();
         var mbStack = new StackPanel { Spacing = 12 };
         var mbHeader = CreateCardHeaderGrid("\uE950", "PLACA MÃE", MbColor, "mb");
@@ -377,9 +394,7 @@ public sealed partial class MonitorWindow : Window
         mbCompact.Children.Add(new TextBlock { Text = "V", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
         mbCompact.Children.Add(_mbCompactVoltage);
         RegisterCard("mb", mbCard, mbStack, mbCompact);
-
-        Grid.SetColumn(mbCard, 0);
-        row1.Children.Add(mbCard);
+        _hardwareCards["mb"] = mbCard;
 
         // RAM Card
         var ramCard = CreateCard();
@@ -414,17 +429,9 @@ public sealed partial class MonitorWindow : Window
         ramCompact.Children.Add(new TextBlock { Text = "RAM", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
         ramCompact.Children.Add(_ramCompactInfo);
         RegisterCard("ram", ramCard, ramStack, ramCompact);
+        _hardwareCards["ram"] = ramCard;
 
-        Grid.SetColumn(ramCard, 1);
-        row1.Children.Add(ramCard);
-        contentStack.Children.Add(row1);
-
-        // ===== ROW 2: CPU + GPU =====
-        var row2 = new Grid { ColumnSpacing = 16 };
-        row2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        // CPU Card
+        // ===== RAM Card =====
         var cpuCard = CreateCard();
         var cpuStack = new StackPanel { Spacing = 12 };
         var cpuHeader = CreateCardHeaderGrid("\uef8e", "CPU", CpuColor, "cpu");
@@ -509,11 +516,9 @@ public sealed partial class MonitorWindow : Window
         cpuCompact.Children.Add(new TextBlock { Text = "PKG", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
         cpuCompact.Children.Add(_cpuCompactPkg);
         RegisterCard("cpu", cpuCard, cpuStack, cpuCompact);
+        _hardwareCards["cpu"] = cpuCard;
 
-        Grid.SetColumn(cpuCard, 0);
-        row2.Children.Add(cpuCard);
-
-        // GPU Card
+        // ===== GPU Card =====
         var gpuCard = CreateCard();
         var gpuStack = new StackPanel { Spacing = 12 };
         var gpuHeader = CreateCardHeaderGrid("\uea89", "GPU", GpuColor, "gpu");
@@ -589,17 +594,9 @@ public sealed partial class MonitorWindow : Window
         gpuCompact.Children.Add(new TextBlock { Text = "TEMP", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
         gpuCompact.Children.Add(_gpuCompactTemp);
         RegisterCard("gpu", gpuCard, gpuStack, gpuCompact);
+        _hardwareCards["gpu"] = gpuCard;
 
-        Grid.SetColumn(gpuCard, 1);
-        row2.Children.Add(gpuCard);
-        contentStack.Children.Add(row2);
-
-        // ===== ROW 3: Disk + Network =====
-        var row3 = new Grid { ColumnSpacing = 16 };
-        row3.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row3.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        // Disk Card — dynamic, supports multiple disks
+        // ===== Disk Card =====
         var diskCard = CreateCard();
         var diskStack = new StackPanel { Spacing = 12 };
         diskStack.Children.Add(CreateCardHeaderGrid("\uEDA2", "DISCO", DiskColor, "disk"));
@@ -611,11 +608,9 @@ public sealed partial class MonitorWindow : Window
         diskCompact.Children.Add(new TextBlock { Text = "ESPAÇO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
         diskCompact.Children.Add(_diskCompactInfo);
         RegisterCard("disk", diskCard, diskStack, diskCompact);
+        _hardwareCards["disk"] = diskCard;
 
-        Grid.SetColumn(diskCard, 0);
-        row3.Children.Add(diskCard);
-
-        // Network Card
+        // ===== Network Card =====
         var netCard = CreateCard();
         var netStack = new StackPanel { Spacing = 12 };
         netStack.Children.Add(CreateCardHeaderGrid("\uE8B0", "REDE", NetColor, "net"));
@@ -701,13 +696,10 @@ public sealed partial class MonitorWindow : Window
         netCompact.Children.Add(new TextBlock { Text = "↑", FontSize = 12, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
         netCompact.Children.Add(_netCompactUp);
         RegisterCard("net", netCard, netStack, netCompact);
+        _hardwareCards["net"] = netCard;
         RestoreCardStates();
 
-        Grid.SetColumn(netCard, 1);
-        row3.Children.Add(netCard);
-        contentStack.Children.Add(row3);
-
-        // ===== ROW 4: FPS =====
+        // ===== FPS Card =====
         _fpsCard = CreateCard();
         var fpsStack = new StackPanel { Spacing = 12 };
 
@@ -756,8 +748,76 @@ public sealed partial class MonitorWindow : Window
         fpsGrid.Children.Add(fpsDetailsStack);
         fpsStack.Children.Add(fpsGrid);
         _fpsCard.Child = fpsStack;
-        contentStack.Children.Add(_fpsCard);
+        _hardwareCards["fps"] = _fpsCard;
 
+        // ===== Gamepad Card (inline in Hardware tab) =====
+        var gpHwCard = CreateCard();
+        var gpHwStack = new StackPanel { Spacing = 12 };
+        var gpHwHeader = CreateCardHeaderGrid("\uE711", "CONTROLE", new SolidColorBrush(ColorFromHex("#4ADE80")), "gamepad");
+        _gpHwHeaderRow = gpHwHeader;
+
+        var miniTrigColor = new SolidColorBrush(ColorFromHex("#4ADE80"));
+        var miniSize = 24.0;
+
+        var ltMiniCanvas = new Canvas { Width = miniSize, Height = miniSize, IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center };
+        var ltMiniDot = new Ellipse { Width = 6, Height = 6, Fill = miniTrigColor };
+        Canvas.SetLeft(ltMiniDot, 4); Canvas.SetTop(ltMiniDot, 4);
+        ltMiniCanvas.Children.Add(ltMiniDot);
+        var ltMiniCurve = new Microsoft.UI.Xaml.Shapes.Path
+        {
+            Stroke = miniTrigColor, StrokeThickness = 1.5,
+            Data = new PathGeometry { Figures = new PathFigureCollection { new PathFigure
+            {
+                StartPoint = new Windows.Foundation.Point(2, 2),
+                Segments = new PathSegmentCollection { new BezierSegment
+                {
+                    Point1 = new Windows.Foundation.Point(2 + 7, 2),
+                    Point2 = new Windows.Foundation.Point(22, 22 - 8),
+                    Point3 = new Windows.Foundation.Point(22, 22)
+                }}
+            }}}
+        };
+        ltMiniCanvas.Children.Add(ltMiniCurve);
+        _gpLtMiniDot = ltMiniDot;
+        gpHwHeader.Children.Add(ltMiniCanvas);
+
+        var rtMiniCanvas = new Canvas { Width = miniSize, Height = miniSize, IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center };
+        var rtMiniDot = new Ellipse { Width = 6, Height = 6, Fill = miniTrigColor };
+        Canvas.SetLeft(rtMiniDot, 14); Canvas.SetTop(rtMiniDot, 4);
+        rtMiniCanvas.Children.Add(rtMiniDot);
+        var rtMiniCurve = new Microsoft.UI.Xaml.Shapes.Path
+        {
+            Stroke = miniTrigColor, StrokeThickness = 1.5,
+            Data = new PathGeometry { Figures = new PathFigureCollection { new PathFigure
+            {
+                StartPoint = new Windows.Foundation.Point(22, 2),
+                Segments = new PathSegmentCollection { new BezierSegment
+                {
+                    Point1 = new Windows.Foundation.Point(22 - 7, 2),
+                    Point2 = new Windows.Foundation.Point(2, 22 - 8),
+                    Point3 = new Windows.Foundation.Point(2, 22)
+                }}
+            }}}
+        };
+        rtMiniCanvas.Children.Add(rtMiniCurve);
+        _gpRtMiniDot = rtMiniDot;
+        gpHwHeader.Children.Add(rtMiniCanvas);
+        gpHwStack.Children.Add(gpHwHeader);
+        _gpStatusText = new TextBlock { Text = "Verificando...", FontSize = 11, Foreground = SubtleText };
+        gpHwStack.Children.Add(_gpStatusText);
+
+        _gpSharedVisual = CreateGamepadVisual();
+        gpHwStack.Children.Add(_gpSharedVisual);
+
+        var gpHwCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
+        _gpHwCompactStatus = new TextBlock { Text = "Aguardando...", FontSize = 12, Foreground = SubtleText };
+        gpHwCompact.Children.Add(new TextBlock { Text = "CONTROLE", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        gpHwCompact.Children.Add(_gpHwCompactStatus);
+        RegisterCard("gamepad", gpHwCard, gpHwStack, gpHwCompact);
+        _hardwareCards["gamepad"] = gpHwCard;
+
+        // Build dynamic card layout
+        BuildHardwareLayout(contentStack);
         _hardwareContent.Content = contentStack;
 
         // --- Stress Test Content ---
@@ -1054,6 +1114,42 @@ public sealed partial class MonitorWindow : Window
 
         Content = root;
 
+        SizeChanged += (_, args) =>
+        {
+            if (_isResizing) return;
+            var w = args.Size.Width;
+            var h = args.Size.Height;
+            if (w >= 640 && h >= 100)
+            {
+                _lastGoodHeight = h;
+            }
+            if (w < 640)
+            {
+                _isResizing = true;
+                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                var wid = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                var aw = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(wid);
+                aw.Resize(new Windows.Graphics.SizeInt32 { Width = 640, Height = (int)_lastGoodHeight });
+                _isResizing = false;
+                return;
+            }
+            if (_hwGrid != null)
+            {
+                var cols = _hwGrid.ColumnDefinitions.Count;
+                if (w < 700 && cols == 2)
+                {
+                    _hwGrid.ColumnDefinitions.RemoveAt(1);
+                    RelayoutHwGrid();
+                }
+                else if (w >= 700 && cols == 1)
+                {
+                    _hwGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                    RelayoutHwGrid();
+                }
+            }
+            UpdateGamepadCompactMode(w);
+        };
+
         Closed += (_, _) => { _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _batteryTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
         var hwnd2 = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId2 = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd2);
@@ -1084,6 +1180,7 @@ public sealed partial class MonitorWindow : Window
         // Gamepad real-time timer (16ms = ~60 Hz)
         _gamepadTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
         _gamepadTimer.Tick += (_, _) => UpdateGamepadUi();
+        _gamepadTimer.Start();
 
         _gpPollTimer = new System.Threading.Timer(_ =>
         {
@@ -1287,8 +1384,14 @@ public sealed partial class MonitorWindow : Window
         var headerRow = new Grid();
         headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         headerRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        if (header != null)
-            headerRow.Children.Add(header);
+
+        if (header != null && header is FrameworkElement fe)
+        {
+            Grid.SetColumn(fe, 0);
+            headerRow.Children.Add(fe);
+        }
+
+        var btnRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
 
         var toggleBtn = new Button
         {
@@ -1298,13 +1401,32 @@ public sealed partial class MonitorWindow : Window
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             BorderThickness = new Thickness(0),
             Padding = new Thickness(6, 4, 6, 4),
-            VerticalAlignment = VerticalAlignment.Center,
             Tag = key
         };
         toggleBtn.Click += CardToggle_Click;
         _toggleButtons[key] = toggleBtn;
-        Grid.SetColumn(toggleBtn, 1);
-        headerRow.Children.Add(toggleBtn);
+
+        btnRow.Children.Add(toggleBtn);
+
+        if (CardLayoutService.IsOptional(key))
+        {
+            var removeBtn = new Button
+            {
+                Content = "\uE711",
+                FontSize = 10,
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                Foreground = SubtleText,
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(4, 2, 4, 2),
+                Tag = key
+            };
+            removeBtn.Click += RemoveCard_Click;
+            btnRow.Children.Add(removeBtn);
+        }
+
+        Grid.SetColumn(btnRow, 1);
+        headerRow.Children.Add(btnRow);
 
         var container = new StackPanel { Spacing = 12, VerticalAlignment = VerticalAlignment.Top };
         container.Children.Add(headerRow);
@@ -1312,6 +1434,151 @@ public sealed partial class MonitorWindow : Window
         container.Children.Add(collapsed);
         card.Child = container;
         card.VerticalAlignment = VerticalAlignment.Top;
+    }
+
+    private void ToggleCardVisibility(string key, bool show)
+    {
+        if (!_hardwareCards.TryGetValue(key, out var card)) return;
+        card.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        if (show && key == "gamepad")
+        {
+            if (card.Child is StackPanel sp && sp.Children.Count > 2)
+                MoveGamepadVisualTo(sp);
+        }
+    }
+
+    private void AddCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuFlyoutItem item || item.Tag is not string key) return;
+        CardLayoutService.ShowCard(key);
+        ToggleCardVisibility(key, true);
+        RefreshAddButton();
+    }
+
+    private void RemoveCard_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not string key) return;
+        CardLayoutService.HideCard(key);
+        ToggleCardVisibility(key, false);
+        RefreshAddButton();
+    }
+
+    private Button? _addCardBtn;
+
+    private void RefreshAddButton()
+    {
+        if (_addCardBtn == null) return;
+        var addable = CardLayoutService.GetAddableCards();
+        _addCardBtn.Visibility = addable.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        var flyout = new MenuFlyout();
+        foreach (var key in addable)
+        {
+            var item = new MenuFlyoutItem { Text = CardLayoutService.GetCardDisplayName(key), Tag = key };
+            item.Click += AddCard_Click;
+            flyout.Items.Add(item);
+        }
+        _addCardBtn.Flyout = flyout;
+    }
+
+    private Grid? _hwGrid;
+
+    private void BuildHardwareLayout(StackPanel contentStack)
+    {
+        var allKeys = CardLayoutService.GetOrder();
+        var cards = new List<Border>();
+        foreach (var key in allKeys)
+        {
+            if (_hardwareCards.TryGetValue(key, out var card))
+            {
+                card.Visibility = CardLayoutService.IsCardVisible(key) ? Visibility.Visible : Visibility.Collapsed;
+                cards.Add(card);
+            }
+        }
+
+        var grid = new Grid { ColumnSpacing = 16 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        for (int i = 0; i < cards.Count; i++)
+        {
+            var card = cards[i];
+            var col = i % 2;
+            var row = i / 2;
+
+            while (grid.RowDefinitions.Count <= row)
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            Grid.SetRow(card, row);
+            Grid.SetColumn(card, col);
+            grid.Children.Add(card);
+        }
+
+        var addable = CardLayoutService.GetAddableCards();
+        var addRow = (cards.Count + 1) / 2;
+        while (grid.RowDefinitions.Count <= addRow)
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var addBtn = new Button
+        {
+            Content = "+ Adicionar módulo",
+            FontSize = 13,
+            Foreground = SubtleText,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderBrush = SubtleText,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(12, 6, 12, 6),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(4),
+            Visibility = addable.Count > 0 ? Visibility.Visible : Visibility.Collapsed
+        };
+        _addCardBtn = addBtn;
+
+        var flyout = new MenuFlyout();
+        foreach (var key in addable)
+        {
+            var item = new MenuFlyoutItem { Text = CardLayoutService.GetCardDisplayName(key), Tag = key };
+            item.Click += AddCard_Click;
+            flyout.Items.Add(item);
+        }
+        addBtn.Flyout = flyout;
+
+        Grid.SetRow(addBtn, addRow);
+        Grid.SetColumnSpan(addBtn, 2);
+        grid.Children.Add(addBtn);
+
+        _hwGrid = grid;
+        contentStack.Children.Add(grid);
+    }
+
+    private void RelayoutHwGrid()
+    {
+        if (_hwGrid == null) return;
+        var cols = _hwGrid.ColumnDefinitions.Count;
+        var children = _hwGrid.Children.Cast<FrameworkElement>().ToList();
+        _hwGrid.Children.Clear();
+        _hwGrid.RowDefinitions.Clear();
+
+        int row = 0, col = 0;
+        foreach (var child in children)
+        {
+            if (col >= cols) { row++; col = 0; }
+            while (_hwGrid.RowDefinitions.Count <= row)
+                _hwGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetRow(child, row);
+            Grid.SetColumn(child, col);
+            _hwGrid.Children.Add(child);
+            col++;
+        }
+    }
+
+    private void UpdateGamepadCompactMode(double width)
+    {
+        if (_gpSharedVisual == null) return;
+        var isCompact = width < 700;
+        _gpSharedVisual.MaxWidth = isCompact ? Math.Max(width - 80, 200) : double.PositiveInfinity;
+        _gpSharedVisual.HorizontalAlignment = isCompact ? HorizontalAlignment.Stretch : HorizontalAlignment.Center;
     }
 
     private static Grid CreateBar(out Grid bar, SolidColorBrush color)
@@ -2060,6 +2327,18 @@ public sealed partial class MonitorWindow : Window
         if (tab == "perifericos")
         {
             RefreshPerifericos();
+        }
+
+        if (tab == "hardware")
+        {
+            if (_hardwareCards.TryGetValue("gamepad", out var gpCard) && gpCard.Child is StackPanel sp && sp.Children.Count > 2)
+            {
+                MoveGamepadVisualTo(sp);
+            }
+        }
+
+        if (tab == "hardware" || tab == "perifericos")
+        {
             _gamepadTimer.Start();
         }
         else
@@ -2221,8 +2500,9 @@ public sealed partial class MonitorWindow : Window
             if (s.Gamepads.Count == 0 || connectedCount == 0)
             {
                 stack.Children.Add(new TextBlock { Text = "Nenhum controle detectado", FontSize = 14, Foreground = SubtleText, Margin = new Thickness(0, 16, 0, 0) });
-                return;
             }
+            else
+            {
 
             foreach (var gp in s.Gamepads.Where(g => g.IsConnected))
             {
@@ -2316,9 +2596,8 @@ public sealed partial class MonitorWindow : Window
                 pollCard.Child = pollStack;
                 cardStack.Children.Add(pollCard);
 
-                // Visual Gamepad
-                var gpVisual = CreateGamepadVisual();
-                cardStack.Children.Add(gpVisual);
+                // Move shared gamepad visual here
+                MoveGamepadVisualTo(cardStack);
 
                 // Axes info
                 var axesCard = new Border { Background = Design.C.InsetB, CornerRadius = new CornerRadius(8), Padding = new Thickness(16), BorderThickness = new Thickness(1), BorderBrush = CardBorder };
@@ -2382,9 +2661,33 @@ public sealed partial class MonitorWindow : Window
 
             _lastGamepadState = gp;
             }
+            }
         }
         catch { }
         RefreshPerifericosBatteries();
+    }
+
+    private void MoveGamepadVisualTo(Panel newParent)
+    {
+        if (_gpSharedVisual == null) return;
+        var oldParent = _gpSharedVisual.Parent as Panel;
+        oldParent?.Children.Remove(_gpSharedVisual);
+        newParent.Children.Add(_gpSharedVisual);
+        Array.Fill(_gpButtonStates, false);
+        _gpLastPacket = 0;
+        _gpSharedVisual.UpdateLayout();
+    }
+
+    private void RecreateGamepadVisual()
+    {
+        if (_gpSharedVisual == null) return;
+        var oldParent = _gpSharedVisual.Parent as Panel;
+        oldParent?.Children.Remove(_gpSharedVisual);
+        _gpSharedVisual = CreateGamepadVisual();
+        if (oldParent != null)
+            oldParent.Children.Add(_gpSharedVisual);
+        Array.Fill(_gpButtonStates, false);
+        _gpLastPacket = 0;
     }
 
     private Grid CreateGamepadVisual()
@@ -2527,49 +2830,6 @@ public sealed partial class MonitorWindow : Window
         var lw = layout.ImageWidth;
         var lh = layout.ImageHeight;
 
-        // Quarter-circle bezier (k = 0.552), center ~(-160, 118), R=92
-        var ltCurve = new Microsoft.UI.Xaml.Shapes.Path
-        {
-            Stroke = trigColor, StrokeThickness = trigStroke,
-            Data = new PathGeometry { Figures = new PathFigureCollection { new PathFigure
-            {
-                StartPoint = new Windows.Foundation.Point(-160, 26),
-                Segments = new PathSegmentCollection { new BezierSegment
-                {
-                    Point1 = new Windows.Foundation.Point(-160 + 51, 26),
-                    Point2 = new Windows.Foundation.Point(-68, 118 - 50),
-                    Point3 = new Windows.Foundation.Point(-68, 118)
-                }}
-            }}}
-        };
-        canvas.Children.Add(ltCurve);
-
-        var rtCurve = new Microsoft.UI.Xaml.Shapes.Path
-        {
-            Stroke = trigColor, StrokeThickness = trigStroke,
-            Data = new PathGeometry { Figures = new PathFigureCollection { new PathFigure
-            {
-                StartPoint = new Windows.Foundation.Point(lw + 160, 26),
-                Segments = new PathSegmentCollection { new BezierSegment
-                {
-                    Point1 = new Windows.Foundation.Point(lw + 160 - 51, 26),
-                    Point2 = new Windows.Foundation.Point(lw + 68, 118 - 50),
-                    Point3 = new Windows.Foundation.Point(lw + 68, 118)
-                }}
-            }}}
-        };
-        canvas.Children.Add(rtCurve);
-
-        _gpLeftTriggerDot = new Ellipse { Width = 10, Height = 10, Fill = trigColor };
-        Canvas.SetLeft(_gpLeftTriggerDot, -68 - 5);
-        Canvas.SetTop(_gpLeftTriggerDot, 118 - 5);
-        canvas.Children.Add(_gpLeftTriggerDot);
-
-        _gpRightTriggerDot = new Ellipse { Width = 10, Height = 10, Fill = trigColor };
-        Canvas.SetLeft(_gpRightTriggerDot, lw + 68 - 5);
-        Canvas.SetTop(_gpRightTriggerDot, 118 - 5);
-        canvas.Children.Add(_gpRightTriggerDot);
-
         canvas.Children.Add(_gpBtnUp);
         canvas.Children.Add(_gpBtnDown);
         canvas.Children.Add(_gpBtnLeft);
@@ -2622,9 +2882,12 @@ public sealed partial class MonitorWindow : Window
 
     private static double Bezier(double t, double p0, double p1, double p2, double p3)
     {
-        var u = 1.0 - t;
-        return u * u * u * p0 + 3.0 * u * u * t * p1 + 3.0 * u * t * t * p2 + t * t * t * p3;
+        double u = 1 - t;
+        return u * u * u * p0 + 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t * p3;
     }
+
+    private static double MiniBezier(double t, double p0, double p1, double p2, double p3) =>
+        Bezier(t, p0, p1, p2, p3);
 
     private static Border CreateOverlayBtn(double w, double h)
     {
@@ -2824,6 +3087,8 @@ public sealed partial class MonitorWindow : Window
         saveBtn.Click += (_, _) =>
         {
             GamepadLayoutService.Save(_calibrationLayout);
+            GamepadLayoutService.InvalidateCache();
+            RecreateGamepadVisual();
             saveBtn.Content = "Salvo!";
             saveBtn.Foreground = new SolidColorBrush(ColorFromHex("#4ADE80"));
         };
@@ -2838,6 +3103,8 @@ public sealed partial class MonitorWindow : Window
         {
             _calibPollTimer?.Dispose();
             _calibPollTimer = null;
+            if (_gpSharedVisual?.Parent is Panel p) p.Children.Remove(_gpSharedVisual);
+            RecreateGamepadVisual();
             RefreshPerifericos();
             _gamepadTimer.Start();
         };
@@ -3006,15 +3273,16 @@ public sealed partial class MonitorWindow : Window
             var stack = (StackPanel)_perifericosContent.Content;
             if (stack == null) return;
 
-            // Remove old battery cards (find by Tag)
+            // Remove old battery cards and header (find by Tag)
             for (int i = stack.Children.Count - 1; i >= 0; i--)
             {
-                if (stack.Children[i] is Border b && b.Tag is string tag && tag == "battery-section")
+                if (stack.Children[i] is Border b && b.Tag is string tag && (tag == "battery-section" || tag == "battery-card"))
                 {
-                    // Remove everything from this point to the end
-                    while (stack.Children.Count > i)
-                        stack.Children.RemoveAt(stack.Children.Count - 1);
-                    break;
+                    stack.Children.RemoveAt(i);
+                }
+                else if (stack.Children[i] is TextBlock tb && tb.Tag is string tbTag && tbTag == "battery-header")
+                {
+                    stack.Children.RemoveAt(i);
                 }
             }
 
@@ -3025,7 +3293,8 @@ public sealed partial class MonitorWindow : Window
                 Text = $"{_peripheralBatteries.Count} periférico(s) com bateria",
                 FontSize = 13,
                 Foreground = SubtleText,
-                Margin = new Thickness(0, 16, 0, 8)
+                Margin = new Thickness(0, 16, 0, 8),
+                Tag = "battery-header"
             };
             stack.Children.Add(batHeader);
 
@@ -3088,9 +3357,22 @@ public sealed partial class MonitorWindow : Window
     {
         try
         {
-            if (_monitor?.GamepadService == null) return;
+            if (_monitor?.GamepadService == null)
+            {
+                _gpStatusText.Text = "Serviço indisponível";
+                _gpHwCompactStatus.Text = "Serviço indisponível";
+                return;
+            }
             var gp = _monitor.GamepadService.GetCachedState(0);
-            if (gp == null || !gp.IsConnected) return;
+            if (gp == null || !gp.IsConnected)
+            {
+                _gpStatusText.Text = "Nenhum controle conectado";
+                _gpHwCompactStatus.Text = "Desconectado";
+                return;
+            }
+
+            _gpStatusText.Text = $"Conectado — {gp.Name}";
+            _gpHwCompactStatus.Text = $"Conectado — {gp.Name}";
 
             // Analog sticks always update (using cached calibrated centers)
             const double stickRange = 30.0;
@@ -3109,22 +3391,22 @@ public sealed partial class MonitorWindow : Window
                 Canvas.SetTop(_gpRightStickDot, ry - 5);
             }
 
-            // Trigger indicators (cubic bezier: starts vertical, ends horizontal)
-            if (_gpLeftTriggerDot != null)
+            // Mini trigger dots in header — follow bezier curve
+            if (_gpLtMiniDot != null)
             {
-                double lt = 1.0 - (gp.LeftTrigger / 255.0);
-                double ltX = Bezier(lt, -160.0, -109.0, -68.0, -68.0);
-                double ltY = Bezier(lt, 26.0, 26.0, 68.0, 118.0);
-                Canvas.SetLeft(_gpLeftTriggerDot, ltX - 5);
-                Canvas.SetTop(_gpLeftTriggerDot, ltY - 5);
+                double ltPct = gp.LeftTrigger / 255.0;
+                double ltX = MiniBezier(ltPct, 2.0, 9.0, 22.0, 22.0);
+                double ltY = MiniBezier(ltPct, 2.0, 2.0, 14.0, 22.0);
+                Canvas.SetLeft(_gpLtMiniDot, ltX - 3);
+                Canvas.SetTop(_gpLtMiniDot, ltY - 3);
             }
-            if (_gpRightTriggerDot != null)
+            if (_gpRtMiniDot != null)
             {
-                double rt = 1.0 - (gp.RightTrigger / 255.0);
-                double rtX = Bezier(rt, 520.0, 469.0, 428.0, 428.0);
-                double rtY = Bezier(rt, 26.0, 26.0, 68.0, 118.0);
-                Canvas.SetLeft(_gpRightTriggerDot, rtX - 5);
-                Canvas.SetTop(_gpRightTriggerDot, rtY - 5);
+                double rtPct = gp.RightTrigger / 255.0;
+                double rtX = MiniBezier(rtPct, 22.0, 15.0, 2.0, 2.0);
+                double rtY = MiniBezier(rtPct, 2.0, 2.0, 14.0, 22.0);
+                Canvas.SetLeft(_gpRtMiniDot, rtX - 3);
+                Canvas.SetTop(_gpRtMiniDot, rtY - 3);
             }
 
             // Skip entire UI update if nothing changed

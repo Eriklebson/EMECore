@@ -51,10 +51,9 @@ public class PalworldParser
 
     public string? FindSavePath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var basePath = Path.Combine(localAppData, "Pal", "Saved", "SaveGames");
+        var basePath = LocalizedPaths.FindLocalAppDataSubPath("Pal", Path.Combine("Saved", "SaveGames"));
 
-        if (!Directory.Exists(basePath)) return null;
+        if (basePath == null) return null;
 
         try
         {

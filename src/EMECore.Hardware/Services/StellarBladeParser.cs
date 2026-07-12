@@ -126,10 +126,9 @@ public class StellarBladeParser
 
     public string? FindSavePath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var basePath = Path.Combine(localAppData, "SB", "Saved", "SaveGames");
+        var basePath = LocalizedPaths.FindLocalAppDataSubPath("SB", Path.Combine("Saved", "SaveGames"));
 
-        if (!Directory.Exists(basePath)) return null;
+        if (basePath == null) return null;
 
         foreach (var dir in Directory.GetDirectories(basePath))
         {

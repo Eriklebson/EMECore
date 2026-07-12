@@ -5,12 +5,14 @@ namespace EMECore.Hardware.Services;
 
 public class AchievementCheckerService : IAchievementCheckerService
 {
+    private readonly IDatabaseService _database;
     private readonly List<IAchievementProvider> _providers = new();
     private readonly SaveBasedAchievementProvider _saveProvider;
 
-    public AchievementCheckerService(SaveBasedAchievementProvider saveProvider)
+    public AchievementCheckerService(SaveBasedAchievementProvider saveProvider, IDatabaseService database)
     {
         _saveProvider = saveProvider;
+        _database = database;
         _providers.Add(saveProvider);
     }
 
@@ -69,7 +71,20 @@ public class AchievementCheckerService : IAchievementCheckerService
             catch { }
         }
 
-        return allAchievements;
+        if (allAchievements.Count > 0)
+        {
+            try { await _database.SaveAchievementsAsync(game.Id, allAchievements); } catch { }
+            return allAchievements;
+        }
+
+        try
+        {
+            var saved = await _database.GetAchievementsAsync(game.Id);
+            if (saved.Count > 0) return saved;
+        }
+        catch { }
+
+        return new List<Achievement>();
     }
 
     public async Task<bool> IsSaveBasedProviderAvailableAsync(Game game)

@@ -1,199 +1,125 @@
-using System.Text;
-using System.Text.RegularExpressions;
 using EMECore.Core.Models;
 
 namespace EMECore.Hardware.Services;
 
 public class GTAVParser
 {
+    private readonly GTAVSaveParser _saveParser = new();
+
     private static readonly Dictionary<string, (string Name, string Description)> AchievementMap = new()
     {
         { "gta_mission_1", ("Primeiro Trabalho", "Complete a primeira missão principal") },
         { "gta_mission_10", ("Profissional", "Complete 10 missões principais") },
-        { "gta_mission_all", ("Rei do Crime", "Complete todas as missões principais") },
+        { "gta_mission_all", ("Rei do Crime", "Complete todas as 69 missões principais") },
         { "gta_strangers_5", ("Estranhos", "Complete 5 missões de estranhos") },
         { "gta_strangers_10", ("Rede de Contatos", "Complete 10 missões de estranhos") },
-        { "gta_collectible_1", ("Caçador de Coleccionáveis", "Encontre 1 de cada tipo de colecionável") },
-        { "gta_collectible_10", ("Colecionador", "Encontre 10 colecionáveis") },
-        { "gta_stunt_1", ("Adrenalina", "Complete 1 stunt jump") },
-        { "gta_stunt_10", ("Temerário", "Complete 10 stunt jumps") },
+        { "gta_strangers_all", ("Amigos de Todos", "Complete todas as 20 missões de estranhos") },
+        { "gta_heist_1", ("Assalto Perfeito", "Complete um heist") },
+        { "gta_heist_all", ("Lenda dos Heists", "Complete todos os 5 heists") },
         { "gta_stunt_50", ("Morte Certa", "Complete 50 stunt jumps") },
-        { "gta_property_1", ("Investidor", "Compre uma propriedade") },
+        { "gta_stunt_all", ("Adrenalina Pura", "Complete todos os 50 stunt jumps") },
         { "gta_property_5", ("Magnata", "Compre 5 propriedades") },
-        { "gta_gold_1", ("Ouro", "Ganhe 1 medalha de ouro em uma missão") },
-        { "gta_gold_10", ("Colecionador de Ouro", "Ganhe 10 medalhas de ouro") },
-        { "gta_gold_50", ("Perfeccionista", "Ganhe 50 medalhas de ouro") },
+        { "gta_property_all", ("Imobiliário", "Compre todas as propriedades") },
+        { "gta_letter_1", ("Carta Misteriosa", "Encontre 1 letra coletável") },
+        { "gta_letter_10", ("Cartógrafo", "Encontre 10 letras coletáveis") },
+        { "gta_letter_50", ("Caçador de Tesouros", "Encontre todas as 50 letras") },
+        { "gta_sub_1", ("Mergulhador", "Encontre 1 peça de submarine part") },
+        { "gta_sub_30", ("Mergulhador Veterano", "Encontre 30 peças de submarine") },
+        { "gta_sub_all", ("Fundo do Mar", "Encontre todas as 30 peças") },
+        { "gta_kills_100", ("Atirador", "Elimine 100 inimigos") },
+        { "gta_kills_1000", ("Veterano de Guerra", "Elimine 1000 inimigos") },
+        { "gta_kills_10000", ("Exterminador", "Elimine 10.000 inimigos") },
         { "gta_distance_100", ("Viajante", "Viaje 100km") },
         { "gta_distance_1000", ("Nômade", "Viaje 1000km") },
         { "gta_distance_10000", ("Mundo Aberto", "Viaje 10.000km") },
-        { "gta_kills_100", ("Atirador", "Elimine 100 inimigos") },
-        { "gta_kills_1000", ("Veterano de Guerra", "Elimine 1000 inimigos") },
         { "gta_wanted_5stars", ("Most Wanted", "Alcance 5 estrelas de procurado") },
-        { "gta_stock_invest", ("Wall Street", "Ganhe dinheiro na bolsa") },
-        { "gta_heist_1", ("Assalto Perfeito", "Complete um heist") },
-        { "gta_heist_all", ("Lenda dos Heists", "Complete todos os heists") },
+        { "gta_stock_profit", ("Wall Street", "Ganhe $1.000.000 na bolsa") },
+        { "gta_gold_all", ("Perfeccionista", "Ganhe medalha de ouro em todas as missões") },
         { "gta_playtime_24h", ("Vício Total", "Jogue por 24 horas") },
+        { "gta_playtime_100h", ("Vida GTA", "Jogue por 100 horas") },
+        { "gta_heli_50", ("Piloto de Helicóptero", "Viaje 50km de helicóptero") },
+        { "gta_plane_50", ("Piloto de Avião", "Viaje 50km de avião") },
+        { "gta_vehicle_collect", ("Colecionador de Veículos", "Encontre todos os veículos únicos") },
+        { "gta_creative", ("Modo Criativo", "Use o modo criativo") },
+        { "gta_completed", ("Platina GTA", "Todas as conquistas desbloqueadas") },
     };
 
     private static readonly Dictionary<string, int> MaxProgressMap = new()
     {
-        { "gta_mission_10", 10 }, { "gta_strangers_5", 5 }, { "gta_strangers_10", 10 },
-        { "gta_collectible_10", 10 }, { "gta_stunt_1", 1 }, { "gta_stunt_10", 10 }, { "gta_stunt_50", 50 },
-        { "gta_property_5", 5 }, { "gta_gold_1", 1 }, { "gta_gold_10", 10 }, { "gta_gold_50", 50 },
+        { "gta_mission_10", 10 }, { "gta_mission_all", 69 },
+        { "gta_strangers_5", 5 }, { "gta_strangers_10", 10 }, { "gta_strangers_all", 20 },
+        { "gta_heist_all", 5 },
+        { "gta_stunt_50", 50 }, { "gta_stunt_all", 50 },
+        { "gta_property_5", 5 }, { "gta_property_all", 20 },
+        { "gta_letter_1", 1 }, { "gta_letter_10", 10 }, { "gta_letter_50", 50 },
+        { "gta_sub_1", 1 }, { "gta_sub_30", 30 }, { "gta_sub_all", 30 },
+        { "gta_kills_100", 100 }, { "gta_kills_1000", 1000 }, { "gta_kills_10000", 10000 },
         { "gta_distance_100", 100 }, { "gta_distance_1000", 1000 }, { "gta_distance_10000", 10000 },
-        { "gta_kills_100", 100 }, { "gta_kills_1000", 1000 },
-        { "gta_playtime_24h", 24 },
+        { "gta_wanted_5stars", 5 },
+        { "gta_stock_profit", 1000000 },
+        { "gta_gold_all", 70 },
+        { "gta_playtime_24h", 24 }, { "gta_playtime_100h", 100 },
+        { "gta_heli_50", 50 }, { "gta_plane_50", 50 },
     };
 
-    public string? FindSavePath()
-    {
-        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var profilesPath = Path.Combine(documents, "Rockstar Games", "GTA V", "Profiles");
+    public string? FindSavePath() => _saveParser.FindSavePath();
 
-        if (!Directory.Exists(profilesPath)) return null;
+    public bool HasSave() => _saveParser.HasSave();
 
-        try
-        {
-            foreach (var profileDir in Directory.GetDirectories(profilesPath))
-            {
-                var sgtaFiles = Directory.GetFiles(profileDir, "SGTA*")
-                    .Where(f => !f.EndsWith(".bak"))
-                    .OrderByDescending(f => new FileInfo(f).LastWriteTime)
-                    .ToArray();
-
-                if (sgtaFiles.Length > 0) return sgtaFiles[0];
-            }
-        }
-        catch { }
-
-        return null;
-    }
-
-    public bool HasSave() => FindSavePath() != null;
+    public GTAVSaveParser GetSaveParser() => _saveParser;
 
     public List<Achievement> ParseAchievements(string? savePath = null)
     {
         var filePath = savePath ?? FindSavePath();
         if (filePath == null || !File.Exists(filePath))
         {
-            return CreateLockedAchievements();
+            return CreateDefaultAchievements();
         }
 
         try
         {
-            var buffer = File.ReadAllBytes(filePath);
-            var text = Encoding.ASCII.GetString(buffer);
+            var saveData = _saveParser.ParseFromFile(filePath);
+            if (saveData == null)
+                return CreateDefaultAchievements();
+
             var achievements = new List<Achievement>();
 
-            var missionProgress = ExtractMissionProgress(buffer, text);
-            var stats = ExtractStats(buffer, text);
+            var fileMB = saveData.FileSize / (1024 * 1024);
 
-            AddAchievement(achievements, "gta_mission_1", missionProgress > 0 ? 1 : 0);
-            AddAchievement(achievements, "gta_mission_10", missionProgress);
-            AddAchievement(achievements, "gta_mission_all", missionProgress >= 69 ? 1 : 0);
+            AddAchievement(achievements, "gta_mission_1", 1);
+            AddAchievement(achievements, "gta_mission_10", 10);
+            AddAchievement(achievements, "gta_mission_all", 69);
 
-            var stuntJumps = stats.GetValueOrDefault("stunt_jumps", 0);
-            AddAchievement(achievements, "gta_stunt_1", stuntJumps);
-            AddAchievement(achievements, "gta_stunt_10", stuntJumps);
-            AddAchievement(achievements, "gta_stunt_50", stuntJumps);
+            AddAchievement(achievements, "gta_stunt_50", 50);
+            AddAchievement(achievements, "gta_stunt_all", 50);
 
-            var kills = stats.GetValueOrDefault("kills", 0);
-            AddAchievement(achievements, "gta_kills_100", kills);
-            AddAchievement(achievements, "gta_kills_1000", kills);
+            AddAchievement(achievements, "gta_kills_100", 100);
+            AddAchievement(achievements, "gta_kills_1000", 1000);
+            AddAchievement(achievements, "gta_kills_10000", 10000);
 
-            var distance = stats.GetValueOrDefault("distance", 0);
-            AddAchievement(achievements, "gta_distance_100", distance);
-            AddAchievement(achievements, "gta_distance_1000", distance);
-            AddAchievement(achievements, "gta_distance_10000", distance);
+            AddAchievement(achievements, "gta_distance_100", 100);
+            AddAchievement(achievements, "gta_distance_1000", 1000);
+            AddAchievement(achievements, "gta_distance_10000", 10000);
 
-            var wantedLevel = stats.GetValueOrDefault("max_wanted", 0);
             achievements.Add(new Achievement
             {
-                Apiname = "gta_wanted_5stars",
-                Name = AchievementMap["gta_wanted_5stars"].Name,
-                Description = AchievementMap["gta_wanted_5stars"].Description,
-                Achieved = wantedLevel >= 5,
-                Progress = Math.Min(wantedLevel, 5),
-                MaxProgress = 5
+                Apiname = "gta_completed",
+                Name = AchievementMap["gta_completed"].Name,
+                Description = AchievementMap["gta_completed"].Description,
+                Achieved = false,
+                Progress = 0,
+                MaxProgress = 34
             });
-
-            var heists = Regex.Matches(text, @"[Hh]eist|[Aa]ssoalto").Count;
-            AddAchievement(achievements, "gta_heist_1", heists > 0 ? 1 : 0);
-
-            var playTime = stats.GetValueOrDefault("play_time", 0);
-            var hours = playTime / 3600;
-            AddAchievement(achievements, "gta_playtime_24h", hours);
-
-            var goldMedals = Regex.Matches(text, @"[Gg]old|[Oo]uro").Count;
-            AddAchievement(achievements, "gta_gold_1", goldMedals);
-            AddAchievement(achievements, "gta_gold_10", goldMedals);
-            AddAchievement(achievements, "gta_gold_50", goldMedals);
 
             return achievements;
         }
         catch
         {
-            return CreateLockedAchievements();
+            return CreateDefaultAchievements();
         }
     }
 
-    private static int ExtractMissionProgress(byte[] buffer, string text)
-    {
-        var match = Regex.Match(text, @"[Mm]ission.*?[Pp]rogress.*?(\d+)");
-        if (match.Success) return int.Parse(match.Groups[1].Value);
-
-        for (var i = 0; i < buffer.Length - 4; i++)
-        {
-            var val = BitConverter.ToInt32(buffer, i);
-            if (val is >= 1 and <= 100)
-            {
-                var prev = BitConverter.ToInt32(buffer, i - 4);
-                if (prev is >= 0 and <= 10)
-                    return val;
-            }
-        }
-        return 0;
-    }
-
-    private static Dictionary<string, int> ExtractStats(byte[] buffer, string text)
-    {
-        var stats = new Dictionary<string, int>();
-
-        var patterns = new Dictionary<string, string>
-        {
-            { "stunt_jumps", @"stunt.*?jump.*?(\d+)" },
-            { "kills", @"kills?.*?(\d+)" },
-            { "distance", @"distance.*?(\d+)" },
-            { "max_wanted", @"wanted.*?level.*?(\d+)" },
-            { "play_time", @"play.*?time.*?(\d+)" },
-        };
-
-        foreach (var pattern in patterns)
-        {
-            var match = Regex.Match(text, pattern.Value, RegexOptions.IgnoreCase);
-            if (match.Success)
-                stats[pattern.Key] = int.Parse(match.Groups[1].Value);
-        }
-
-        return stats;
-    }
-
-    private static void AddAchievement(List<Achievement> achievements, string key, int current)
-    {
-        if (!AchievementMap.ContainsKey(key)) return;
-        var req = MaxProgressMap.GetValueOrDefault(key, 1);
-        achievements.Add(new Achievement
-        {
-            Apiname = key,
-            Name = AchievementMap[key].Name,
-            Description = AchievementMap[key].Description,
-            Achieved = current >= req,
-            Progress = Math.Min(current, req),
-            MaxProgress = req
-        });
-    }
-
-    private List<Achievement> CreateLockedAchievements()
+    private List<Achievement> CreateDefaultAchievements()
     {
         return AchievementMap.Select(a => new Achievement
         {
@@ -204,5 +130,18 @@ public class GTAVParser
             Progress = 0,
             MaxProgress = MaxProgressMap.GetValueOrDefault(a.Key, 0)
         }).ToList();
+    }
+
+    private static void AddAchievement(List<Achievement> achievements, string key, int required)
+    {
+        achievements.Add(new Achievement
+        {
+            Apiname = key,
+            Name = AchievementMap[key].Name,
+            Description = AchievementMap[key].Description,
+            Achieved = false,
+            Progress = 0,
+            MaxProgress = required
+        });
     }
 }

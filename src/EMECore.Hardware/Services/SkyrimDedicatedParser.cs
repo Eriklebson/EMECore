@@ -60,37 +60,34 @@ public class SkyrimDedicatedParser
 
     public string? FindSavePath()
     {
-        var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        var saveDir = LocalizedPaths.FindMyGamesSubPath("Skyrim Special Edition", "Saves")
+                   ?? LocalizedPaths.FindMyGamesSubPath("Skyrim", "Saves")
+                   ?? LocalizedPaths.FindMyGamesSubPath("Skyrim VR", "Saves");
 
-        var paths = new[]
+        if (saveDir == null)
         {
-            Path.Combine(documents, "My Games", "Skyrim Special Edition", "Saves"),
-            Path.Combine(documents, "My Games", "Skyrim", "Saves"),
-            Path.Combine(documents, "My Games", "Skyrim VR", "Saves"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Skyrim", "Saves"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Skyrim", "Saves"),
-        };
+            saveDir = LocalizedPaths.FindLocalAppDataSubPath("Skyrim", "Saves")
+                   ?? LocalizedPaths.FindAppDataSubPath("Skyrim", "Saves");
+        }
+
+        if (saveDir == null) return null;
 
         string? latestSave = null;
         var latestTime = DateTime.MinValue;
 
-        foreach (var savePath in paths)
+        try
         {
-            if (!Directory.Exists(savePath)) continue;
-            try
+            foreach (var file in Directory.GetFiles(saveDir, "*.ess"))
             {
-                foreach (var file in Directory.GetFiles(savePath, "*.ess"))
+                var info = new FileInfo(file);
+                if (info.LastWriteTime > latestTime && info.Length > 1000)
                 {
-                    var info = new FileInfo(file);
-                    if (info.LastWriteTime > latestTime && info.Length > 1000)
-                    {
-                        latestTime = info.LastWriteTime;
-                        latestSave = file;
-                    }
+                    latestTime = info.LastWriteTime;
+                    latestSave = file;
                 }
             }
-            catch { }
         }
+        catch { }
 
         return latestSave;
     }

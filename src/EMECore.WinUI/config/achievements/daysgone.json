@@ -1,0 +1,39 @@
+{
+  "gameId": "daysgone",
+  "gameName": "Days Gone",
+  "achievements": [
+    {
+      "apiname": "dg_story_complete",
+      "name": "Sobrevivente",
+      "description": "Complete a história principal",
+      "condition": { "type": "KeyExists", "saveKey": "stat_mission" }
+    },
+    {
+      "apiname": "dg_horde_killer",
+      "name": "Caçador de Hordas",
+      "description": "Derrote 10 hordas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_horde", "op": "GreaterOrEqual", "expectedValue": 10 },
+      "maxProgress": 10
+    },
+    {
+      "apiname": "dg_horde_slayer",
+      "name": "Exterminador",
+      "description": "Derrote 25 hordas",
+      "condition": { "type": "KeyValue", "saveKey": "stat_horde", "op": "GreaterOrEqual", "expectedValue": 25 },
+      "maxProgress": 25
+    },
+    {
+      "apiname": "dg_skills_max",
+      "name": "Mecânico",
+      "description": "Desbloqueie todas as habilidades da moto",
+      "condition": { "type": "KeyExists", "saveKey": "BikeBoost" }
+    },
+    {
+      "apiname": "dg_camps_all",
+      "name": "Todos os Acampamentos",
+      "description": "Desbloqueie todos os acampamentos",
+      "condition": { "type": "KeyValue", "saveKey": "stat_camp", "op": "GreaterOrEqual", "expectedValue": 5 },
+      "maxProgress": 5
+    }
+  ]
+}

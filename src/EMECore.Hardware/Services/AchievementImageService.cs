@@ -8,6 +8,7 @@ public class AchievementImageService
     private static readonly Dictionary<string, string> _imageCache = new();
     private static readonly Dictionary<string, Dictionary<string, (string icon, string iconGray)>> _schemaCache = new();
     private static readonly Dictionary<string, Dictionary<string, string>> _displayNameToApiName = new();
+    private static readonly Dictionary<string, Dictionary<string, string>> _apiNameToDisplayName = new();
     private static readonly HashSet<string> _loadingSchemas = new();
     private static readonly string _imagesPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -36,7 +37,7 @@ public class AchievementImageService
         }
     }
 
-    public async Task<string?> GetAchievementImageAsync(string appId, string achievementName, bool achieved, string? gameName = null)
+    public async Task<string?> GetAchievementImageAsync(string appId, string achievementName, bool achieved, string? gameName = null, string? displayName = null, string? directIconUrl = null, string? directIconGrayUrl = null)
     {
         var folderName = SanitizeFolderName(gameName ?? appId);
         var suffix = achieved ? "a" : "g";
@@ -56,39 +57,91 @@ public class AchievementImageService
             return localPath;
         }
 
-        if (!_schemaCache.ContainsKey(appId))
-            await LoadSteamSchemaAsync(appId);
+        string? url = null;
 
-        if (_schemaCache.TryGetValue(appId, out var achData))
+        if (!string.IsNullOrEmpty(directIconUrl) || !string.IsNullOrEmpty(directIconGrayUrl))
         {
-            string? url = null;
+            url = achieved ? directIconUrl : directIconGrayUrl;
+            if (string.IsNullOrEmpty(url))
+                url = achieved ? directIconUrl : directIconGrayUrl;
+        }
 
-            if (achData.TryGetValue(achievementName, out var urls))
-            {
-                url = achieved ? urls.icon : urls.iconGray;
-            }
-            else if (_displayNameToApiName.TryGetValue(appId, out var nameMap) &&
-                     nameMap.TryGetValue(achievementName, out var apiName) &&
-                     achData.TryGetValue(apiName, out var urls2))
-            {
-                url = achieved ? urls2.icon : urls2.iconGray;
-            }
+        if (string.IsNullOrEmpty(url))
+        {
+            if (!_schemaCache.ContainsKey(appId))
+                await LoadSteamSchemaAsync(appId);
 
-            if (!string.IsNullOrEmpty(url))
+            if (_schemaCache.TryGetValue(appId, out var achData))
             {
-                try
+                if (achData.TryGetValue(achievementName, out var urls))
                 {
-                    using var response = await _http.GetAsync(url);
-                    if (response.IsSuccessStatusCode)
+                    url = achieved ? urls.icon : urls.iconGray;
+                }
+                else if (_displayNameToApiName.TryGetValue(appId, out var nameMap) &&
+                         nameMap.TryGetValue(achievementName, out var apiName) &&
+                         achData.TryGetValue(apiName, out var urls2))
+                {
+                    url = achieved ? urls2.icon : urls2.iconGray;
+                }
+
+                if (string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(displayName))
+                {
+                    if (_displayNameToApiName.TryGetValue(appId, out var nameMap2) &&
+                        nameMap2.TryGetValue(displayName, out var apiName2) &&
+                        achData.TryGetValue(apiName2, out var urls3))
                     {
-                        var bytes = await response.Content.ReadAsByteArrayAsync();
-                        await File.WriteAllBytesAsync(localPath, bytes);
-                        _imageCache[cacheKey] = localPath;
-                        return localPath;
+                        url = achieved ? urls3.icon : urls3.iconGray;
+                    }
+                    else
+                    {
+                        foreach (var kvp in achData)
+                        {
+                            if (kvp.Key.Contains(displayName, StringComparison.OrdinalIgnoreCase) ||
+                                displayName.Contains(kvp.Key, StringComparison.OrdinalIgnoreCase))
+                            {
+                                url = achieved ? kvp.Value.icon : kvp.Value.iconGray;
+                                break;
+                            }
+                        }
                     }
                 }
-                catch { }
+
+                if (string.IsNullOrEmpty(url))
+                {
+                    var keywords = ExtractKeywords(achievementName);
+                    if (_apiNameToDisplayName.TryGetValue(appId, out var apiToDisplay))
+                    {
+                        foreach (var steamApiName in achData.Keys)
+                        {
+                            if (!apiToDisplay.TryGetValue(steamApiName, out var steamDisplayName))
+                                continue;
+                            var steamKeywords = ExtractKeywords(steamDisplayName);
+                            var overlap = keywords.Count(k => steamKeywords.Contains(k));
+                            if (overlap >= Math.Min(2, keywords.Count))
+                            {
+                                url = achieved ? achData[steamApiName].icon : achData[steamApiName].iconGray;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
+        }
+
+        if (!string.IsNullOrEmpty(url))
+        {
+            try
+            {
+                using var response = await _http.GetAsync(url);
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    await File.WriteAllBytesAsync(localPath, bytes);
+                    _imageCache[cacheKey] = localPath;
+                    return localPath;
+                }
+            }
+            catch { }
         }
 
         return null;
@@ -129,7 +182,12 @@ public class AchievementImageService
                 {
                     achData[apiName] = (icon, iconGray);
                     if (!string.IsNullOrEmpty(displayName) && displayName != apiName)
+                    {
                         nameMap[displayName] = apiName;
+                        if (!_apiNameToDisplayName.ContainsKey(appId))
+                            _apiNameToDisplayName[appId] = new();
+                        _apiNameToDisplayName[appId][apiName] = displayName;
+                    }
                 }
             }
 
@@ -142,5 +200,17 @@ public class AchievementImageService
     public static string GetFallbackIcon(bool achieved)
     {
         return achieved ? "\uE73E" : "\uE7C1";
+    }
+
+    private static HashSet<string> ExtractKeywords(string text)
+    {
+        var keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var clean = new string(text.Where(c => char.IsLetterOrDigit(c) || c == ' ').ToArray());
+        foreach (var word in clean.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (word.Length >= 3)
+                keywords.Add(word.ToLowerInvariant());
+        }
+        return keywords;
     }
 }

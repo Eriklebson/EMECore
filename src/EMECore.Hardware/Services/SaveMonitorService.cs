@@ -4,37 +4,37 @@ namespace EMECore.Hardware.Services;
 
 public class SaveMonitorService : IDisposable
 {
-    private readonly StellarBladeParser _parser;
     private FileSystemWatcher? _watcher;
     private Dictionary<string, bool> _previousState = new();
     private bool _isMonitoring;
     private DateTime _lastParseTime = DateTime.MinValue;
     private readonly object _lock = new();
 
-    public event Action<Achievement>? OnAchievementUnlocked;
-    public event Action<StellarBladeSaveData>? OnSaveUpdated;
+    private Func<List<Achievement>>? _parseFunc;
+    private string _gameName = "";
+
+    public event Action<Achievement, string>? OnAchievementUnlocked;
     public bool IsMonitoring => _isMonitoring;
 
-    public SaveMonitorService()
+    public bool StartMonitoring(string savePath, Func<List<Achievement>> parseFunc, string gameName)
     {
-        _parser = new StellarBladeParser();
-    }
+        StopMonitoring();
 
-    public bool StartMonitoring()
-    {
-        if (_isMonitoring) return true;
-
-        var savePath = _parser.FindSavePath();
-        if (savePath == null) return false;
+        if (string.IsNullOrEmpty(savePath) || !File.Exists(savePath)) return false;
 
         try
         {
             var dir = Path.GetDirectoryName(savePath);
             if (dir == null || !Directory.Exists(dir)) return false;
 
+            var fileName = Path.GetFileName(savePath);
+
+            _parseFunc = parseFunc;
+            _gameName = gameName;
+
             TakeSnapshot();
 
-            _watcher = new FileSystemWatcher(dir, "StellarBladeSave00.sav")
+            _watcher = new FileSystemWatcher(dir, fileName)
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size,
                 EnableRaisingEvents = true
@@ -43,7 +43,7 @@ public class SaveMonitorService : IDisposable
             _watcher.Changed += OnSaveFileChanged;
             _isMonitoring = true;
 
-            System.Diagnostics.Debug.WriteLine($"[SaveMonitor] Iniciado: {savePath}");
+            System.Diagnostics.Debug.WriteLine($"[SaveMonitor] Iniciado: {gameName} → {savePath}");
             return true;
         }
         catch (Exception ex)
@@ -64,6 +64,8 @@ public class SaveMonitorService : IDisposable
 
         _isMonitoring = false;
         _previousState.Clear();
+        _parseFunc = null;
+        _gameName = "";
         System.Diagnostics.Debug.WriteLine("[SaveMonitor] Parado");
     }
 
@@ -79,12 +81,9 @@ public class SaveMonitorService : IDisposable
 
             try
             {
-                var saveData = _parser.ParseSave();
-                if (saveData == null) return;
+                if (_parseFunc == null) return;
 
-                OnSaveUpdated?.Invoke(saveData);
-
-                var currentAchievements = _parser.ParseAchievements();
+                var currentAchievements = _parseFunc();
                 DetectNewAchievements(currentAchievements);
             }
             catch (Exception ex)
@@ -100,7 +99,9 @@ public class SaveMonitorService : IDisposable
 
         try
         {
-            var achievements = _parser.ParseAchievements();
+            if (_parseFunc == null) return;
+
+            var achievements = _parseFunc();
             foreach (var a in achievements)
             {
                 _previousState[a.Apiname] = a.Achieved;
@@ -124,7 +125,7 @@ public class SaveMonitorService : IDisposable
                 continue;
 
             System.Diagnostics.Debug.WriteLine($"[SaveMonitor] NOVA CONQUISTA: {achievement.Name}");
-            OnAchievementUnlocked?.Invoke(achievement);
+            OnAchievementUnlocked?.Invoke(achievement, _gameName);
             _previousState[achievement.Apiname] = true;
         }
     }

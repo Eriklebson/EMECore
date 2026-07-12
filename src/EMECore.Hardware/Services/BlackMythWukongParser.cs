@@ -48,16 +48,10 @@ public class BlackMythWukongParser
 
     public string? FindSavePath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var possiblePaths = new[]
-        {
-            Path.Combine(localAppData, "B1", "Saved", "SaveGames"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local", "B1", "Saved", "SaveGames"),
-        };
+        var basePath = LocalizedPaths.FindLocalAppDataSubPath("B1", Path.Combine("Saved", "SaveGames"));
 
-        foreach (var basePath in possiblePaths)
+        if (basePath != null)
         {
-            if (!Directory.Exists(basePath)) continue;
             try
             {
                 foreach (var userDir in Directory.GetDirectories(basePath))

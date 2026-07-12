@@ -120,6 +120,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.17.0.0 | 10/07/2026 | Gamepad: mini curvas de trigger no header (LT/RT com dot animado), curvas removidas do canvas; card gamepad opcional (visivel/oculto), layout responsivo 2col/1col (<700px), janela salva posicao X/Y, gamepad compacto em tela estreita, armazenamento persistente de conquistas (SQLite), save parsers: God of War 2018, Days Gone, Cyberpunk 2077 (JSON), Hogwarts Legacy, Witcher 3 |
 | 2.16.0.0 | 09/07/2026 | Imagens de conquistas via Steam API (GetSchemaForGame), SettingsService para persistencia de preferencias, sidebar salva/restaura estado (categoria + colapsada), monitor sidebar redesenhada (estilo principal, collapse persistente), cards do monitor salvam estado de colapso, parser Stellar Blade usa nomes Steam, popup de notificaao restaurado |
 | 2.15.1.0 | 08/07/2026 | Perifericos: calibracao de gamepad funcional (arrastar circulos), dots analogicos na imagem, curvas de trigger com bezier 90graus, polling rate preciso (diff dwPacketNumber), auto-deteccao de novos controles, timer de alta precisao 1ms, correcao de flicker e reset de posicoes |
 | 2.15.0.0 | 08/07/2026 | Cards colapsaveis (minimize/expand), toggle FPS com auto-deteccao, fallback WMI para rede com cache, timer de background (System.Threading.Timer) para scroll fluido, correcao de sobreposicao de voltage nos headers |

@@ -51,16 +51,10 @@ public class MonsterHunterWildsParser
 
     public string? FindSavePath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        var possiblePaths = new[]
-        {
-            Path.Combine(localAppData, "Capcom", "MonsterHunterWilds"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData", "Local", "Capcom", "MonsterHunterWilds"),
-        };
+        var basePath = LocalizedPaths.FindLocalAppDataSubPath("Capcom", "MonsterHunterWilds");
 
-        foreach (var basePath in possiblePaths)
+        if (basePath != null)
         {
-            if (!Directory.Exists(basePath)) continue;
             try
             {
                 var dataFiles = Directory.GetFiles(basePath, "data001Slot*.bin")

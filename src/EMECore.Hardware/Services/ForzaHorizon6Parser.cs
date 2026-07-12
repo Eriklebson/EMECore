@@ -56,17 +56,15 @@ public class ForzaHorizon6Parser
 
     public string? FindSavePath()
     {
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-
-        var paths = new[]
+        var possiblePaths = new[]
         {
-            Path.Combine(localAppData, "ForzaHorizon6", "LocalStorage_Shared"),
-            Path.Combine(localAppData, "Microsoft.ForzaHorizon6", "LocalStorage_Shared"),
+            LocalizedPaths.FindLocalAppDataSubPath("ForzaHorizon6", "LocalStorage_Shared"),
+            LocalizedPaths.FindLocalAppDataSubPath("Microsoft.ForzaHorizon6", "LocalStorage_Shared"),
         };
 
-        foreach (var basePath in paths)
+        foreach (var basePath in possiblePaths)
         {
-            if (!Directory.Exists(basePath)) continue;
+            if (basePath == null) continue;
             try
             {
                 foreach (var userDir in Directory.GetDirectories(basePath, "User_*"))
@@ -109,7 +107,7 @@ public class ForzaHorizon6Parser
             catch { }
         }
 
-        var packagesPath = Path.Combine(localAppData, "Packages");
+        var packagesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Packages");
         if (Directory.Exists(packagesPath))
         {
             try
