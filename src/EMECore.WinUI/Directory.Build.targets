@@ -1,3 +1,3 @@
 <Project>
-  <!-- Unpackaged app: WindowsPackageType=None enables Bootstrap auto-init to load WindowsAppSDK via DynamicDependency -->
+  <!-- Unpackaged app for development. For Store MSIX build: dotnet publish -p:WindowsPackageType=MSIX -->
 </Project>

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -362,10 +361,6 @@ public sealed partial class MainWindow : Window
         {
             _monitorWindow = new MonitorWindow();
             _monitorWindow.Closed += (_, _) => _monitorWindow = null;
-
-            var ownerHwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            var childHwnd = WinRT.Interop.WindowNative.GetWindowHandle(_monitorWindow);
-            SetWindowLongPtrW(childHwnd, GWL_HWNDPARENT, ownerHwnd);
         }
         _monitorWindow.Activate();
     }
@@ -437,9 +432,4 @@ public sealed partial class MainWindow : Window
         _addGamePage.ClearForm();
         ViewModel.NavigateToCommand.Execute("library");
     }
-
-    private const int GWL_HWNDPARENT = -8;
-
-    [LibraryImport("user32.dll", SetLastError = true)]
-    private static partial nint SetWindowLongPtrW(nint hWnd, int nIndex, nint dwNewLong);
 }

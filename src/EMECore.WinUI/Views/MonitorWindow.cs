@@ -211,6 +211,9 @@ public sealed partial class MonitorWindow : Window
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
         appWindow.Resize(new Windows.Graphics.SizeInt32 { Width = 960, Height = 640 });
 
+        // Keep window on top without using GWL_HWNDPARENT (which causes minimize-with-parent)
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
         // Min size 640x480
         var presenter = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId).Presenter as Microsoft.UI.Windowing.OverlappedPresenter;
         if (presenter != null)
@@ -3602,6 +3605,14 @@ public sealed partial class MonitorWindow : Window
         btn.Background = isPressed ? GpPressedBg : GpReleasedBg;
         btn.BorderBrush = isPressed ? GpPressedBorder : GpReleasedBorder;
     }
+
+    private const nint HWND_TOPMOST = -1;
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOSIZE = 0x0001;
+
+    [System.Runtime.InteropServices.LibraryImport("user32.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static partial bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 }
 
 internal class FpsToggleTag

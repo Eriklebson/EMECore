@@ -1,1 +1,0 @@
-VISUAL: A loaded X=0,756 Y=0,383 → px=(272,98) canvas=(360,256)

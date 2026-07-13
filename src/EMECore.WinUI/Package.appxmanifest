@@ -7,20 +7,20 @@
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="EMECore"
-    Publisher="CN=erikl"
-    Version="1.0.0.0" />
+    Name="EriklebsonMartinsdePaiva.EMECore"
+    Publisher="CN=1B2733F4-245A-49ED-9D6D-3FDFCA91A10A"
+    Version="2.18.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="8620095f-1c56-4e2a-95dc-30cc28d05afb" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>E.M.E Core</DisplayName>
-    <PublisherDisplayName>erikl</PublisherDisplayName>
+    <DisplayName>EME Core</DisplayName>
+    <PublisherDisplayName>Eriklebson Martins de Paiva</PublisherDisplayName>
     <Logo>Assets\Logo\logo.png</Logo>
   </Properties>
 
   <Dependencies>
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 
   <Resources>
@@ -32,8 +32,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="E.M.E Core"
-        Description="E.M.E Core - Game Launcher para Windows"
+        DisplayName="EME Core"
+        Description="E.M.E Core - Game Launcher com Monitor de Hardware, Conquistas e Gerenciamento de Perifericos"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Logo\logo.png"
         Square44x44Logo="Assets\Logo\logo.png">
