@@ -75,8 +75,13 @@ public sealed partial class MonitorWindow : Window
 
     // FPS
     private TextBlock _fpsValue = null!, _fpsInfo = null!, _fpsLabel = null!;
+    private TextBlock _fpsStatLow1 = null!, _fpsStatLow01 = null!, _fpsStatFrameTime = null!;
     private Border _fpsCard = null!;
     private Button _fpsToggleBtn = null!;
+    private Button _fpsOverlayBtn = null!;
+    private FpsOverlayWindow? _fpsOverlay;
+    private StackPanel? _fpsSubPanel;
+    private Border? _fpsSubSep;
 
     private int _fanCount;
     private bool _isMoving;
@@ -701,10 +706,12 @@ public sealed partial class MonitorWindow : Window
 
         // ===== FPS Card =====
         _fpsCard = CreateCard();
+        _fpsCard.VerticalAlignment = VerticalAlignment.Top;
         var fpsStack = new StackPanel { Spacing = 12 };
 
         var fpsHeaderGrid = new Grid();
         fpsHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        fpsHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         fpsHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var fpsHdr = CreateCardHeader("\uec4d", "FPS", FpsColor);
         fpsHeaderGrid.Children.Add(fpsHdr);
@@ -723,6 +730,23 @@ public sealed partial class MonitorWindow : Window
         _fpsToggleBtn.Click += FpsToggle_Click;
         Grid.SetColumn(_fpsToggleBtn, 1);
         fpsHeaderGrid.Children.Add(_fpsToggleBtn);
+
+        _fpsOverlayBtn = new Button
+        {
+            Content = "\uE945",
+            FontSize = 12,
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+            Foreground = SubtleText,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(1),
+            BorderBrush = SubtleText,
+            Padding = new Thickness(8, 4, 8, 4),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        ToolTipService.SetToolTip(_fpsOverlayBtn, "Overlay de FPS na tela do jogo");
+        _fpsOverlayBtn.Click += FpsOverlay_Click;
+        Grid.SetColumn(_fpsOverlayBtn, 2);
+        fpsHeaderGrid.Children.Add(_fpsOverlayBtn);
         fpsStack.Children.Add(fpsHeaderGrid);
         var fpsGrid = new Grid { ColumnSpacing = 32 };
         fpsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -740,13 +764,38 @@ public sealed partial class MonitorWindow : Window
         fpsStatsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         fpsStatsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         fpsStatsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        fpsStatsGrid.Children.Add(CreateStatItem("1% LOW", "--", SubtleText));
-        var stat2 = CreateStatItem("0.1% LOW", "--", SubtleText); Grid.SetColumn(stat2, 1); fpsStatsGrid.Children.Add(stat2);
-        var stat3 = CreateStatItem("FRAME TIME", "--", SubtleText); Grid.SetColumn(stat3, 2); fpsStatsGrid.Children.Add(stat3);
+
+        var low1Item = new StackPanel { Spacing = 2 };
+        low1Item.Children.Add(new TextBlock { Text = "1% LOW", FontSize = 9, Foreground = new SolidColorBrush(ColorFromHex("#475569")), CharacterSpacing = 50 });
+        _fpsStatLow1 = new TextBlock { Text = "--", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SubtleText };
+        low1Item.Children.Add(_fpsStatLow1);
+        fpsStatsGrid.Children.Add(low1Item);
+
+        var low01Item = new StackPanel { Spacing = 2 };
+        low01Item.Children.Add(new TextBlock { Text = "0.1% LOW", FontSize = 9, Foreground = new SolidColorBrush(ColorFromHex("#475569")), CharacterSpacing = 50 });
+        _fpsStatLow01 = new TextBlock { Text = "--", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SubtleText };
+        low01Item.Children.Add(_fpsStatLow01);
+        Grid.SetColumn(low01Item, 1); fpsStatsGrid.Children.Add(low01Item);
+
+        var ftItem = new StackPanel { Spacing = 2 };
+        ftItem.Children.Add(new TextBlock { Text = "FRAME TIME", FontSize = 9, Foreground = new SolidColorBrush(ColorFromHex("#475569")), CharacterSpacing = 50 });
+        _fpsStatFrameTime = new TextBlock { Text = "--", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SubtleText };
+        ftItem.Children.Add(_fpsStatFrameTime);
+        Grid.SetColumn(ftItem, 2); fpsStatsGrid.Children.Add(ftItem);
         fpsDetailsStack.Children.Add(fpsStatsGrid);
         Grid.SetColumn(fpsDetailsStack, 1);
         fpsGrid.Children.Add(fpsDetailsStack);
         fpsStack.Children.Add(fpsGrid);
+
+        var fpsSubSep = new Border { Height = 1, Background = new SolidColorBrush(ColorFromHex("#1E293B")), Margin = new Thickness(0, 4, 0, 4), Visibility = Visibility.Collapsed };
+        _fpsSubPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Visibility = Visibility.Collapsed };
+        _fpsSubPanel.Children.Add(CreateFpsToggleChip("1% Low", "overlay_show_low1"));
+        _fpsSubPanel.Children.Add(CreateFpsToggleChip("0.1% Low", "overlay_show_low01"));
+        _fpsSubPanel.Children.Add(CreateFpsToggleChip("Frame Time", "overlay_show_frametime"));
+        fpsStack.Children.Add(fpsSubSep);
+        fpsStack.Children.Add(_fpsSubPanel);
+        _fpsSubSep = fpsSubSep;
+
         _fpsCard.Child = fpsStack;
         _hardwareCards["fps"] = _fpsCard;
 
@@ -1150,7 +1199,7 @@ public sealed partial class MonitorWindow : Window
             UpdateGamepadCompactMode(w);
         };
 
-        Closed += (_, _) => { _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _batteryTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
+        Closed += (_, _) => { _fpsOverlay?.Dispose(); _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _batteryTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
         var hwnd2 = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId2 = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd2);
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId2);
@@ -1299,12 +1348,96 @@ public sealed partial class MonitorWindow : Window
         }
         else
         {
-            _monitor.StartFpsMonitor("");
+            var game = _monitor.DetectRunningGame();
+            _monitor.StartFpsMonitor(game ?? "");
             _fpsRunning = true;
             _fpsToggleBtn.Content = "PARAR";
             _fpsToggleBtn.Foreground = _brushRed;
             _fpsToggleBtn.BorderBrush = _brushRed;
         }
+    }
+
+    private void FpsOverlay_Click(object sender, RoutedEventArgs e)
+    {
+        if (_fpsOverlay != null && _fpsOverlay.IsActive)
+        {
+            _fpsOverlay.Stop();
+            _fpsOverlayBtn.Foreground = SubtleText;
+            _fpsOverlayBtn.BorderBrush = SubtleText;
+            if (_fpsSubPanel != null) _fpsSubPanel.Visibility = Visibility.Collapsed;
+            if (_fpsSubSep != null) _fpsSubSep.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            if (_fpsOverlay == null)
+                _fpsOverlay = new FpsOverlayWindow(_monitor.FpsMonitor);
+            _fpsOverlay.Start();
+            _fpsOverlayBtn.Foreground = FpsColor;
+            _fpsOverlayBtn.BorderBrush = FpsColor;
+            if (_fpsSubPanel != null) _fpsSubPanel.Visibility = Visibility.Visible;
+            if (_fpsSubSep != null) _fpsSubSep.Visibility = Visibility.Visible;
+            ApplyFpsToggles();
+        }
+    }
+
+    private Button CreateFpsToggleChip(string label, string settingKey)
+    {
+        bool active = SettingsService.Get(settingKey, "1") == "1";
+        var icon = new TextBlock
+        {
+            Text = active ? "\uE73A" : "\uE738",
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+            FontSize = 11,
+            Foreground = active ? FpsColor : SubtleText,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var txt = new TextBlock
+        {
+            Text = label,
+            FontSize = 10,
+            Foreground = active ? FpsColor : SubtleText,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var stack = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+        stack.Children.Add(icon);
+        stack.Children.Add(txt);
+        var tag = new FpsToggleTag { Key = settingKey, Icon = icon, Txt = txt };
+        var btn = new Button
+        {
+            Content = stack,
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(1),
+            BorderBrush = active ? FpsColor : SubtleText,
+            Padding = new Thickness(6, 3, 6, 3),
+            VerticalAlignment = VerticalAlignment.Center,
+            Tag = tag
+        };
+        btn.Click += FpsToggleChip_Click;
+        return btn;
+    }
+
+    private void FpsToggleChip_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button btn || btn.Tag is not FpsToggleTag tag) return;
+        string key = tag.Key;
+        TextBlock icon = tag.Icon;
+        TextBlock txt = tag.Txt;
+        bool active = SettingsService.Get(key, "1") == "1";
+        bool newState = !active;
+        SettingsService.Set(key, newState ? "1" : "0");
+        icon.Text = newState ? "\uE73A" : "\uE738";
+        icon.Foreground = newState ? FpsColor : SubtleText;
+        txt.Foreground = newState ? FpsColor : SubtleText;
+        btn.BorderBrush = newState ? FpsColor : SubtleText;
+        ApplyFpsToggles();
+    }
+
+    private void ApplyFpsToggles()
+    {
+        _fpsOverlay?.UpdateDisplayOptions(
+            SettingsService.Get("overlay_show_low1", "1") == "1",
+            SettingsService.Get("overlay_show_low01", "1") == "1",
+            SettingsService.Get("overlay_show_frametime", "1") == "1");
     }
 
     private void CardToggle_Click(object sender, RoutedEventArgs e)
@@ -1775,13 +1908,20 @@ public sealed partial class MonitorWindow : Window
                 _fpsValue.Foreground = FpsValueColor(s.FpsCurrent);
                 _fpsLabel.Text = "FRAMES PER SECOND";
                 _fpsInfo.Text = $"MIN {s.FpsMin:F0}  ·  AVG {s.FpsAvg:F0}  ·  MAX {s.FpsMax:F0}  ·  {s.FpsSource}";
+                _fpsStatLow1.Text = $"{s.FpsLow1:F1}";
+                _fpsStatLow01.Text = $"{s.FpsLow01:F1}";
+                _fpsStatFrameTime.Text = $"{s.FpsFrameTimeMs:F1} ms";
             }
             else
             {
                 _fpsValue.Text = "--";
                 _fpsValue.Foreground = SubtleText;
-                _fpsLabel.Text = s.FpsSource != "Off" ? $"Aguardando... {s.FpsSource}" : "Nenhum jogo detectado";
+                _fpsLabel.Text = s.FpsSource != "Off" ? $"Aguardando... {s.FpsSource}" :
+                    (_monitor.DetectedGame != null ? $"Jogo detectado: {_monitor.DetectedGame} — clique INICIAR" : "Nenhum jogo detectado");
                 _fpsInfo.Text = "";
+                _fpsStatLow1.Text = "--";
+                _fpsStatLow01.Text = "--";
+                _fpsStatFrameTime.Text = "--";
             }
 
             // Periodic WMI refresh for RAM/Disks (every 5 seconds)
@@ -2095,13 +2235,20 @@ public sealed partial class MonitorWindow : Window
                 _fpsValue.Foreground = FpsValueColor(s.FpsCurrent);
                 _fpsLabel.Text = "FRAMES PER SECOND";
                 _fpsInfo.Text = $"MIN {s.FpsMin:F0}  ·  AVG {s.FpsAvg:F0}  ·  MAX {s.FpsMax:F0}  ·  {s.FpsSource}";
+                _fpsStatLow1.Text = $"{s.FpsLow1:F1}";
+                _fpsStatLow01.Text = $"{s.FpsLow01:F1}";
+                _fpsStatFrameTime.Text = $"{s.FpsFrameTimeMs:F1} ms";
             }
             else
             {
                 _fpsValue.Text = "--";
                 _fpsValue.Foreground = SubtleText;
-                _fpsLabel.Text = s.FpsSource != "Off" ? $"Aguardando... {s.FpsSource}" : "Nenhum jogo detectado";
+                _fpsLabel.Text = s.FpsSource != "Off" ? $"Aguardando... {s.FpsSource}" :
+                    (_monitor.DetectedGame != null ? $"Jogo detectado: {_monitor.DetectedGame} — clique INICIAR" : "Nenhum jogo detectado");
                 _fpsInfo.Text = "";
+                _fpsStatLow1.Text = "--";
+                _fpsStatLow01.Text = "--";
+                _fpsStatFrameTime.Text = "--";
             }
         }
         catch { }
@@ -3455,4 +3602,11 @@ public sealed partial class MonitorWindow : Window
         btn.Background = isPressed ? GpPressedBg : GpReleasedBg;
         btn.BorderBrush = isPressed ? GpPressedBorder : GpReleasedBorder;
     }
+}
+
+internal class FpsToggleTag
+{
+    public string Key { get; set; } = "";
+    public TextBlock Icon { get; set; } = null!;
+    public TextBlock Txt { get; set; } = null!;
 }

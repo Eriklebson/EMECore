@@ -34,6 +34,9 @@ public class HardwareStats
     public double FpsMin { get; set; }
     public double FpsMax { get; set; }
     public double FpsAvg { get; set; }
+    public double FpsLow1 { get; set; }
+    public double FpsLow01 { get; set; }
+    public double FpsFrameTimeMs { get; set; }
     public string FpsSource { get; set; } = "Off";
 
     public double DiskReadSpeed { get; set; }

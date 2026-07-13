@@ -6,13 +6,18 @@ namespace EMECore.Hardware.Services;
 public class FpsMonitorService
 {
     private readonly List<double> _history = new(120);
+    private readonly List<double> _frameTimes = new(120);
     private bool _monitoring;
     private CancellationTokenSource? _cts;
+    private string _processName = "";
 
     public double Current { get; private set; }
     public double Min { get; private set; }
     public double Max { get; private set; }
     public double Avg { get; private set; }
+    public double Low1 { get; private set; }
+    public double Low01 { get; private set; }
+    public double FrameTimeMs { get; private set; }
     public string Source { get; private set; } = "Off";
 
     public void Start(string processName)
@@ -20,6 +25,7 @@ public class FpsMonitorService
         if (_monitoring) return;
         _monitoring = true;
         _cts = new CancellationTokenSource();
+        _processName = processName;
         Source = processName;
         _ = RunLoop(_cts.Token);
     }
@@ -29,15 +35,18 @@ public class FpsMonitorService
         _monitoring = false;
         _cts?.Cancel();
         _history.Clear();
-        Current = Min = Max = Avg = 0;
+        _frameTimes.Clear();
+        Current = Min = Max = Avg = Low1 = Low01 = FrameTimeMs = 0;
         Source = "Off";
+        _processName = "";
     }
 
     private async Task RunLoop(CancellationToken ct)
     {
-        var csvPath = Path.Combine(Path.GetTempPath(), "eme-fps.csv");
         var toolsDir = FindToolsDir();
         var pmPath = toolsDir != null ? Path.Combine(toolsDir, "PresentMon-2.5.1-x64.exe") : null;
+
+        Log($"PM path: {pmPath ?? "NULL"}, exists: {pmPath != null && File.Exists(pmPath)}");
 
         if (pmPath == null || !File.Exists(pmPath))
         {
@@ -49,9 +58,11 @@ public class FpsMonitorService
         {
             try
             {
-                if (File.Exists(csvPath)) File.Delete(csvPath);
+                var csvPath = Path.Combine(Path.GetTempPath(), $"eme-fps-{Guid.NewGuid():N}.csv");
 
-                var psi = new ProcessStartInfo(pmPath, $"--output_file \"{csvPath}\" --no_console_stats --session_name EMEFPS --stop_existing_session")
+                var args = $"--output_file \"{csvPath}\" --no_console_stats --session_name EMEFPS --stop_existing_session";
+
+                var psi = new ProcessStartInfo(pmPath, args)
                 {
                     UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true
                 };
@@ -61,18 +72,19 @@ public class FpsMonitorService
                     await Task.Delay(2200, ct);
                     try { p.Kill(true); } catch { }
                     await Task.Delay(300, ct);
-                    ParseCsv(csvPath, Source);
+                    ParseCsv(csvPath);
+                    try { File.Delete(csvPath); } catch { }
                 }
                 await Task.Delay(200, ct);
             }
             catch (OperationCanceledException) { break; }
-            catch { await Task.Delay(500, ct); }
+            catch (Exception ex) { Log($"RunLoop error: {ex.Message}"); await Task.Delay(500, ct); }
         }
     }
 
-    private void ParseCsv(string path, string _)
+    private void ParseCsv(string path)
     {
-        if (!File.Exists(path)) return;
+        if (!File.Exists(path)) { return; }
         try
         {
             var lines = File.ReadAllLines(path);
@@ -96,6 +108,8 @@ public class FpsMonitorService
                     {
                         _history.Add(fps);
                         if (_history.Count > 120) _history.RemoveAt(0);
+                        _frameTimes.Add(ms);
+                        if (_frameTimes.Count > 120) _frameTimes.RemoveAt(0);
                     }
                 }
             }
@@ -106,10 +120,19 @@ public class FpsMonitorService
                 Min = _history.Min();
                 Max = _history.Max();
                 Avg = Math.Round(_history.Average());
+                FrameTimeMs = Math.Round(1000.0 / Current, 2);
+
+                var sorted = _frameTimes.OrderByDescending(x => x).ToList();
+                int count1 = Math.Max(1, (int)Math.Ceiling(sorted.Count * 0.01));
+                int count01 = Math.Max(1, (int)Math.Ceiling(sorted.Count * 0.001));
+                Low1 = Math.Round(1000.0 / sorted.Take(count1).Average(), 1);
+                Low01 = Math.Round(1000.0 / sorted.Take(count01).Average(), 1);
             }
         }
         catch { }
     }
+
+    private static void Log(string msg) { }
 
     private static string? FindToolsDir()
     {

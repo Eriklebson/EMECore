@@ -13,6 +13,7 @@ public class HardwareMonitorService
     private readonly CpuSensorMappingService _cpuMapping = CpuSensorMappingService.Instance;
     public readonly GamepadService GamepadService = new();
     private string? _lastDetectedGame;
+    public string? DetectedGame => _lastDetectedGame;
     private DateTime _gameDetectCache = DateTime.MinValue;
     private List<FanInfo> _cachedFans = new();
     private DateTime _fansCache = DateTime.MinValue;
@@ -113,6 +114,9 @@ public class HardwareMonitorService
         s.FpsMin = _fpsMonitor.Min;
         s.FpsMax = _fpsMonitor.Max;
         s.FpsAvg = _fpsMonitor.Avg;
+        s.FpsLow1 = _fpsMonitor.Low1;
+        s.FpsLow01 = _fpsMonitor.Low01;
+        s.FpsFrameTimeMs = _fpsMonitor.FrameTimeMs;
         s.FpsSource = _fpsMonitor.Source;
 
         s.Gamepads = CollectGamepadData();
@@ -174,53 +178,111 @@ public class HardwareMonitorService
     }
 
     // ===== Game Detection =====
-    
-    private void DetectGame()
+
+    private static readonly Dictionary<string, string[]> ProcessNameMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["skyrim_se"] = new[] { "SkyrimSE" },
+        ["skyrim"] = new[] { "Skyrim" },
+        ["oblivion_remastered"] = new[] { "OblivionRemastered" },
+        ["teso"] = new[] { "eso64" },
+        ["eldenring"] = new[] { "eldenring" },
+        ["gta5"] = new[] { "GTA5", "PlayGTAV" },
+        ["gta5_fivem"] = new[] { "FiveM" },
+        ["cyberpunk2077"] = new[] { "Cyberpunk2077" },
+        ["baldursgate3"] = new[] { "bg3" },
+        ["red_dead_redemption_2"] = new[] { "RDR2" },
+        ["the_witcher_3"] = new[] { "witcher3" },
+        ["hogwarts_legacy"] = new[] { "HogwartsLegacy" },
+        ["starfield"] = new[] { "Starfield" },
+        ["palworld"] = new[] { "Palworld-Win64-Shipping" },
+        ["blackmythwukong"] = new[] { "b1" },
+        ["god_of_war"] = new[] { "GoW" },
+        ["god_of_warragnarok"] = new[] { "GoWRagnarok" },
+        ["monsterhunterworld"] = new[] { "MonsterHunterWorld" },
+        ["monsterhunterrisen"] = new[] { "MonsterHunterRise" },
+        ["monsterhunterwilds"] = new[] { "MonsterHunterWilds" },
+        ["forza_horizon_5"] = new[] { "ForzaHorizon5" },
+        ["forza_horizon_6"] = new[] { "ForzaHorizon6" },
+        ["forza_motorsport"] = new[] { "ForzaMotorsport" },
+        ["stellarblade"] = new[] { "SB-Win64-Shipping" },
+        ["daysgone"] = new[] { "DaysGone" },
+        ["subnautica"] = new[] { "Subnautica" },
+        ["minecraft"] = new[] { "Minecraft" },
+        ["valorant"] = new[] { "VALORANT" },
+        ["cs2"] = new[] { "cs2" },
+        ["apex_legends"] = new[] { "r5apex" },
+        ["fortnite"] = new[] { "FortniteClient-Win64-Shipping" },
+        ["league_of_legends"] = new[] { "League" },
+        ["dota_2"] = new[] { "dota2" },
+        ["overwatch_2"] = new[] { "Overwatch" },
+        ["cyberpunk_phantom_liberty"] = new[] { "Cyberpunk2077" },
+        ["star_wars_outlaws"] = new[] { "Outlaws" },
+        ["avatar_frontiers"] = new[] { "Frontiers" },
+        ["alan_wake_2"] = new[] { "AlanWake2" },
+        ["silent_hill_2"] = new[] { "SH2" },
+        ["resident_evil_4"] = new[] { "re4" },
+        [" resident_evil_4_remake"] = new[] { "re4" },
+        ["spider_man_miles_morales"] = new[] { "MilesMorales" },
+        ["spider_man_remastered"] = new[] { "SpiderMan" },
+        ["horizon_forbidden_west"] = new[] { "HorizonForbiddenWest" },
+        ["ghost_of_tsushima"] = new[] { "GhostOfTsushima" },
+        ["uncharted_legacy"] = new[] { "Uncharted" },
+        ["the_last_of_us"] = new[] { "TheLastOfUs" },
+        ["final_fantasy_vii_rebirth"] = new[] { "FF7Rebirth" },
+        ["final_fantasy_xvi"] = new[] { "FFXVI" },
+        ["wuthering_waves"] = new[] { "WutheringWaves" },
+        ["genshin_impact"] = new[] { "GenshinImpact" },
+        ["honkai_star_rail"] = new[] { "StarRail" },
+        ["diablo_4"] = new[] { "Diablo IV" },
+        ["path_of_exile_2"] = new[] { "PathOfExile" },
+        ["manor_lords"] = new[] { "ManorLords" },
+        ["likeness"] = new[] { "LIKENESS" },
+        ["hogwarts_legacy"] = new[] { "HogwartsLegacy" },
+    };
+
+    public string? DetectRunningGame()
     {
         try
         {
             var p = Process.Start(new ProcessStartInfo("tasklist", "/FO CSV /NH")
             { RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true });
-            if (p == null) return;
+            if (p == null) return null;
             var output = p.StandardOutput.ReadToEnd();
             p.WaitForExit(2000);
 
-            string? detected = null;
             foreach (var line in output.Split('\n'))
             {
                 var parts = line.Split(',');
                 if (parts.Length < 1) continue;
-                var name = parts[0].Trim('"', ' ');
-                if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                    name = name[..^4];
+                var procName = parts[0].Trim('"', ' ');
+                if (procName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    procName = procName[..^4];
 
-                if (name.Contains("SB-Win64-Shipping", StringComparison.OrdinalIgnoreCase) ||
-                    name.Contains("forza", StringComparison.OrdinalIgnoreCase) ||
-                    name.Contains("Minecraft", StringComparison.OrdinalIgnoreCase) ||
-                    name.Contains("Subnautica", StringComparison.OrdinalIgnoreCase) ||
-                    name.Contains("Stellar", StringComparison.OrdinalIgnoreCase))
+                foreach (var kvp in ProcessNameMap)
                 {
-                    detected = name;
-                    break;
+                    foreach (var keyword in kvp.Value)
+                    {
+                        if (procName.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                            return procName;
+                    }
                 }
             }
+        }
+        catch { }
+        return null;
+    }
 
-            if (detected != null && detected != _lastDetectedGame)
-            {
-                _lastDetectedGame = detected;
-                _fpsMonitor.Start(detected);
-            }
-            else if (detected == null && _lastDetectedGame != null)
-            {
-                _lastDetectedGame = null;
-                _fpsMonitor.Stop();
-            }
-        }
-        catch (Exception ex)
+    private void DetectGame()
+    {
+        try
         {
-            File.AppendAllText(Path.Combine(Path.GetTempPath(), "eme_detect.log"),
-                $"{DateTime.Now:HH:mm:ss} ERROR: {ex.Message}\n");
+            var detected = DetectRunningGame();
+            if (detected != null && detected != _lastDetectedGame)
+                _lastDetectedGame = detected;
+            else if (detected == null && _lastDetectedGame != null)
+                _lastDetectedGame = null;
         }
+        catch { }
     }
 
     // ===== WMI Data Collection (RAM, Disk, Network) =====
@@ -822,4 +884,5 @@ public class HardwareMonitorService
 
     public void StartFpsMonitor(string processName) => _fpsMonitor.Start(processName);
     public void StopFpsMonitor() => _fpsMonitor.Stop();
+    public FpsMonitorService FpsMonitor => _fpsMonitor;
 }

@@ -1,0 +1,45 @@
+{
+  "Motherboards": [
+    {
+      "Name": "ASUS TUF GAMING B550M-PLUS",
+      "Chip": "Nuvoton NCT6798D",
+      "FanMapping": {
+        "Fan #1": "Chassis Fan 1",
+        "Fan #2": "CPU Fan",
+        "Fan #3": "Chassis Fan 2",
+        "Fan #4": "Chassis Fan 3",
+        "Fan #5": "Chassis Fan 4",
+        "Fan #6": "CPU Optional",
+        "Fan #7": "AIO Pump"
+      },
+      "TemperatureMapping": {
+        "Temperature #1": "CPU Temperature",
+        "Temperature #2": "Motherboard Temperature",
+        "Temperature #3": "VRM Temperature",
+        "Temperature #4": "Chipset Temperature",
+        "Temperature #5": "PCIe Temperature",
+        "Temperature #6": "VRM MOS Temperature"
+      },
+      "VoltageMapping": {
+        "Vcore": "CPU Vcore",
+        "Voltage #2": "CPU SoC",
+        "AVCC": "+3.3V AVCC",
+        "+3.3V": "+3.3V",
+        "Voltage #5": "DRAM",
+        "Voltage #6": "+1.05V",
+        "Voltage #7": "CPU VDDG",
+        "+3V Standby": "+3V Standby",
+        "CMOS Battery": "CMOS Battery",
+        "CPU Termination": "CPU VDDCR"
+      },
+      "FanCategories": {
+        "CPU": ["CPU Fan", "CPU Optional", "AIO Pump"],
+        "GPU": ["GPU Fan"],
+        "Motherboard": ["Chassis Fan 1", "Chassis Fan 2", "Chassis Fan 3", "Chassis Fan 4"]
+      }
+    }
+  ],
+  "DefaultMapping": {
+    "FanCategory": "Motherboard"
+  }
+}
