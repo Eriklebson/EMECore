@@ -32,6 +32,7 @@ public sealed partial class MainWindow : Window
     private readonly SaveBasedAchievementProvider _saveAchievementProvider;
     private readonly AchievementCheckerService _achievementChecker;
     private readonly AchievementsPage _achievementsPage;
+    private readonly SettingsPage _settingsPage;
 
     private List<Achievement>? _lastAchievements;
     private MonitorWindow? _monitorWindow;
@@ -100,9 +101,20 @@ public sealed partial class MainWindow : Window
         _sidebar.MonitorRequested += Sidebar_MonitorRequested;
         _sidebar.TestAchievementRequested += Sidebar_TestAchievementRequested;
         _sidebar.CollapseChanged += Sidebar_CollapseChanged;
+        _sidebar.SettingsRequested += Sidebar_SettingsRequested;
         contentGrid.Children.Add(_sidebar);
 
         SettingsService.Load();
+
+        // Apply saved theme
+        var savedThemeName = SettingsService.Get("theme", "Padrão");
+        var savedTheme = ThemeManager.AvailableThemes.FirstOrDefault(t => t.Name == savedThemeName);
+        if (savedTheme != null)
+        {
+            ThemeManager.SetTheme(savedTheme);
+            SteamColors.RefreshColors(savedTheme);
+        }
+
         var lastCategory = SettingsService.Get("sidebar_category", "library");
         _sidebar.SetActiveCategory(lastCategory);
 
@@ -126,6 +138,10 @@ public sealed partial class MainWindow : Window
 
         _achievementsPage = new AchievementsPage(_achievementChecker) { Visibility = Visibility.Collapsed };
         pageContainer.Children.Add(_achievementsPage);
+
+        _settingsPage = new SettingsPage { Visibility = Visibility.Collapsed };
+        _settingsPage.ThemeChanged += SettingsPage_ThemeChanged;
+        pageContainer.Children.Add(_settingsPage);
 
         Grid.SetColumn(pageContainer, 1);
         contentGrid.Children.Add(pageContainer);
@@ -246,6 +262,7 @@ public sealed partial class MainWindow : Window
         _detailPage.Visibility = page == "detail" ? Visibility.Visible : Visibility.Collapsed;
         _addGamePage.Visibility = page == "addgame" ? Visibility.Visible : Visibility.Collapsed;
         _achievementsPage.Visibility = page == "achievements" ? Visibility.Visible : Visibility.Collapsed;
+        _settingsPage.Visibility = page == "settings" ? Visibility.Visible : Visibility.Collapsed;
 
         if (page == "achievements")
         {
@@ -314,7 +331,9 @@ public sealed partial class MainWindow : Window
         if (info == null) return;
 
         var (savePath, parseFunc, gameName) = info.Value;
-        _saveMonitor.StartMonitoring(savePath, parseFunc, gameName);
+        var started = _saveMonitor.StartMonitoring(savePath, parseFunc, gameName);
+        if (!started)
+            System.Diagnostics.Debug.WriteLine($"[SaveMonitor] Falha ao iniciar monitor para {gameName}");
         _monitoredGame = game;
     }
 
@@ -376,6 +395,23 @@ public sealed partial class MainWindow : Window
         };
         var notification = new AchievementNotificationWindow();
         notification.Show(testAchievement, "Stellar Blade");
+    }
+
+    private void Sidebar_SettingsRequested(object? sender, EventArgs e)
+    {
+        ViewModel.CurrentPage = "settings";
+    }
+
+    private void SettingsPage_ThemeChanged(object? sender, EventArgs e)
+    {
+        var theme = ThemeManager.Current;
+        var rootGrid = (Grid)Content;
+        rootGrid.Background = new SolidColorBrush(theme.Background);
+
+        var titleBar = (Grid)rootGrid.Children[0];
+        titleBar.Background = new SolidColorBrush(theme.Background);
+
+        _sidebar.RefreshTheme();
     }
 
     private void OnAchievementUnlocked(Achievement achievement, string gameName)

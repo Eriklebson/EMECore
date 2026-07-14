@@ -140,9 +140,93 @@ public static class ThemeManager
         BorderHover = ColorFromHex("#ff2255"),
     };
 
+    public static readonly AppTheme BlueTheme = new()
+    {
+        Name = "Azul",
+        Description = "Azul profundo com toques de ciano",
+        Background = ColorFromHex("#060a10"),
+        Surface = ColorFromHex("#0c1218"),
+        Card = ColorFromHex("#111a24"),
+        CardHover = ColorFromHex("#17222e"),
+        Accent = ColorFromHex("#3b9eff"),
+        AccentSecondary = ColorFromHex("#2070cc"),
+        AccentGlow = ColorFromHex("#3b9eff"),
+        Success = ColorFromHex("#00dd88"),
+        Warning = ColorFromHex("#ffaa00"),
+        Danger = ColorFromHex("#ff4455"),
+        TextPrimary = ColorFromHex("#e0ecff"),
+        TextSecondary = ColorFromHex("#6088b0"),
+        TextMuted = ColorFromHex("#2a3a50"),
+        Border = ColorFromHex("#17222e"),
+        BorderHover = ColorFromHex("#3b9eff"),
+    };
+
+    public static readonly AppTheme PurpleTheme = new()
+    {
+        Name = "Roxo",
+        Description = "Roxo vibrante com violeta",
+        Background = ColorFromHex("#08060e"),
+        Surface = ColorFromHex("#100c1a"),
+        Card = ColorFromHex("#181224"),
+        CardHover = ColorFromHex("#20182e"),
+        Accent = ColorFromHex("#a855f7"),
+        AccentSecondary = ColorFromHex("#7c3aed"),
+        AccentGlow = ColorFromHex("#a855f7"),
+        Success = ColorFromHex("#00dd88"),
+        Warning = ColorFromHex("#f59e0b"),
+        Danger = ColorFromHex("#ef4444"),
+        TextPrimary = ColorFromHex("#f0e0ff"),
+        TextSecondary = ColorFromHex("#8860b0"),
+        TextMuted = ColorFromHex("#3a2a50"),
+        Border = ColorFromHex("#20182e"),
+        BorderHover = ColorFromHex("#a855f7"),
+    };
+
+    public static readonly AppTheme OrangeTheme = new()
+    {
+        Name = "Laranja",
+        Description = "Laranja quente com âmbar",
+        Background = ColorFromHex("#0c0804"),
+        Surface = ColorFromHex("#160e08"),
+        Card = ColorFromHex("#1f160e"),
+        CardHover = ColorFromHex("#2a1e14"),
+        Accent = ColorFromHex("#f97316"),
+        AccentSecondary = ColorFromHex("#c2410c"),
+        AccentGlow = ColorFromHex("#f97316"),
+        Success = ColorFromHex("#00dd88"),
+        Warning = ColorFromHex("#fbbf24"),
+        Danger = ColorFromHex("#ef4444"),
+        TextPrimary = ColorFromHex("#fff0e0"),
+        TextSecondary = ColorFromHex("#b08060"),
+        TextMuted = ColorFromHex("#4a3020"),
+        Border = ColorFromHex("#2a1e14"),
+        BorderHover = ColorFromHex("#f97316"),
+    };
+
+    public static readonly AppTheme MidnightTheme = new()
+    {
+        Name = "Meia-noite",
+        Description = "Azul marinho profundo e elegante",
+        Background = ColorFromHex("#05080e"),
+        Surface = ColorFromHex("#0a1020"),
+        Card = ColorFromHex("#0f1830"),
+        CardHover = ColorFromHex("#14203a"),
+        Accent = ColorFromHex("#60a5fa"),
+        AccentSecondary = ColorFromHex("#3b82f6"),
+        AccentGlow = ColorFromHex("#60a5fa"),
+        Success = ColorFromHex("#34d399"),
+        Warning = ColorFromHex("#fbbf24"),
+        Danger = ColorFromHex("#f87171"),
+        TextPrimary = ColorFromHex("#e0f0ff"),
+        TextSecondary = ColorFromHex("#6090c0"),
+        TextMuted = ColorFromHex("#203050"),
+        Border = ColorFromHex("#14203a"),
+        BorderHover = ColorFromHex("#60a5fa"),
+    };
+
     public static AppTheme Current { get; private set; } = SteamTheme;
 
-    public static AppTheme[] AvailableThemes => new[] { SteamTheme, GamerTheme, NeonTheme, RedTheme };
+    public static AppTheme[] AvailableThemes => new[] { SteamTheme, GamerTheme, NeonTheme, RedTheme, BlueTheme, PurpleTheme, OrangeTheme, MidnightTheme };
 
     public static void SetTheme(AppTheme theme)
     {

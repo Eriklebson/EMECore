@@ -17,6 +17,9 @@ namespace EMECore.WinUI.Views;
 
 public sealed class AchievementNotificationWindow
 {
+    private static readonly List<AchievementNotificationWindow> _instances = new();
+    private static readonly object _instancesLock = new();
+
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
 
@@ -243,7 +246,16 @@ public sealed class AchievementNotificationWindow
         _hideAnimation.Completed += (_, _) =>
         {
             _window.Close();
+            lock (_instancesLock)
+            {
+                _instances.Remove(this);
+            }
         };
+
+        lock (_instancesLock)
+        {
+            _instances.Add(this);
+        }
     }
 
     public void Show(Achievement achievement, string gameName = "")

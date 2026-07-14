@@ -19,14 +19,13 @@ public sealed partial class Sidebar : UserControl
     private bool _collapsed;
     private readonly Grid _root;
     private readonly StackPanel _logo, _nav;
-    private readonly Border _logoBox;
+    private readonly Microsoft.UI.Xaml.Controls.Image _logoImage;
     private readonly TextBlock _navLbl, _utilLbl;
     private readonly Border _indicator;
     private readonly SidebarItem _libraryBtn;
     private readonly SidebarItem _monBtn;
     private readonly SidebarItem _toolsBtn;
     private readonly SidebarItem _trainBtn;
-    private readonly SidebarItem _achNavBtn;
     private readonly Button _collapseBtn;
     private readonly List<SidebarItem> _items = new();
 
@@ -39,12 +38,19 @@ public sealed partial class Sidebar : UserControl
         _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var logoRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.MD };
-        var logoBox = new Border { Width=40, Height=40, CornerRadius=Design.R.XL, Background=Design.C.Pri10B, BorderThickness=new Thickness(1), BorderBrush=new SolidColorBrush(Design.C.PriRing), VerticalAlignment=VerticalAlignment.Center, Child=new TextBlock{Text="EME",FontSize=11,FontWeight=Microsoft.UI.Text.FontWeights.Bold,CharacterSpacing=-50,Foreground=Design.C.PriB,FontFamily=new("Consolas"),HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center} };
-        _logoBox = logoBox;
-        logoRow.Children.Add(logoBox);
+        var logoImage = new Microsoft.UI.Xaml.Controls.Image
+        {
+            Width = 40,
+            Height = 40,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var logoBitmap = new Microsoft.UI.Xaml.Media.Imaging.BitmapImage(new Uri("ms-appx:///Assets/Logo/logo.png"));
+        logoImage.Source = logoBitmap;
+        _logoImage = logoImage;
+        logoRow.Children.Add(logoImage);
         _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
         _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
-        _logo.Children.Add(new TextBlock { Text = "v2.18.0.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        _logo.Children.Add(new TextBlock { Text = "v2.18.1.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
         logoRow.Children.Add(_logo);
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
@@ -77,8 +83,6 @@ public sealed partial class Sidebar : UserControl
         _trainBtn.Click += (_, _) => { Activate(_trainBtn); NavigationRequested?.Invoke(this, "training"); };
         var settBtn = AddItem("\uE713", "Configurações");
         settBtn.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
-        _achNavBtn = AddItem("\uE7C1", "Conquistas");
-        _achNavBtn.Click += (_, _) => { Activate(_achNavBtn); NavigationRequested?.Invoke(this, "achievements"); };
 
         var divC = new Grid { Height = Design.S.LG, Margin = new Thickness(Design.S.XL, Design.S.MD, Design.S.XL, Design.S.MD) };
         divC.Children.Add(new Border { Background = Design.C.BorB, Width = 1, HorizontalAlignment = HorizontalAlignment.Center });
@@ -117,7 +121,6 @@ public sealed partial class Sidebar : UserControl
             "library" or "game" => _libraryBtn,
             "tools" or "tool" => _toolsBtn,
             "training" => _trainBtn,
-            "achievements" => _achNavBtn,
             _ => _libraryBtn
         };
         Activate(item);
@@ -134,7 +137,7 @@ public sealed partial class Sidebar : UserControl
         ((FontIcon)((StackPanel)_collapseBtn.Content).Children[0]).Glyph = collapsed ? "\uE76C" : "\uE76B";
         ((TextBlock)((StackPanel)_collapseBtn.Content).Children[1]).Text = collapsed ? "" : "Recolher";
         _collapseBtn.HorizontalContentAlignment = collapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-        _logoBox.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
+        _logoImage.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
         _logo.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
         _navLbl.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
         _utilLbl.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;

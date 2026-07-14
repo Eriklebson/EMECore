@@ -9,7 +9,7 @@
   <Identity
     Name="EriklebsonMartinsdePaiva.EMECore"
     Publisher="CN=1B2733F4-245A-49ED-9D6D-3FDFCA91A10A"
-    Version="2.18.0.0" />
+    Version="2.18.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="8620095f-1c56-4e2a-95dc-30cc28d05afb" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
