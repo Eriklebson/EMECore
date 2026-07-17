@@ -58,5 +58,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Assets\Gamepad\8bitdoUltimate2.png" />
+    <Content Include="Assets\ad.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\gamepad-layout.json" /></ItemGroup>
 </Project>

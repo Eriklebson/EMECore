@@ -2,6 +2,37 @@
 
 ---
 
+## 2026-07-17 — Feature: AdSense na Sidebar (WebView2 + HTML)
+
+### Arquivos criados
+- `Assets/ad.html` — Página HTML com placeholder AdSense + JS responsivo (resize observer)
+
+### Arquivos modificados
+- `Views/Sidebar.xaml.cs` — Adicionado WebView2 `_adWeb` na Row 3 da sidebar, carrega ad.html via `NavigateToString`, resize automático no collapse (180x320 → 56x100)
+- `EMECore.WinUI.csproj` — ad.html incluído no output via `<Content CopyToOutputDirectory>`
+
+### O que mudou
+- Nova Row 3 no grid da sidebar para o anúncio (AddButton movido para Row 4)
+- WebView2 carrega HTML local do filesystem (`AppContext.BaseDirectory/Assets/ad.html`)
+- Inicialização via `Loaded` event + `EnsureCoreWebView2Async()` (não `CoreWebView2Initialized`)
+- HTML usa `#161719` como fundo para combinar com tema da sidebar
+- JS responsivo: detecta largura do container e ajusta layout (expandido 160x300, compacto 56x100)
+
+### Motivo
+Integrar espaço para anúncios AdSense na sidebar do launcher. O ad é sempre visível e responsivo — quando a sidebar recolhe, o ad encolhe proporcionalmente.
+
+### Decisões técnicas
+- `ms-appx:///` não funciona em apps não-empacotados (`WindowsPackageType=None`) → usamos `AppContext.BaseDirectory`
+- `CoreWebView2Initialized` pode não disparar → usamos `Loaded` + `EnsureCoreWebView2Async()` explícito
+- `NavigateToString` em vez de `NavigateToLocalStreamUri` parasimplicidade
+
+### Impacto
+- Sidebar agora tem 5 rows (era 4)
+- WebView2 adiciona ~30-50MB ao uso de memória quando carregado
+- Para ativar AdSense real: descomentar bloco no ad.html e inserir publisher ID
+
+---
+
 ## 2026-07-16 — Fix: Layout 2 colunas dos detalhes do monitor
 
 ### Arquivos modificados

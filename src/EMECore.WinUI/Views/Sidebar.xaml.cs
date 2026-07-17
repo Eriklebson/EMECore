@@ -27,6 +27,7 @@ public sealed partial class Sidebar : UserControl
     private readonly SidebarItem _toolsBtn;
     private readonly SidebarItem _trainBtn;
     private readonly Button _collapseBtn;
+    private readonly WebView2 _adWeb;
     private readonly List<SidebarItem> _items = new();
 
     public Sidebar()
@@ -35,6 +36,7 @@ public sealed partial class Sidebar : UserControl
         _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         _root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         _root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         var logoRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.MD };
@@ -50,7 +52,7 @@ public sealed partial class Sidebar : UserControl
         logoRow.Children.Add(logoImage);
         _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
         _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
-        _logo.Children.Add(new TextBlock { Text = "v2.18.3.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        _logo.Children.Add(new TextBlock { Text = "v2.19.0.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
         logoRow.Children.Add(_logo);
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
@@ -100,6 +102,31 @@ public sealed partial class Sidebar : UserControl
         var nc = new Grid(); nc.Children.Add(_indicator); nc.Children.Add(_nav);
         Grid.SetRow(nc, 2); _root.Children.Add(nc);
 
+        _adWeb = new WebView2
+        {
+            Width = 180,
+            Height = 320,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, Design.S.SM, 0, Design.S.SM),
+            DefaultBackgroundColor = Microsoft.UI.Colors.Transparent
+        };
+        _adWeb.Loaded += async (_, _) =>
+        {
+            try
+            {
+                await _adWeb.EnsureCoreWebView2Async();
+                var adPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "ad.html");
+                if (System.IO.File.Exists(adPath))
+                {
+                    var html = System.IO.File.ReadAllText(adPath);
+                    _adWeb.NavigateToString(html);
+                }
+            }
+            catch { }
+        };
+        Grid.SetRow(_adWeb, 3); _root.Children.Add(_adWeb);
+
         var addPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = Design.S.SM };
         addPanel.Children.Add(new FontIcon { Glyph = "\uE710", FontSize = 18, Foreground = Design.C.PriB });
         addPanel.Children.Add(new TextBlock { Text = "Adicionar Jogo", VerticalAlignment = VerticalAlignment.Center, FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
@@ -108,7 +135,7 @@ public sealed partial class Sidebar : UserControl
         addBtn.PointerEntered += (_, _) => { addBtn.Background = Design.C.PriB; addBtn.Foreground = Design.C.BgB; };
         addBtn.PointerExited += (_, _) => { addBtn.Background = Design.C.Pri10B; addBtn.Foreground = Design.C.PriB; };
         var fb = new Border { Background = Design.C.InsetB, Child = addBtn, Padding = new Thickness(Design.S.MD), BorderThickness = new Thickness(0, 1, 0, 0), BorderBrush = Design.C.BorB };
-        Grid.SetRow(fb, 3); _root.Children.Add(fb);
+        Grid.SetRow(fb, 4); _root.Children.Add(fb);
 
         Content = _root;
         Activate(_libraryBtn);
@@ -143,6 +170,8 @@ public sealed partial class Sidebar : UserControl
         _utilLbl.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
         _indicator.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
         foreach (var i in _items) i.SetCollapsed(collapsed);
+        _adWeb.Width = collapsed ? 56 : 180;
+        _adWeb.Height = collapsed ? 100 : 320;
     }
 
     private SidebarItem AddItem(string g, string l) { var i = new SidebarItem(g, l); _items.Add(i); _nav.Children.Add(i); return i; }

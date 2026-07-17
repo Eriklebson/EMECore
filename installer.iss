@@ -1,11 +1,11 @@
 [Setup]
 AppName=EME Core
-AppVersion=2.18.3.0
+AppVersion=2.19.0.0
 AppPublisher=E.M.E Core
 DefaultDirName={autopf}\EMECore
 DefaultGroupName=EME Core
 OutputDir=..\installer
-OutputBaseFilename=EMECore_v2.18.3.0_Setup
+OutputBaseFilename=EMECore_v2.19.0.0_Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 SetupIconFile=src\EMECore.WinUI\Assets\Logo\logo.ico
