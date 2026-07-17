@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-07-16 — Fix: Layout 2 colunas dos detalhes do monitor
+
+### Arquivos modificados
+- `MonitorWindow.cs` — Reescrita completa do sistema de grid dos detalhes do monitor de hardware
+
+### O que mudou
+- Removido contador estático `_detailRow` e `ResetDetailRow()` que causavam conflito entre painéis
+- `AddDetailRow()` agora conta filhos reais por row usando `Grid.GetRow`/`Grid.GetColumnSpan`
+- `AddSectionLabel()` usa `ColumnDefinitions.Count` para ColumnSpan (funciona com qualquer número de colunas)
+- Adicionado `hasFullSpan` para detectar section labels e evitar sobreposição (label full-span + item na mesma row)
+- Responsivo: 2 colunas ≥800px, 1 coluna <800px via `UpdateDetailGridColumns()`
+
+### Motivo
+O layout 2 colunas estava quebrado — informações apareciam empilhadas verticalmente. A causa raiz era dois bugs:
+1. `AddSectionLabel` criava uma row com `ColumnSpan=2`, mas `AddDetailRow` não a detectava e colocava o primeiro item na mesma row
+2. O contador estático `_detailRow` era compartilhado entre todos os painéis (CPU, GPU, MB, RAM)
+
+### Impacto
+- Detalhes do monitor (CPU, GPU, MB, RAM) agora exibem corretamente em grid 2 colunas
+- Layout responsivo mantido (1 coluna em telas estreitas)
+
+---
+
 ## 2026-07-08 — Remoção: Macro de Pesca
 
 ### Arquivos removidos

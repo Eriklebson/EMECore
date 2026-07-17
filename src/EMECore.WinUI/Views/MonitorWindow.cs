@@ -39,11 +39,13 @@ public sealed partial class MonitorWindow : Window
     private TextBlock _mbModel = null!, _mbTemp = null!, _mbVrmTemp = null!, _mbVoltage = null!;
     private StackPanel _mbFansPanel = null!;
     private TextBlock _mbCompactTemp = null!, _mbCompactVrm = null!, _mbCompactFans = null!, _mbCompactVoltage = null!;
+    private Grid _mbDetailPanel = null!;
 
     // RAM
     private TextBlock _ramPct = null!, _ramInfo = null!, _ramModel = null!, _ramVoltage = null!;
     private Grid _ramBar = null!;
     private TextBlock _ramCompactPct = null!, _ramCompactInfo = null!;
+    private Grid _ramDetailPanel = null!;
 
     // CPU
     private TextBlock _cpuPct = null!, _cpuCoreTemp = null!, _cpuPkgTemp = null!, _cpuModel = null!, _cpuVoltage = null!;
@@ -52,6 +54,7 @@ public sealed partial class MonitorWindow : Window
     private readonly ObservableCollection<double> _cpuValues = new();
     private StackPanel _cpuFansPanel = null!;
     private TextBlock _cpuCompactPct = null!, _cpuCompactCore = null!, _cpuCompactPkg = null!;
+    private Grid _cpuDetailPanel = null!;
 
     // GPU
     private TextBlock _gpuPct = null!, _gpuCoreTemp = null!, _gpuModel = null!, _gpuVoltage = null!;
@@ -60,6 +63,7 @@ public sealed partial class MonitorWindow : Window
     private readonly ObservableCollection<double> _gpuValues = new();
     private StackPanel _gpuFansPanel = null!;
     private TextBlock _gpuCompactPct = null!, _gpuCompactTemp = null!;
+    private Grid _gpuDetailPanel = null!;
 
     // Disk (dynamic multi-disk)
     private StackPanel _disksPanel = null!;
@@ -388,6 +392,12 @@ public sealed partial class MonitorWindow : Window
         _mbFansPanel = new StackPanel { Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
         mbStack.Children.Add(_mbFansPanel);
 
+        // MB Details
+        var (mbDetailToggle, mbDetail) = CreateDetailSection("DETALHES", MbColor);
+        _mbDetailPanel = mbDetail;
+        mbStack.Children.Add(mbDetailToggle);
+        mbStack.Children.Add(mbDetail);
+
         var mbCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
         _mbCompactTemp = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = MbColor };
         _mbCompactVrm = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
@@ -428,6 +438,12 @@ public sealed partial class MonitorWindow : Window
         ramMetricsGrid.Children.Add(ramInfoStack);
         ramStack.Children.Add(ramMetricsGrid);
         ramStack.Children.Add(CreateBar(out _ramBar, RamColor));
+
+        // RAM Details
+        var (ramDetailToggle, ramDetail) = CreateDetailSection("DETALHES", RamColor);
+        _ramDetailPanel = ramDetail;
+        ramStack.Children.Add(ramDetailToggle);
+        ramStack.Children.Add(ramDetail);
 
         var ramCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
         _ramCompactPct = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = RamColor };
@@ -513,6 +529,12 @@ public sealed partial class MonitorWindow : Window
         _cpuFansPanel = new StackPanel { Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
         cpuStack.Children.Add(_cpuFansPanel);
 
+        // CPU Details
+        var (cpuDetailToggle, cpuDetail) = CreateDetailSection("DETALHES", CpuColor);
+        _cpuDetailPanel = cpuDetail;
+        cpuStack.Children.Add(cpuDetailToggle);
+        cpuStack.Children.Add(cpuDetail);
+
         var cpuCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
         _cpuCompactPct = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = CpuColor };
         _cpuCompactCore = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
@@ -593,6 +615,12 @@ public sealed partial class MonitorWindow : Window
         // GPU Fans
         _gpuFansPanel = new StackPanel { Spacing = 6, Margin = new Thickness(0, 4, 0, 0) };
         gpuStack.Children.Add(_gpuFansPanel);
+
+        // GPU Details
+        var (gpuDetailToggle, gpuDetail) = CreateDetailSection("DETALHES", GpuColor);
+        _gpuDetailPanel = gpuDetail;
+        gpuStack.Children.Add(gpuDetailToggle);
+        gpuStack.Children.Add(gpuDetail);
 
         var gpuCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
         _gpuCompactPct = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = GpuColor };
@@ -1199,6 +1227,7 @@ public sealed partial class MonitorWindow : Window
                     RelayoutHwGrid();
                 }
             }
+            UpdateDetailGridColumns(w);
             UpdateGamepadCompactMode(w);
         };
 
@@ -1729,6 +1758,113 @@ public sealed partial class MonitorWindow : Window
         return bar;
     }
 
+    private static (Button toggle, Grid detailGrid) CreateDetailSection(string label, SolidColorBrush accentColor)
+    {
+        var toggleBtn = new Button
+        {
+            Content = $"  {label}  ",
+            FontSize = 10,
+            Padding = new Thickness(8, 3, 8, 3),
+            Margin = new Thickness(0, 4, 0, 0),
+            CornerRadius = new CornerRadius(4),
+            Background = Design.C.SecB,
+            Foreground = SubtleText,
+            HorizontalAlignment = HorizontalAlignment.Left
+        };
+
+        var detailGrid = new Grid
+        {
+            Margin = new Thickness(0, 6, 0, 0),
+            Visibility = Visibility.Collapsed,
+            ColumnSpacing = 12,
+            RowSpacing = 2
+        };
+        detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        detailGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        toggleBtn.Click += (_, _) =>
+        {
+            detailGrid.Visibility = detailGrid.Visibility == Visibility.Visible
+                ? Visibility.Collapsed : Visibility.Visible;
+            toggleBtn.Content = detailGrid.Visibility == Visibility.Visible
+                ? $"  {label} ▲" : $"  {label} ▼";
+        };
+
+        return (toggleBtn, detailGrid);
+    }
+
+    private static TextBlock MakeDetailLabel(string text)
+    {
+        return new TextBlock
+        {
+            Text = text,
+            FontSize = 11,
+            Foreground = new SolidColorBrush(ColorFromHex("#9CA3AF")),
+            Margin = new Thickness(0, 2, 0, 0)
+        };
+    }
+
+    private static void AddSectionLabel(Grid panel, string text)
+    {
+        var rowIdx = panel.RowDefinitions.Count;
+        panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var label = MakeDetailLabel(text);
+        Grid.SetRow(label, rowIdx);
+        Grid.SetColumnSpan(label, panel.ColumnDefinitions.Count);
+        panel.Children.Add(label);
+    }
+
+    private static void AddDetailRow(Grid panel, string label, string value)
+    {
+        var colCount = panel.ColumnDefinitions.Count;
+        var rowCount = panel.RowDefinitions.Count;
+
+        var cell = new Grid { Margin = new Thickness(0, 1, 0, 1) };
+        cell.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        cell.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        cell.Children.Add(new TextBlock { Text = label, FontSize = 11, Foreground = new SolidColorBrush(ColorFromHex("#6B7280")), TextTrimming = TextTrimming.CharacterEllipsis });
+        var val = new TextBlock { Text = value, FontSize = 11, Foreground = new SolidColorBrush(Colors.White), HorizontalAlignment = HorizontalAlignment.Right };
+        Grid.SetColumn(val, 1);
+        cell.Children.Add(val);
+
+        int row, col;
+        if (rowCount == 0)
+        {
+            panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            row = 0; col = 0;
+        }
+        else
+        {
+            row = rowCount - 1;
+            var lastRowCells = 0;
+            var hasFullSpan = false;
+            foreach (var child in panel.Children)
+            {
+                if (child is FrameworkElement fe && Grid.GetRow(fe) == row)
+                {
+                    if (Grid.GetColumnSpan(fe) >= colCount)
+                        hasFullSpan = true;
+                    else
+                        lastRowCells++;
+                }
+            }
+            if (hasFullSpan || lastRowCells >= colCount)
+            {
+                panel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                row = rowCount;
+                col = 0;
+            }
+            else
+            {
+                col = lastRowCells;
+            }
+        }
+
+        Grid.SetRow(cell, row);
+        Grid.SetColumn(cell, col);
+        panel.Children.Add(cell);
+    }
+
     private Button CreateNavItem(string icon, string label, SolidColorBrush accentColor)
     {
         var btn = new Button
@@ -1927,6 +2063,11 @@ public sealed partial class MonitorWindow : Window
                 _fpsStatFrameTime.Text = "--";
             }
 
+            // CPU/GPU detail panels (LHM fast data)
+            UpdateCpuDetails(s);
+            UpdateGpuDetails(s);
+            UpdateMbDetails(s);
+
             // Periodic WMI refresh for RAM/Disks (every 5 seconds)
             _wmiTickCounter++;
             if (_wmiTickCounter >= WMI_REFRESH_INTERVAL)
@@ -1980,8 +2121,145 @@ public sealed partial class MonitorWindow : Window
                 _gpuCoreTemp.Text = s.GpuTemp > 0 ? $"{s.GpuTemp:F0}°C" : "--";
                 _gpuCoreTemp.Foreground = TempColor(s.GpuTemp);
             }
+
+            UpdateRamDetails(s);
         }
         catch { }
+    }
+
+    private void UpdateCpuDetails(HardwareStats s)
+    {
+        _cpuDetailPanel.Children.Clear();
+        _cpuDetailPanel.RowDefinitions.Clear();
+        if (s.CpuCoresPhysical > 0) AddDetailRow(_cpuDetailPanel, "Núcleos / Threads", $"{s.CpuCoresPhysical}C / {s.CpuThreads}T");
+        if (s.CpuArchitecture != "") AddDetailRow(_cpuDetailPanel, "Arquitetura", s.CpuArchitecture);
+        if (s.CpuSocket != "") AddDetailRow(_cpuDetailPanel, "Socket", s.CpuSocket);
+        if (s.CpuBaseClock > 0) AddDetailRow(_cpuDetailPanel, "Clock Base", $"{s.CpuBaseClock:F2} GHz");
+        if (s.CpuMaxClock > 0) AddDetailRow(_cpuDetailPanel, "Clock Max", $"{s.CpuMaxClock:F2} GHz");
+        if (s.CpuL2Cache > 0) AddDetailRow(_cpuDetailPanel, "Cache L2", $"{s.CpuL2Cache:F0} MB");
+        if (s.CpuL3Cache > 0) AddDetailRow(_cpuDetailPanel, "Cache L3", $"{s.CpuL3Cache:F0} MB");
+        if (s.CpuCoreLoads.Count > 0)
+        {
+            AddSectionLabel(_cpuDetailPanel, "Carga por Core");
+            foreach (var cl in s.CpuCoreLoads)
+                AddDetailRow(_cpuDetailPanel, cl.Name, $"{cl.Value:F0}%");
+        }
+        if (s.CpuCoreTemps.Count > 0)
+        {
+            AddSectionLabel(_cpuDetailPanel, "Temperatura por Core");
+            foreach (var ct in s.CpuCoreTemps)
+                AddDetailRow(_cpuDetailPanel, ct.Name, $"{ct.Value:F0}°C");
+        }
+        if (s.CpuCoreClocks.Count > 0)
+        {
+            AddSectionLabel(_cpuDetailPanel, "Clock por Core");
+            foreach (var ck in s.CpuCoreClocks)
+                AddDetailRow(_cpuDetailPanel, ck.Name, $"{ck.Value:F0} MHz");
+        }
+    }
+
+    private void UpdateGpuDetails(HardwareStats s)
+    {
+        _gpuDetailPanel.Children.Clear();
+        _gpuDetailPanel.RowDefinitions.Clear();
+        if (s.GpuManufacturer != "") AddDetailRow(_gpuDetailPanel, "Fabricante", s.GpuManufacturer);
+        if (s.GpuDriverVersion != "") AddDetailRow(_gpuDetailPanel, "Driver", s.GpuDriverVersion);
+        if (s.GpuCoreClockMhz > 0) AddDetailRow(_gpuDetailPanel, "Clock Core", $"{s.GpuCoreClockMhz:F0} MHz");
+        if (s.GpuMemoryClockMhz > 0) AddDetailRow(_gpuDetailPanel, "Clock Memória", $"{s.GpuMemoryClockMhz:F0} MHz");
+        if (s.GpuMemoryTotalMb > 0) AddDetailRow(_gpuDetailPanel, "VRAM Total", $"{s.GpuMemoryTotalMb:F0} MB");
+        if (s.GpuMemoryUsedMb > 0) AddDetailRow(_gpuDetailPanel, "VRAM Usada", $"{s.GpuMemoryUsedMb:F0} MB");
+        if (s.GpuMemoryType != "") AddDetailRow(_gpuDetailPanel, "Processador", s.GpuMemoryType);
+        if (s.GpuHotspotTemp > 0) AddDetailRow(_gpuDetailPanel, "Hotspot", $"{s.GpuHotspotTemp:F0}°C");
+        if (s.GpuFanSpeeds.Count > 0)
+        {
+            foreach (var f in s.GpuFanSpeeds)
+                AddDetailRow(_gpuDetailPanel, f.Name, $"{f.Value:F0} RPM");
+        }
+        if (s.GpuClocks.Count > 0)
+        {
+            AddSectionLabel(_gpuDetailPanel, "Clocks");
+            foreach (var c in s.GpuClocks)
+                AddDetailRow(_gpuDetailPanel, c.Name, $"{c.Value:F0} MHz");
+        }
+    }
+
+    private void UpdateMbDetails(HardwareStats s)
+    {
+        _mbDetailPanel.Children.Clear();
+        _mbDetailPanel.RowDefinitions.Clear();
+        if (s.MbBiosVersion != "") AddDetailRow(_mbDetailPanel, "BIOS", s.MbBiosVersion);
+        if (s.MbBiosDate != "") AddDetailRow(_mbDetailPanel, "Data BIOS", s.MbBiosDate);
+        if (s.MbSerialNumber != "") AddDetailRow(_mbDetailPanel, "Serial", s.MbSerialNumber);
+        if (s.MotherboardChipsetTemp > 0) AddDetailRow(_mbDetailPanel, "Chipset", $"{s.MotherboardChipsetTemp:F0}°C");
+        if (s.MotherboardSocketTemp > 0) AddDetailRow(_mbDetailPanel, "Socket", $"{s.MotherboardSocketTemp:F0}°C");
+        if (s.MotherboardPcieTemp > 0) AddDetailRow(_mbDetailPanel, "PCIe", $"{s.MotherboardPcieTemp:F0}°C");
+        if (s.Voltage12V > 0) AddDetailRow(_mbDetailPanel, "+12V", $"{s.Voltage12V:F2}V");
+        if (s.Voltage5V > 0) AddDetailRow(_mbDetailPanel, "+5V", $"{s.Voltage5V:F2}V");
+        if (s.Voltage33V > 0) AddDetailRow(_mbDetailPanel, "+3.3V", $"{s.Voltage33V:F2}V");
+        if (s.Voltage5Vsb > 0) AddDetailRow(_mbDetailPanel, "5VSB", $"{s.Voltage5Vsb:F2}V");
+        if (s.VoltageDram > 0) AddDetailRow(_mbDetailPanel, "DRAM", $"{s.VoltageDram:F2}V");
+        if (s.VoltageCpuSoc > 0) AddDetailRow(_mbDetailPanel, "CPU SoC", $"{s.VoltageCpuSoc:F2}V");
+        if (s.VoltageCmosBattery > 0) AddDetailRow(_mbDetailPanel, "Bateria", $"{s.VoltageCmosBattery:F2}V");
+        if (s.MbTemperatures.Count > 0)
+        {
+            AddSectionLabel(_mbDetailPanel, "Temperaturas");
+            foreach (var t in s.MbTemperatures)
+                AddDetailRow(_mbDetailPanel, t.Name, $"{t.Value:F1}°C");
+        }
+        if (s.MbVoltages.Count > 0)
+        {
+            AddSectionLabel(_mbDetailPanel, "Tensões");
+            foreach (var v in s.MbVoltages)
+                AddDetailRow(_mbDetailPanel, v.Name, $"{v.Value:F3}V");
+        }
+        if (s.MbFanDuties.Count > 0)
+        {
+            AddSectionLabel(_mbDetailPanel, "Duty Cycles");
+            foreach (var f in s.MbFanDuties)
+                AddDetailRow(_mbDetailPanel, f.Name, $"{f.DutyPercent:F1}%");
+        }
+    }
+
+    private void UpdateRamDetails(HardwareStats s)
+    {
+        _ramDetailPanel.Children.Clear();
+        _ramDetailPanel.RowDefinitions.Clear();
+        if (s.RamType != "") AddDetailRow(_ramDetailPanel, "Tipo", s.RamType);
+        if (s.RamFormFactor != "") AddDetailRow(_ramDetailPanel, "Formato", s.RamFormFactor);
+        if (s.RamSpeed > 0) AddDetailRow(_ramDetailPanel, "Velocidade", $"{s.RamSpeed} MHz");
+        if (s.RamMaxSpeed > 0) AddDetailRow(_ramDetailPanel, "Velocidade Máx", $"{s.RamMaxSpeed} MHz");
+        if (s.RamVoltage > 0) AddDetailRow(_ramDetailPanel, "Tensão", $"{s.RamVoltage:F1}V");
+        if (s.RamFree > 0) AddDetailRow(_ramDetailPanel, "Livre", $"{s.RamFree:F1} GB");
+        if (s.RamVirtualTotal > 0) AddDetailRow(_ramDetailPanel, "Virtual Total", $"{s.RamVirtualTotal:F1} GB");
+        if (s.RamVirtualUsed > 0) AddDetailRow(_ramDetailPanel, "Virtual Usada", $"{s.RamVirtualUsed:F1} GB");
+        if (s.RamModules.Count > 0)
+        {
+            AddSectionLabel(_ramDetailPanel, $"Módulos ({s.RamModules.Count})");
+            foreach (var m in s.RamModules)
+            {
+                AddDetailRow(_ramDetailPanel, m.Slot, $"{m.CapacityGb:F0}GB {m.MemoryType} @ {m.SpeedMHz}MHz");
+                if (!string.IsNullOrEmpty(m.Manufacturer))
+                    AddDetailRow(_ramDetailPanel, "  Fabricante", m.Manufacturer);
+            }
+        }
+    }
+
+    private void UpdateDetailGridColumns(double windowWidth)
+    {
+        var grids = new[] { _cpuDetailPanel, _gpuDetailPanel, _mbDetailPanel, _ramDetailPanel };
+        var twoCols = windowWidth >= 800;
+        foreach (var g in grids)
+        {
+            if (g == null) continue;
+            if (twoCols && g.ColumnDefinitions.Count < 2)
+            {
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            }
+            else if (!twoCols && g.ColumnDefinitions.Count > 1)
+            {
+                g.ColumnDefinitions.RemoveAt(1);
+            }
+        }
     }
 
     private void PopulateDisks(List<DiskInfo> disks)

@@ -165,16 +165,53 @@ public class HardwareMonitorService
         dst.CpuVoltage = src.CpuVoltage;
         dst.CpuPower = src.CpuPower;
         dst.CpuCores = src.CpuCores;
+        dst.CpuCoreLoads = new List<SensorReading>(src.CpuCoreLoads);
+        dst.CpuCoreTemps = new List<SensorReading>(src.CpuCoreTemps);
+        dst.CpuCoreClocks = new List<SensorReading>(src.CpuCoreClocks);
+        dst.CpuManufacturer = src.CpuManufacturer;
+        dst.CpuCoresPhysical = src.CpuCoresPhysical;
+        dst.CpuThreads = src.CpuThreads;
+        dst.CpuBaseClock = src.CpuBaseClock;
+        dst.CpuMaxClock = src.CpuMaxClock;
+        dst.CpuL2Cache = src.CpuL2Cache;
+        dst.CpuL3Cache = src.CpuL3Cache;
+        dst.CpuArchitecture = src.CpuArchitecture;
+        dst.CpuSocket = src.CpuSocket;
         dst.GpuModel = src.GpuModel;
         dst.GpuUsage = src.GpuUsage;
         dst.GpuTemp = src.GpuTemp;
         dst.GpuHotspotTemp = src.GpuHotspotTemp;
         dst.GpuVoltage = src.GpuVoltage;
         dst.GpuPower = src.GpuPower;
+        dst.GpuCoreClockMhz = src.GpuCoreClockMhz;
+        dst.GpuMemoryClockMhz = src.GpuMemoryClockMhz;
+        dst.GpuMemoryTotalMb = src.GpuMemoryTotalMb;
+        dst.GpuMemoryUsedMb = src.GpuMemoryUsedMb;
+        dst.GpuManufacturer = src.GpuManufacturer;
+        dst.GpuDriverVersion = src.GpuDriverVersion;
+        dst.GpuMemoryType = src.GpuMemoryType;
+        dst.GpuClocks = new List<SensorReading>(src.GpuClocks);
+        dst.GpuFanSpeeds = new List<SensorReading>(src.GpuFanSpeeds);
         dst.MotherboardModel = src.MotherboardModel;
         dst.MotherboardTemp = src.MotherboardTemp;
         dst.MotherboardVrmTemp = src.MotherboardVrmTemp;
         dst.MotherboardVoltage = src.MotherboardVoltage;
+        dst.MotherboardChipsetTemp = src.MotherboardChipsetTemp;
+        dst.MotherboardSocketTemp = src.MotherboardSocketTemp;
+        dst.MotherboardPcieTemp = src.MotherboardPcieTemp;
+        dst.Voltage12V = src.Voltage12V;
+        dst.Voltage5V = src.Voltage5V;
+        dst.Voltage33V = src.Voltage33V;
+        dst.Voltage5Vsb = src.Voltage5Vsb;
+        dst.VoltageDram = src.VoltageDram;
+        dst.VoltageCmosBattery = src.VoltageCmosBattery;
+        dst.VoltageCpuSoc = src.VoltageCpuSoc;
+        dst.MbBiosVersion = src.MbBiosVersion;
+        dst.MbBiosDate = src.MbBiosDate;
+        dst.MbSerialNumber = src.MbSerialNumber;
+        dst.MbTemperatures = new List<SensorReading>(src.MbTemperatures);
+        dst.MbVoltages = new List<SensorReading>(src.MbVoltages);
+        dst.MbFanDuties = new List<FanInfo>(src.MbFanDuties);
     }
 
     // ===== Game Detection =====
@@ -296,10 +333,16 @@ public class HardwareMonitorService
             {
                 s.TotalRam = Math.Round(Convert.ToDouble(os["TotalVisibleMemorySize"]) * 1024 / 1073741824, 1);
                 s.UsedRam = Math.Round(s.TotalRam - Convert.ToDouble(os["FreePhysicalMemory"]) * 1024 / 1073741824, 1);
+                s.RamFree = Math.Round(Convert.ToDouble(os["FreePhysicalMemory"]) * 1024 / 1073741824, 1);
+                if (os["TotalVirtualMemorySize"] != null)
+                    s.RamVirtualTotal = Math.Round(Convert.ToDouble(os["TotalVirtualMemorySize"]) * 1024 / 1073741824, 1);
+                if (os["FreeVirtualMemory"] != null)
+                    s.RamVirtualUsed = Math.Round(s.RamVirtualTotal - Convert.ToDouble(os["FreeVirtualMemory"]) * 1024 / 1073741824, 1);
             }
 
             using var mem = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory").Get();
             var modules = mem.Cast<ManagementObject>().ToList();
+            s.RamModules.Clear();
             if (modules.Count > 0)
             {
                 var first = modules[0];
@@ -309,6 +352,119 @@ public class HardwareMonitorService
                 s.RamModuleSize = Math.Round(Convert.ToDouble(first["Capacity"]) / 1073741824, 0);
                 if (first["ConfiguredVoltage"] != null)
                     s.RamVoltage = Math.Round(Convert.ToDouble(first["ConfiguredVoltage"]) / 1000.0, 1);
+                if (first["MaxSpeed"] != null)
+                    s.RamMaxSpeed = Convert.ToInt32(first["MaxSpeed"]);
+
+                var memType = Convert.ToInt32(first["MemoryType"] ?? 0);
+                s.RamType = memType switch
+                {
+                    20 => "DDR", 21 => "DDR2", 22 => "DDR2 FB-DIMM", 24 => "DDR3",
+                    25 => "FBD2", 26 => "DDR4", 27 => "LPDDR", 28 => "LPDDR2",
+                    29 => "LPDDR3", 30 => "LPDDR4", 31 => "DDR5", 32 => "LPDDR5",
+                    _ => $"Tipo {memType}"
+                };
+
+                var ff = Convert.ToInt32(first["FormFactor"] ?? 0);
+                s.RamFormFactor = ff switch
+                {
+                    8 => "DIMM", 10 => "SODIMM", 12 => "ROW", 13 => "LIP",
+                    _ => $"FF {ff}"
+                };
+
+                for (int i = 0; i < modules.Count; i++)
+                {
+                    var m = modules[i];
+                    var mod = new RamModuleInfo
+                    {
+                        Slot = m["DeviceLocator"]?.ToString() ?? $"Slot {i + 1}",
+                        Manufacturer = m["Manufacturer"]?.ToString()?.Trim() ?? "",
+                        PartNumber = m["PartNumber"]?.ToString()?.Trim() ?? "",
+                        CapacityGb = Math.Round(Convert.ToDouble(m["Capacity"] ?? 0) / 1073741824, 0),
+                        SpeedMHz = Convert.ToInt32(m["ConfiguredClockSpeed"] ?? 0),
+                        MaxSpeedMHz = Convert.ToInt32(m["MaxSpeed"] ?? 0),
+                        FormFactor = s.RamFormFactor,
+                        MemoryType = s.RamType
+                    };
+                    if (m["ConfiguredVoltage"] != null)
+                        mod.VoltageV = Math.Round(Convert.ToDouble(m["ConfiguredVoltage"]) / 1000.0, 1);
+                    s.RamModules.Add(mod);
+                }
+            }
+        }
+        catch { }
+
+        // WMI CPU detailed info
+        try
+        {
+            using var cpuWmi = new ManagementObjectSearcher("SELECT * FROM Win32_Processor").Get().Cast<ManagementObject>().FirstOrDefault();
+            if (cpuWmi != null)
+            {
+                s.CpuManufacturer = cpuWmi["Manufacturer"]?.ToString() ?? "";
+                s.CpuCoresPhysical = Convert.ToInt32(cpuWmi["NumberOfCores"] ?? 0);
+                s.CpuThreads = Convert.ToInt32(cpuWmi["NumberOfLogicalProcessors"] ?? 0);
+                if (cpuWmi["MaxClockSpeed"] != null)
+                    s.CpuMaxClock = Math.Round(Convert.ToDouble(cpuWmi["MaxClockSpeed"]) / 1000.0, 2);
+                if (cpuWmi["CurrentClockSpeed"] != null)
+                    s.CpuBaseClock = Math.Round(Convert.ToDouble(cpuWmi["CurrentClockSpeed"]) / 1000.0, 2);
+                if (cpuWmi["L2CacheSize"] != null)
+                    s.CpuL2Cache = Math.Round(Convert.ToDouble(cpuWmi["L2CacheSize"]) / 1024.0, 0);
+                if (cpuWmi["L3CacheSize"] != null)
+                    s.CpuL3Cache = Math.Round(Convert.ToDouble(cpuWmi["L3CacheSize"]) / 1024.0, 0);
+                s.CpuSocket = cpuWmi["SocketDesignation"]?.ToString() ?? "";
+                var arch = Convert.ToInt32(cpuWmi["Architecture"] ?? 0);
+                s.CpuArchitecture = arch switch
+                {
+                    0 => "x86", 9 => "x64", 12 => "ARM64",
+                    _ => $"Arch {arch}"
+                };
+            }
+        }
+        catch { }
+
+        // WMI GPU detailed info
+        try
+        {
+            using var gpuWmi = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController").Get().Cast<ManagementObject>().FirstOrDefault();
+            if (gpuWmi != null)
+            {
+                s.GpuDriverVersion = gpuWmi["DriverVersion"]?.ToString() ?? "";
+                if (gpuWmi["AdapterRAM"] != null)
+                {
+                    var vramBytes = Convert.ToDouble(gpuWmi["AdapterRAM"]);
+                    if (s.GpuMemoryTotalMb <= 0 && vramBytes > 0)
+                        s.GpuMemoryTotalMb = Math.Round(vramBytes / 1048576.0, 0);
+                }
+                s.GpuMemoryType = gpuWmi["VideoProcessor"]?.ToString() ?? "";
+                var manufacturer = gpuWmi["AdapterCompatibility"]?.ToString() ?? "";
+                if (!string.IsNullOrEmpty(manufacturer))
+                    s.GpuManufacturer = manufacturer;
+                else
+                {
+                    if (s.GpuModel.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase)) s.GpuManufacturer = "NVIDIA";
+                    else if (s.GpuModel.Contains("AMD", StringComparison.OrdinalIgnoreCase) || s.GpuModel.Contains("Radeon", StringComparison.OrdinalIgnoreCase)) s.GpuManufacturer = "AMD";
+                    else if (s.GpuModel.Contains("Intel", StringComparison.OrdinalIgnoreCase)) s.GpuManufacturer = "Intel";
+                }
+            }
+        }
+        catch { }
+
+        // WMI Motherboard info (BIOS, serial)
+        try
+        {
+            using var biosSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_BIOS");
+            foreach (ManagementObject obj in biosSearcher.Get())
+            {
+                s.MbBiosVersion = obj["SMBIOSBIOSVersion"]?.ToString() ?? obj["Version"]?.ToString() ?? "";
+                s.MbBiosDate = obj["ReleaseDate"]?.ToString() ?? "";
+                break;
+            }
+            using var boardSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_BaseBoard");
+            foreach (ManagementObject obj in boardSearcher.Get())
+            {
+                s.MbSerialNumber = obj["SerialNumber"]?.ToString() ?? "";
+                if (string.IsNullOrEmpty(s.MotherboardModel))
+                    s.MotherboardModel = obj["Product"]?.ToString() ?? obj["Manufacturer"]?.ToString() ?? "";
+                break;
             }
         }
         catch { }
@@ -522,6 +678,12 @@ public class HardwareMonitorService
 
     // ===== LHM Data Collection =====
     
+    private static int ExtractCoreNumber(string name)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(name, @"\d+");
+        return match.Success ? int.Parse(match.Value) : 0;
+    }
+
     private void CollectFromLhm(HardwareStats s)
     {
         _lhm.Update();
@@ -532,7 +694,6 @@ public class HardwareMonitorService
         {
             s.CpuModel = cpu.Name;
 
-            // Detect CPU architecture for sensor mapping (once)
             if (!_cpuDetected)
             {
                 _cpuMapping.DetectCpuArchitecture(cpu.Name);
@@ -542,11 +703,8 @@ public class HardwareMonitorService
             var cpuLoad = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Load && s.Name.Contains("CPU Total"));
             if (cpuLoad != null) s.CpuUsage = cpuLoad.Value ?? 0;
 
-            // Temperature - use mapping with fallbacks
             var tempSensorName = _cpuMapping.GetTempSensorName();
             var cpuTemp = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Name == tempSensorName);
-            
-            // Try fallbacks if primary not found
             if (cpuTemp == null)
             {
                 foreach (var fallback in _cpuMapping.GetTempFallbacks())
@@ -555,20 +713,12 @@ public class HardwareMonitorService
                     if (cpuTemp != null) break;
                 }
             }
-            
-            // Generic fallback - any temperature sensor with value > 0
             if (cpuTemp == null)
                 cpuTemp = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Temperature && s.Value > 0);
-            
             if (cpuTemp != null)
                 s.CpuTemp = Math.Round(cpuTemp.Value ?? 0, 1);
 
-            // Core temperature: find hottest individual core or CCD sensor
             var allTempSensors = cpu.Sensors.Where(s => s.SensorType == SensorType.Temperature).ToList();
-
-            // AMD: CCD sensors are the real core temps (CCD1 (Tdie), CCD2 (Tdie), etc.)
-            // Intel: Core #0, Core #1, etc.
-            // Exclude "Core (Tctl/Tdie)" which is package-level on AMD
             var coreSensors = allTempSensors
                 .Where(s => s.Value > 0
                     && (s.Name.Contains("CCD") || s.Name.StartsWith("Core #"))
@@ -580,7 +730,6 @@ public class HardwareMonitorService
                 s.CpuTemp = Math.Round(maxCore, 1);
             }
 
-            // Package temp: "Core (Tctl/Tdie)" on AMD, "CPU Package" on Intel
             var pkgTemp = allTempSensors.FirstOrDefault(s => s.Name.Contains("Tctl"));
             if (pkgTemp == null)
                 pkgTemp = allTempSensors.FirstOrDefault(s => s.Name.Contains("Package"));
@@ -589,27 +738,57 @@ public class HardwareMonitorService
             else
                 s.CpuPackageTemp = s.CpuTemp;
 
-            // Voltage - use mapping
             var voltageSensorName = _cpuMapping.GetVoltageSensorName();
             var vcore = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Voltage && s.Name == voltageSensorName);
-            
-            // Generic fallback
             if (vcore == null)
                 vcore = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Voltage && s.Value > 0);
-            
             if (vcore != null) s.CpuVoltage = Math.Round(vcore.Value ?? 0, 3);
 
-            // Power - use mapping
             var powerSensorName = _cpuMapping.GetPowerSensorName();
             var cpuPower = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Power && s.Name == powerSensorName);
-            
-            // Generic fallback
             if (cpuPower == null)
                 cpuPower = cpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Power);
-            
             if (cpuPower != null) s.CpuPower = Math.Round(cpuPower.Value ?? 0, 1);
 
             s.CpuCores = cpu.Sensors.Count(s => s.SensorType == SensorType.Temperature && s.Name.Contains("Core"));
+
+            // Per-core loads
+            var perCoreLoads = cpu.Sensors
+                .Where(s => s.SensorType == SensorType.Load && s.Name.StartsWith("CPU Core"))
+                .OrderBy(s => ExtractCoreNumber(s.Name))
+                .ToList();
+            foreach (var cl in perCoreLoads)
+                s.CpuCoreLoads.Add(new SensorReading { Name = cl.Name, Value = Math.Round(cl.Value ?? 0, 0), Unit = "%" });
+
+            // Per-core temps
+            var perCoreTemps = cpu.Sensors
+                .Where(s => s.SensorType == SensorType.Temperature
+                    && (s.Name.StartsWith("Core #") || s.Name.Contains("CCD"))
+                    && s.Value > 0)
+                .OrderBy(s => ExtractCoreNumber(s.Name))
+                .ToList();
+            foreach (var ct in perCoreTemps)
+                s.CpuCoreTemps.Add(new SensorReading { Name = ct.Name, Value = Math.Round(ct.Value ?? 0, 1), Unit = "°C" });
+
+            // Per-core clocks
+            var allClockSensors = cpu.Sensors
+                .Where(s => s.SensorType == SensorType.Clock && s.Value > 0)
+                .OrderBy(s => s.Name)
+                .ToList();
+            var perCoreClocks = allClockSensors
+                .Where(s => s.Name.StartsWith("CPU Core"))
+                .OrderBy(s => ExtractCoreNumber(s.Name))
+                .ToList();
+            if (perCoreClocks.Count == 0 && allClockSensors.Count > 0)
+            {
+                foreach (var ck in allClockSensors)
+                    s.CpuCoreClocks.Add(new SensorReading { Name = ck.Name, Value = Math.Round(ck.Value ?? 0, 0), Unit = "MHz" });
+            }
+            else
+            {
+                foreach (var ck in perCoreClocks)
+                    s.CpuCoreClocks.Add(new SensorReading { Name = ck.Name, Value = Math.Round(ck.Value ?? 0, 0), Unit = "MHz" });
+            }
         }
 
         // GPU
@@ -637,6 +816,28 @@ public class HardwareMonitorService
 
             var gpuPower = gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Power);
             if (gpuPower != null) s.GpuPower = Math.Round(gpuPower.Value ?? 0, 1);
+
+            // GPU clocks
+            var gpuCoreClock = gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("Core"));
+            if (gpuCoreClock != null) s.GpuCoreClockMhz = Math.Round(gpuCoreClock.Value ?? 0, 0);
+            var gpuMemClock = gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Clock && s.Name.Contains("Memory"));
+            if (gpuMemClock != null) s.GpuMemoryClockMhz = Math.Round(gpuMemClock.Value ?? 0, 0);
+
+            // GPU memory used/total
+            var gpuMemUsed = gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("GPU Memory Used"));
+            if (gpuMemUsed != null) s.GpuMemoryUsedMb = Math.Round(gpuMemUsed.Value ?? 0, 0);
+            var gpuMemTotal = gpu.Sensors.FirstOrDefault(s => s.SensorType == SensorType.Data && s.Name.Contains("GPU Memory Total"));
+            if (gpuMemTotal != null) s.GpuMemoryTotalMb = Math.Round(gpuMemTotal.Value ?? 0, 0);
+
+            // GPU fan speeds
+            var gpuFans = gpu.Sensors.Where(s => s.SensorType == SensorType.Fan).ToList();
+            foreach (var fan in gpuFans)
+                s.GpuFanSpeeds.Add(new SensorReading { Name = fan.Name, Value = Math.Round(fan.Value ?? 0, 0), Unit = "RPM" });
+
+            // All GPU clocks
+            var gpuClocks = gpu.Sensors.Where(s => s.SensorType == SensorType.Clock && s.Value > 0).ToList();
+            foreach (var clk in gpuClocks)
+                s.GpuClocks.Add(new SensorReading { Name = clk.Name, Value = Math.Round(clk.Value ?? 0, 0), Unit = "MHz" });
         }
 
         // Motherboard
@@ -645,37 +846,83 @@ public class HardwareMonitorService
         {
             s.MotherboardModel = mb.Name;
 
-            // Detect motherboard for mapping (once)
             if (!_motherboardDetected)
             {
                 _mapping.DetectMotherboard(mb.Name);
                 _motherboardDetected = true;
             }
             
-            var mbTemps = mb.SubHardware
+            // ALL temperatures from SuperIO
+            var allMbTemps = mb.SubHardware
                 .SelectMany(sub => sub.Sensors)
                 .Where(s => s.SensorType == SensorType.Temperature && s.Value > 0 && s.Value < 120)
                 .ToList();
-            
-            if (mbTemps.Count > 0)
-            {
-                var vrmTemp = mbTemps.FirstOrDefault(s => s.Name.Contains("VRM") || s.Name.Contains("PWM") || s.Name.Contains("MOS"));
-                if (vrmTemp != null) s.MotherboardVrmTemp = Math.Round(vrmTemp.Value ?? 0, 1);
 
-                var mbTemp = mbTemps.FirstOrDefault(s => !s.Name.Contains("VRM") && !s.Name.Contains("PWM") && !s.Name.Contains("MOS"));
-                if (mbTemp != null) s.MotherboardTemp = Math.Round(mbTemp.Value ?? 0, 1);
+            foreach (var t in allMbTemps)
+            {
+                var name = _mapping.MapTemperatureName(t.Name);
+                s.MbTemperatures.Add(new SensorReading { Name = name, Value = Math.Round(t.Value ?? 0, 1), Unit = "°C" });
+
+                if (name.Contains("VRM") || name.Contains("PWM") || name.Contains("MOS"))
+                    s.MotherboardVrmTemp = Math.Round(t.Value ?? 0, 1);
+                else if (name.Contains("Chipset") || name.Contains("PCH"))
+                    s.MotherboardChipsetTemp = Math.Round(t.Value ?? 0, 1);
+                else if (name.Contains("Socket") || name.Contains("CPU"))
+                    s.MotherboardSocketTemp = Math.Round(t.Value ?? 0, 1);
+                else if (name.Contains("PCI"))
+                    s.MotherboardPcieTemp = Math.Round(t.Value ?? 0, 1);
+                else if (s.MotherboardTemp == 0)
+                    s.MotherboardTemp = Math.Round(t.Value ?? 0, 1);
             }
 
-            var vcore = mb.SubHardware
+            // ALL voltages from SuperIO
+            var allMbVoltages = mb.SubHardware
                 .SelectMany(sub => sub.Sensors)
-                .FirstOrDefault(s => s.SensorType == SensorType.Voltage && s.Name.Contains("Vcore"));
-            if (vcore != null) s.MotherboardVoltage = Math.Round(vcore.Value ?? 0, 3);
+                .Where(s => s.SensorType == SensorType.Voltage && s.Value > 0)
+                .ToList();
+
+            foreach (var v in allMbVoltages)
+            {
+                var name = _mapping.MapVoltageName(v.Name);
+                var val = Math.Round(v.Value ?? 0, 3);
+                s.MbVoltages.Add(new SensorReading { Name = name, Value = val, Unit = "V" });
+
+                if (name.Contains("Vcore"))
+                    s.MotherboardVoltage = val;
+                else if (name.Contains("+12V") || name.Contains("12V"))
+                    s.Voltage12V = val;
+                else if (name.Contains("+5V") && !name.Contains("SB"))
+                    s.Voltage5V = val;
+                else if (name.Contains("+3.3V") || name.Contains("3VCC") || name.Contains("AVCC"))
+                    s.Voltage33V = val;
+                else if (name.Contains("5VSB") || name.Contains("Standby"))
+                    s.Voltage5Vsb = val;
+                else if (name.Contains("DRAM") || name.Contains("DIMM"))
+                    s.VoltageDram = val;
+                else if (name.Contains("CMOS") || name.Contains("Battery") || name.Contains("VBAT"))
+                    s.VoltageCmosBattery = val;
+                else if (name.Contains("SoC") || name.Contains("NB"))
+                    s.VoltageCpuSoc = val;
+            }
+
+            // Fan duty cycles
+            foreach (var sub in mb.SubHardware)
+            {
+                foreach (var ctrl in sub.Sensors.Where(s => s.SensorType == SensorType.Control))
+                {
+                    var dutyName = ctrl.Name.Replace("Control for ", "").Replace("Duty Cycle# ", "Fan ");
+                    s.MbFanDuties.Add(new FanInfo
+                    {
+                        Name = _mapping.MapFanName(dutyName),
+                        DutyPercent = Math.Round(ctrl.Value ?? 0, 1)
+                    });
+                }
+            }
         }
 
         // Fans - collect from all hardware
         var fans = new List<FanInfo>();
         
-        // GPU fans
         foreach (var hw in _lhm.GetHardware(HardwareType.GpuNvidia).Concat(_lhm.GetHardware(HardwareType.GpuAmd)))
         {
             foreach (var sensor in hw.Sensors.Where(s => s.SensorType == SensorType.Fan && s.Value > 0))
@@ -684,7 +931,6 @@ public class HardwareMonitorService
             }
         }
 
-        // Motherboard fans (from SuperIO/SubHardware)
         if (mb != null)
         {
             foreach (var sub in mb.SubHardware)
