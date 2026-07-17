@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-07-17 — Melhoria: Verificacao de dependencias no instalador
+
+### Arquivos modificados
+- `installer.iss` — Reescrito script [Code] com verificacoes de dependencias
+
+### O que mudou
+- **Verificacao de .NET 8 Desktop Runtime** — Executa `dotnet --list-runtimes` antes da instalacao. Se ausente, pergunta se quer baixar
+- **Verificacao de WebView2 Runtime** — Verifica registro Windows (HKLM/HKCU) para a chave do EdgeUpdate. Se ausente, pergunta se quer baixar
+- Funcoes `IsDotNet8Installed` e `IsWebView2Installed` usadas em `PrepareToInstall`
+- Downloads apontam para URLs oficiais da Microsoft
+
+### Motivo
+Amigos tiveram erros de runtime ao testar versoes anteriores (2.11) porque .NET 8 Runtime nao estava instalado. O instalador antigo so verificava DEPOIS da instalacao e so abria o navegador sem orientacao clara.
+
+### Impacto
+- Usuarios sem .NET 8 receberao aviso antes de instalar
+- Usuarios sem WebView2 receberao aviso antes de instalar
+- Menos erros de runtime pos-instalacao
+
+---
+
 ## 2026-07-17 — Feature: AdSense na Sidebar (WebView2 + HTML)
 
 ### Arquivos criados

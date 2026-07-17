@@ -120,6 +120,7 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.19.1.0 | 17/07/2026 | Melhoria no instalador - verificacao de dependencias (.NET 8 Desktop Runtime + WebView2 Runtime) antes da instalacao com opcao de download automatico |
 | 2.19.0.0 | 17/07/2026 | AdSense na sidebar (WebView2 + HTML responsivo) — banner 160x300 entre navegacao e Adicionar Jogo, encolhe junto com sidebar (56x100 quando recolhida), placeholder HTML com JS responsivo via resize observer |
 | 2.18.3.0 | 16/07/2026 | Fix layout dos detalhes do monitor (2 colunas) - reescrita do sistema de grid responsivo com AddDetailRow/AddSectionLabel; remocao do contador estatico _detailRow; deteccao de full-span para evitar sobreposicao de section labels |
 | 2.18.2.0 | 14/07/2026 | Fix crash MSIX Store (0xc000027b) - deteccao de contexto MSIX e bypass de elevacao UAC; fix popup de conquistas nao aparecia (GC da AchievementNotificationWindow); logo real na sidebar ao inves de texto; remocao da aba Conquistas da sidebar |

@@ -52,7 +52,7 @@ public sealed partial class Sidebar : UserControl
         logoRow.Children.Add(logoImage);
         _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
         _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
-        _logo.Children.Add(new TextBlock { Text = "v2.19.0.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        _logo.Children.Add(new TextBlock { Text = "v2.19.1.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
         logoRow.Children.Add(_logo);
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
