@@ -61,5 +61,8 @@
     <Content Include="Assets\ad.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\logo.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="config\gamepad-layout.json" /></ItemGroup>
 </Project>

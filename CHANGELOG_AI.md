@@ -2,6 +2,24 @@
 
 ---
 
+## 2026-07-17 — Atualizacao: Pagina promocional na sidebar
+
+### Arquivos modificados
+- `Assets/ad.html` — Substituido placeholder por pagina promocional completa do E.M.E Core
+- `Views/Sidebar.xaml.cs` — Mudado de `NavigateToString` para `CoreWebView2.Navigate(fileUri)` para URLs relativas funcionarem
+- `EMECore.WinUI.csproj` — Adicionado `logo.png` ao output
+
+### O que mudou
+- Pagina promocional com logo, stats (100% Offline, WinUI Nativo), 3 feature cards (Scanner, Monitor, Conquistas) e botao de download
+- Logo carrega localmente (sem dependencia externa)
+- Layout responsivo com CSS media query para sidebar recolhida (`@media max-width: 80px`)
+- Carregamento via file URI em vez de NavigateToString
+
+### Motivo
+Substituir o placeholder "Espaco reservado para anuncio" pela pagina promocional real do E.M.E Core criada pelo usuario.
+
+---
+
 ## 2026-07-17 — Melhoria: Verificacao de dependencias no instalador
 
 ### Arquivos modificados

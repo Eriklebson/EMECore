@@ -52,7 +52,7 @@ public sealed partial class Sidebar : UserControl
         logoRow.Children.Add(logoImage);
         _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
         _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
-        _logo.Children.Add(new TextBlock { Text = "v2.19.1.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        _logo.Children.Add(new TextBlock { Text = "v2.19.2.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
         logoRow.Children.Add(_logo);
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
@@ -119,8 +119,8 @@ public sealed partial class Sidebar : UserControl
                 var adPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "ad.html");
                 if (System.IO.File.Exists(adPath))
                 {
-                    var html = System.IO.File.ReadAllText(adPath);
-                    _adWeb.NavigateToString(html);
+                    var uri = new Uri(adPath);
+                    _adWeb.CoreWebView2.Navigate(uri.AbsoluteUri);
                 }
             }
             catch { }
