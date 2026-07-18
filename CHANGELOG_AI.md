@@ -2,6 +2,42 @@
 
 ---
 
+## 2026-07-17 — Feature: Servidor WebSocket para App Mobile (Controle Remoto)
+
+### Arquivos criados
+- `EMECore.Hardware/Services/MobileServerService.cs` — Servidor WebSocket para comunicação com app mobile Flutter
+
+### Arquivos modificados
+- `EMECore.Hardware/EMECore.Hardware.csproj` — Adicionado pacote NuGet `Fleck` v1.2.0
+- `EMECore.WinUI/MainWindow.xaml.cs` — Integrado `MobileServerService` (iniciar/parar automaticamente)
+- `EMECore.WinUI/ViewModels/MainViewModel.cs` — Adicionado método `GetDatabaseService()` para acesso do servidor
+
+### O que mudou
+- **Servidor WebSocket** escutando na porta `8181` (configurável via settings)
+- Inicia automaticamente quando o app abre, para quando fecha
+- **Broadcast de hardware** a cada 1 segundo para todos os clientes conectados
+- **Comandos suportados:**
+  - `get_hardware` — Stats de hardware em tempo real
+  - `get_games` — Lista completa de jogos
+  - `launch_game` — Lançar jogo remotamente por ID
+  - `get_achievements` — Conquistas de um jogo específico
+  - `ping/pong` — Keep-alive
+- **Gerenciamento de clientes:** `ConcurrentDictionary` com limpeza automática de clientes desconectados
+- **Configurações:** `mobile_server_enabled` (True/False) e `mobile_server_port` (8181)
+- **Protocolo JSON** bidirecional: desktop envia `hardware_stats` a cada 1s, mobile envia comandos
+- IP local detectado automaticamente para exibição no log
+
+### Motivo
+Preparar a infraestrutura de rede para o futuro app mobile Flutter que funcionará como controle remoto do PC. O servidor roda dentro do desktop (sem segundo processo) e expõe dados de hardware, jogos e conquistas via WebSocket.
+
+### Impacto
+- Nenhum impacto no desempenho do desktop (timer de 1s em background thread)
+- Porta 8181 pode precisar de permissão no firewall para conexões externas
+- Pode ser desativado via settings (`mobile_server_enabled = False`)
+- Pronto para conexão do app Flutter (EMECoreMobile)
+
+---
+
 ## 2026-07-17 — Atualizacao: Pagina promocional na sidebar
 
 ### Arquivos modificados

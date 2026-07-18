@@ -158,3 +158,61 @@ A navegacao e controlada por `MainViewModel.CurrentPage` (string):
 - `"addgame"` → `AddGamePage` visivel
 
 `MainWindow.ViewModel_PropertyChanged` observa mudancas em `CurrentPage` e ajusta `Visibility` das pages.
+
+---
+
+## Servidor Mobile (WebSocket)
+
+### Visao Geral
+
+O `MobileServerService` roda dentro do EMECore desktop e fornece uma API WebSocket para o app mobile Flutter (EMECoreMobile).
+
+### Arquivos
+- `EMECore.Hardware/Services/MobileServerService.cs` — Servidor WebSocket
+- `Fleck` v1.2.0 — Biblioteca WebSocket (zero dependencias)
+
+### Inicializacao
+```
+MainWindow_Activated
+  └── StartMobileServer()
+        ├── Le settings (mobile_server_enabled, mobile_server_port)
+        ├── Cria HardwareMonitorService dedicado
+        ├── Cria MobileServerService(port)
+        └── Start(monitor, database)
+```
+
+### Protocolo JSON
+
+**Desktop → Mobile:**
+```json
+{
+  "type": "hardware_stats",
+  "timestamp": 1234567890,
+  "data": {
+    "cpu": { "usage": 45, "temp": 65, "model": "..." },
+    "gpu": { "usage": 80, "temp": 72, "model": "..." },
+    "ram": { "usedGb": 12.5, "totalGb": 32, "percent": 39 },
+    "fps": { "current": 120, "low1": 90 }
+  }
+}
+```
+
+**Mobile → Desktop:**
+```json
+{ "type": "get_hardware" }
+{ "type": "get_games" }
+{ "type": "launch_game", "gameId": "abc123" }
+{ "type": "get_achievements", "gameId": "abc123" }
+{ "type": "ping" }
+```
+
+### Configuracoes
+| Key | Default | Descricao |
+|-----|---------|-----------|
+| `mobile_server_enabled` | `True` | Habilita/desabilita o servidor |
+| `mobile_server_port` | `8181` | Porta do WebSocket |
+
+### Portas e Firewall
+- Servidor escuta em `0.0.0.0:8181` (todas as interfaces)
+- Para conexoes locais (mesmo PC), nao precisa de firewall
+- Para conexoes de outros dispositivos na rede, pode ser necessario liberar a porta 8181

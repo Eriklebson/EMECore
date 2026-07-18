@@ -37,6 +37,7 @@ public sealed partial class MainWindow : Window
     private List<Achievement>? _lastAchievements;
     private MonitorWindow? _monitorWindow;
     private Game? _monitoredGame;
+    private MobileServerService? _mobileServer;
 
     public MainWindow()
     {
@@ -161,6 +162,7 @@ public sealed partial class MainWindow : Window
                 SettingsService.Set("window_x", aw.Position.X.ToString());
                 SettingsService.Set("window_y", aw.Position.Y.ToString());
             } catch { }
+            _mobileServer?.Dispose();
             _saveMonitor.Dispose();
             _monitorWindow?.Close();
             try { ViewModel.CloseDatabaseSync(); } catch { }
@@ -175,6 +177,8 @@ public sealed partial class MainWindow : Window
         };
 
         this.Activated += MainWindow_Activated;
+
+        StartMobileServer();
     }
 
     private async void MainWindow_Activated(object sender, WindowActivatedEventArgs args)
@@ -245,6 +249,26 @@ public sealed partial class MainWindow : Window
         };
 
         _saveMonitor.OnAchievementUnlocked += OnAchievementUnlocked;
+    }
+
+    private void StartMobileServer()
+    {
+        var enabled = SettingsService.Get("mobile_server_enabled", "True");
+        if (enabled != "True") return;
+
+        var portStr = SettingsService.Get("mobile_server_port", "8181");
+        if (!int.TryParse(portStr, out var port)) port = 8181;
+
+        _mobileServer = new MobileServerService(port);
+        _mobileServer.Log += msg => System.Diagnostics.Debug.WriteLine(msg);
+        _mobileServer.ClientCountChanged += count =>
+        {
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                System.Diagnostics.Debug.WriteLine($"[MobileServer] Clients: {count}");
+            });
+        };
+        _mobileServer.Start(ViewModel.GetDatabaseService());
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

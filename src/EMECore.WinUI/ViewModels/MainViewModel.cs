@@ -73,6 +73,11 @@ public partial class MainViewModel : ObservableObject
         _databaseService.CloseSync();
     }
 
+    public IDatabaseService GetDatabaseService()
+    {
+        return _databaseService;
+    }
+
     public async Task CloseDatabaseAsync()
     {
         await _databaseService.CloseAsync();

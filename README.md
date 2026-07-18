@@ -28,6 +28,7 @@
 | **Filtro Inteligente** | Ignora automaticamente uninstallers, redistributiveis, crash handlers e outros nao-jogos | ✅ |
 | **100% Offline** | Banco SQLite local, sem dependencia de nuvem | ✅ |
 | **Nativo Windows** | Aplicacao leve em C# WinUI 3, baixo consumo de RAM/CPU | ✅ |
+| **Servidor Mobile** | WebSocket para controle remoto via app Flutter | ✅ |
 
 ---
 
@@ -116,10 +117,27 @@ UI 100% em C# (sem XAML devido a incompatibilidade com .NET 10 SDK).
 
 ---
 
+## App Mobile (Controle Remoto)
+
+Servidor WebSocket integrado no desktop para comunicacao com app Flutter.
+
+| Configuracao | Valor Padrao |
+|-------------|--------------|
+| Porta | `8181` |
+| Habilitado | `True` |
+| Settings | `mobile_server_enabled`, `mobile_server_port` |
+
+**Comandos suportados:** `get_hardware`, `get_games`, `launch_game`, `get_achievements`, `ping`
+
+O app Flutter (EMECoreMobile) sera desenvolvido separadamente e se conecta ao IP do PC na porta 8181.
+
+---
+
 ## Versao
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.20.0.0 | 17/07/2026 | Servidor WebSocket para app mobile (controle remoto) — Fleck v1.2.0, porta 8181, broadcast hardware 1s, comandos get_games/launch_game/get_achievements, start/stop automatico com o app |
 | 2.19.2.0 | 17/07/2026 | Pagina promocional do E.M.E Core na sidebar (substitui placeholder AdSense) - layout com logo, stats, feature cards e botao de download; carregamento via file URI para URLs relativas funcionarem |
 | 2.19.1.0 | 17/07/2026 | Melhoria no instalador - verificacao de dependencias (.NET 8 Desktop Runtime + WebView2 Runtime) antes da instalacao com opcao de download automatico |
 | 2.19.0.0 | 17/07/2026 | AdSense na sidebar (WebView2 + HTML responsivo) — banner 160x300 entre navegacao e Adicionar Jogo, encolhe junto com sidebar (56x100 quando recolhida), placeholder HTML com JS responsivo via resize observer |
