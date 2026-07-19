@@ -20,6 +20,9 @@ public class MobileServerService : IDisposable
     private CancellationTokenSource? _httpCts;
     private HttpListener? _httpListener;
     private readonly SteamStoreService _steamStore = new();
+    private readonly HardwareMonitorService _monitor = new();
+    private HardwareStats? _lastWmiStats;
+    private DateTime _lastWmiRefresh = DateTime.MinValue;
     private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
     public const int BeaconPort = 8182;
@@ -186,8 +189,30 @@ public class MobileServerService : IDisposable
     {
         try
         {
-            var monitor = new HardwareMonitorService();
-            var stats = monitor.CollectFast();
+            var stats = _monitor.CollectFast();
+
+            if ((DateTime.UtcNow - _lastWmiRefresh).TotalSeconds >= 5)
+            {
+                _lastWmiStats = _monitor.Collect();
+                _lastWmiRefresh = DateTime.UtcNow;
+            }
+
+            if (_lastWmiStats != null)
+            {
+                stats.TotalRam = _lastWmiStats.TotalRam;
+                stats.UsedRam = _lastWmiStats.UsedRam;
+                stats.RamFree = _lastWmiStats.RamFree;
+                stats.RamModel = _lastWmiStats.RamModel;
+                stats.RamSpeed = _lastWmiStats.RamSpeed;
+                stats.RamType = _lastWmiStats.RamType;
+                stats.RamModuleCount = _lastWmiStats.RamModuleCount;
+                stats.RamModules = _lastWmiStats.RamModules;
+                stats.DiskUsagePercent = _lastWmiStats.DiskUsagePercent;
+                stats.Disks = _lastWmiStats.Disks;
+                stats.GpuDriverVersion = _lastWmiStats.GpuDriverVersion;
+                stats.GpuMemoryTotalMb = _lastWmiStats.GpuMemoryTotalMb;
+            }
+
             var json = JsonSerializer.Serialize(new
             {
                 type = "hardware_stats",
@@ -373,9 +398,9 @@ public class MobileServerService : IDisposable
             },
             ram = new
             {
-                usedGb = Math.Round(s.UsedRam / 1024.0, 1),
-                totalGb = Math.Round(s.TotalRam / 1024.0, 1),
-                freeGb = Math.Round(s.RamFree / 1024.0, 1),
+                usedGb = Math.Round(s.UsedRam, 1),
+                totalGb = Math.Round(s.TotalRam, 1),
+                freeGb = Math.Round(s.RamFree, 1),
                 percent = s.TotalRam > 0 ? Math.Round(s.UsedRam * 100.0 / s.TotalRam, 1) : 0,
                 speed = s.RamSpeed,
                 model = s.RamModel,
