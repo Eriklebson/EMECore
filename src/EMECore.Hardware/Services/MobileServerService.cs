@@ -13,13 +13,25 @@ public class MobileServerService : IDisposable
 {
     private WebSocketServer? _server;
     private IDatabaseService? _database;
+    private AchievementService? _achievementService;
     private readonly ConcurrentDictionary<Guid, IWebSocketConnection> _clients = new();
     private bool _disposed;
+    private CancellationTokenSource? _beaconCts;
+    private CancellationTokenSource? _httpCts;
+    private HttpListener? _httpListener;
+    private readonly SteamStoreService _steamStore = new();
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
+    public const int BeaconPort = 8182;
+    public const int ImagePort = 8183;
     public int Port { get; private set; }
     public bool IsRunning { get; private set; }
     public int ConnectedClients => _clients.Count;
     public string? LocalIp { get; private set; }
+
+    private string CoversCacheDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "EMECore", "CoverCache");
 
     public event Action<string>? Log;
     public event Action<int>? ClientCountChanged;
@@ -34,13 +46,16 @@ public class MobileServerService : IDisposable
     {
         Port = port;
         LocalIp = GetLocalIpAddress();
+        Log?.Invoke($"[MobileServer] IP Local: {LocalIp ?? "(nao detectado)"}");
     }
 
-    public void Start(IDatabaseService database)
+    public void Start(IDatabaseService database, AchievementService? achievementService = null)
     {
         if (IsRunning) return;
 
         _database = database;
+        _achievementService = achievementService;
+        LocalIp = GetLocalIpAddress() ?? LocalIp;
 
         var listenUrl = $"ws://0.0.0.0:{Port}";
         _server = new WebSocketServer(listenUrl);
@@ -55,6 +70,10 @@ public class MobileServerService : IDisposable
 
         IsRunning = true;
 
+        StartBeacon();
+        StartImageServer();
+        _ = PreloadCoversAsync();
+
         Log?.Invoke($"[MobileServer] Iniciado em {listenUrl}");
         if (LocalIp != null)
             Log?.Invoke($"[MobileServer] Conecte pelo IP: {LocalIp}:{Port}");
@@ -63,6 +82,9 @@ public class MobileServerService : IDisposable
     public void Stop()
     {
         if (!IsRunning) return;
+
+        StopBeacon();
+        StopImageServer();
 
         foreach (var client in _clients.Values)
         {
@@ -191,16 +213,26 @@ public class MobileServerService : IDisposable
         }
 
         var games = await _database.GetGamesAsync();
-        var gameList = games.Select(g => new
+
+        var coverTasks = games.Select(async g =>
         {
-            id = g.Id,
-            name = g.Name,
-            platform = g.Platform,
-            coverImage = g.CoverImage,
-            genre = g.Genre,
-            playTime = g.PlayTime,
-            lastPlayed = g.LastPlayed?.ToString("o"),
-            steamAppId = g.SteamAppId
+            var coverUrl = await ResolveCoverForMobileAsync(g);
+            var cachedUrl = await DownloadAndCacheCoverAsync(g.Id, coverUrl, g.Name);
+            return (Game: g, Cover: cachedUrl);
+        }).ToList();
+
+        var results = await Task.WhenAll(coverTasks);
+
+        var gameList = results.Select(r => new
+        {
+            id = r.Game.Id,
+            name = r.Game.Name,
+            platform = r.Game.Platform,
+            coverImage = r.Cover,
+            genre = r.Game.Genre,
+            playTime = r.Game.PlayTime,
+            lastPlayed = r.Game.LastPlayed?.ToString("o"),
+            steamAppId = r.Game.SteamAppId
         }).ToList();
 
         var json = JsonSerializer.Serialize(new
@@ -272,6 +304,19 @@ public class MobileServerService : IDisposable
         }
 
         var achievements = await _database.GetAchievementsAsync(gameId);
+
+        if (achievements.Count == 0 && _achievementService != null)
+        {
+            var game = await _database.GetGameAsync(gameId);
+            if (game != null)
+            {
+                Log?.Invoke($"[MobileServer] Coletando conquistas para '{game.Name}'...");
+                achievements = await _achievementService.GetAchievementsAsync(game);
+                if (achievements.Count > 0)
+                    Log?.Invoke($"[MobileServer] {achievements.Count} conquistas coletadas para '{game.Name}'");
+            }
+        }
+
         var achList = achievements.Select(a => new
         {
             apiname = a.Apiname,
@@ -390,6 +435,228 @@ public class MobileServerService : IDisposable
         SendToClient(socket, new { type = "error", message });
     }
 
+    private void StartBeacon()
+    {
+        _beaconCts?.Cancel();
+        _beaconCts = new CancellationTokenSource();
+        var token = _beaconCts.Token;
+
+        Task.Run(async () =>
+        {
+            using var udp = new UdpClient();
+            udp.EnableBroadcast = true;
+
+            var machineName = Environment.MachineName;
+            var beacon = JsonSerializer.Serialize(new
+            {
+                app = "EMECore",
+                ip = LocalIp,
+                port = Port,
+                name = machineName
+            });
+            var data = System.Text.Encoding.UTF8.GetBytes(beacon);
+            var endpoint = new IPEndPoint(IPAddress.Broadcast, BeaconPort);
+
+            Log?.Invoke($"[MobileServer] Beacon UDP ativo na porta {BeaconPort}");
+
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    await udp.SendAsync(data, data.Length, endpoint);
+                    await Task.Delay(2000, token);
+                }
+                catch (OperationCanceledException) { break; }
+                catch { await Task.Delay(5000, token); }
+            }
+        }, token);
+    }
+
+    private void StopBeacon()
+    {
+        _beaconCts?.Cancel();
+        _beaconCts?.Dispose();
+        _beaconCts = null;
+    }
+
+    private void StartImageServer()
+    {
+        try
+        {
+            Directory.CreateDirectory(CoversCacheDir);
+        }
+        catch { }
+
+        _httpCts?.Cancel();
+        _httpCts = new CancellationTokenSource();
+        var token = _httpCts.Token;
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                _httpListener = new HttpListener();
+                _httpListener.Prefixes.Add($"http://+:{ImagePort}/");
+                _httpListener.Start();
+
+                Log?.Invoke($"[MobileServer] Image server ativo na porta {ImagePort}");
+
+                while (!token.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var context = await _httpListener.GetContextAsync();
+                        _ = Task.Run(() => HandleImageRequest(context));
+                    }
+                    catch (ObjectDisposedException) { break; }
+                    catch (HttpListenerException) { break; }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log?.Invoke($"[MobileServer] Erro no image server: {ex.Message}");
+            }
+        }, token);
+    }
+
+    private void HandleImageRequest(HttpListenerContext context)
+    {
+        try
+        {
+            var path = context.Request.Url?.AbsolutePath?.TrimStart('/') ?? "";
+            var filePath = Path.Combine(CoversCacheDir, path);
+
+            if (File.Exists(filePath))
+            {
+                var ext = Path.GetExtension(filePath).ToLower();
+                var mime = ext switch
+                {
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".webp" => "image/webp",
+                    _ => "application/octet-stream"
+                };
+
+                context.Response.ContentType = mime;
+                context.Response.Headers.Add("Cache-Control", "public, max-age=86400");
+                using var fs = File.OpenRead(filePath);
+                fs.CopyTo(context.Response.OutputStream);
+            }
+            else
+            {
+                context.Response.StatusCode = 404;
+            }
+        }
+        catch { context.Response.StatusCode = 500; }
+        finally { context.Response.Close(); }
+    }
+
+    private void StopImageServer()
+    {
+        _httpCts?.Cancel();
+        _httpCts?.Dispose();
+        _httpCts = null;
+        try { _httpListener?.Stop(); } catch { }
+        try { _httpListener?.Close(); } catch { }
+        _httpListener = null;
+    }
+
+    private async Task PreloadCoversAsync()
+    {
+        try
+        {
+            await Task.Delay(2000);
+            if (_database == null) return;
+
+            var games = await _database.GetGamesAsync();
+            Log?.Invoke($"[MobileServer] Pre-cache: {games.Count} jogos para verificar");
+
+            var sem = new SemaphoreSlim(4);
+            var tasks = games.Select(async g =>
+            {
+                await sem.WaitAsync();
+                try
+                {
+                    var ext = ".jpg";
+                    var fileName = $"{g.Id}{ext}";
+                    var filePath = Path.Combine(CoversCacheDir, fileName);
+
+                    if (File.Exists(filePath)) return;
+
+                    var coverUrl = await ResolveCoverForMobileAsync(g);
+                    if (!string.IsNullOrEmpty(coverUrl))
+                        await DownloadAndCacheCoverAsync(g.Id, coverUrl, g.Name);
+                }
+                catch { }
+                finally { sem.Release(); }
+            });
+
+            await Task.WhenAll(tasks);
+            var cached = Directory.GetFiles(CoversCacheDir, "*.jpg").Length;
+            Log?.Invoke($"[MobileServer] Pre-cache concluido: {cached} capas em cache");
+        }
+        catch { }
+    }
+
+    private async Task<string> DownloadAndCacheCoverAsync(string gameId, string url, string gameName = "")
+    {
+        var ext = ".jpg";
+        var fileName = $"{gameId}{ext}";
+        var filePath = Path.Combine(CoversCacheDir, fileName);
+
+        if (File.Exists(filePath))
+        {
+            var fi = new FileInfo(filePath);
+            if (fi.Length > 8000)
+                return $"http://{LocalIp}:{ImagePort}/{fileName}";
+            else
+            {
+                try { File.Delete(filePath); } catch { }
+            }
+        }
+
+        if (string.IsNullOrEmpty(url))
+        {
+            Log?.Invoke($"[MobileServer] Sem capa: '{gameName}'");
+            return "";
+        }
+
+        var urlsToTry = new List<string> { url };
+
+        var steamMatch = System.Text.RegularExpressions.Regex.Match(url, @"/apps/(\d+)/");
+        if (steamMatch.Success)
+        {
+            var appId = steamMatch.Groups[1].Value;
+            var info = await _steamStore.GetStoreInfoAsync(appId);
+            if (info != null && !string.IsNullOrEmpty(info.HeaderImage) && info.HeaderImage != url)
+                urlsToTry.Add(info.HeaderImage);
+        }
+
+        foreach (var tryUrl in urlsToTry)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                using var response = await _http.GetAsync(tryUrl, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync(cts.Token);
+                    if (bytes.Length < 8000) continue;
+
+                    await File.WriteAllBytesAsync(filePath, bytes);
+                    Log?.Invoke($"[MobileServer] Capa: '{gameName}' -> {fileName} ({bytes.Length}b)");
+                    return $"http://{LocalIp}:{ImagePort}/{fileName}";
+                }
+            }
+            catch (TaskCanceledException) { }
+            catch (HttpRequestException) { }
+        }
+
+        Log?.Invoke($"[MobileServer] Sem capa: '{gameName}'");
+        return "";
+    }
+
     private static string? GetLocalIpAddress()
     {
         try
@@ -403,6 +670,58 @@ public class MobileServerService : IDisposable
         {
             return null;
         }
+    }
+
+    private async Task<string> ResolveCoverForMobileAsync(Game g)
+    {
+        var cover = g.CoverImage ?? "";
+
+        if (!string.IsNullOrEmpty(cover) && cover.StartsWith("http"))
+            return cover;
+
+        if (!string.IsNullOrEmpty(cover) && cover.StartsWith("file:///"))
+        {
+            var localPath = cover.Substring(8).Replace('/', '\\');
+            if (File.Exists(localPath))
+            {
+                try
+                {
+                    var fi = new FileInfo(localPath);
+                    if (fi.Length > 10240)
+                    {
+                        var ext = fi.Extension.ToLower();
+                        var fileName = $"{g.Id}{ext}";
+                        var destPath = Path.Combine(CoversCacheDir, fileName);
+                        File.Copy(localPath, destPath, true);
+                        return $"http://{LocalIp}:{ImagePort}/{fileName}";
+                    }
+                }
+                catch { }
+            }
+        }
+
+        if (!string.IsNullOrEmpty(g.SteamAppId))
+        {
+            var info = await _steamStore.GetStoreInfoAsync(g.SteamAppId);
+            if (info != null && !string.IsNullOrEmpty(info.HeaderImage))
+                return info.HeaderImage;
+        }
+
+        if (!string.IsNullOrEmpty(g.Name))
+        {
+            var appId = await _steamStore.SearchAppIdAsync(g.Name);
+            if (!string.IsNullOrEmpty(appId))
+            {
+                var info = await _steamStore.GetStoreInfoAsync(appId);
+                if (info != null && !string.IsNullOrEmpty(info.HeaderImage))
+                    return info.HeaderImage;
+            }
+
+            var encoded = Uri.EscapeDataString(g.Name);
+            return $"https://static-cdn.jtvnw.net/ttv-boxart/{encoded}-285x380.jpg";
+        }
+
+        return "";
     }
 
     public void Dispose()

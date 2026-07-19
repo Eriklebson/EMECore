@@ -268,7 +268,8 @@ public sealed partial class MainWindow : Window
                 System.Diagnostics.Debug.WriteLine($"[MobileServer] Clients: {count}");
             });
         };
-        _mobileServer.Start(ViewModel.GetDatabaseService());
+        var dbService = ViewModel.GetDatabaseService();
+        _mobileServer.Start(dbService, new AchievementService(dbService));
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

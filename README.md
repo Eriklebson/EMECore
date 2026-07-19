@@ -137,6 +137,7 @@ O app Flutter (EMECoreMobile) sera desenvolvido separadamente e se conecta ao IP
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.21.0.0 | 18/07/2026 | HTTP Image Server para capas de jogos (porta 8183), cache local de capas no PC, coleta automatica de conquistas via mobile, normalizacao de nomes para busca de capas, fallback Steam Store page scraping, deteccao de placeholders do Twitch |
 | 2.20.0.0 | 17/07/2026 | Servidor WebSocket para app mobile (controle remoto) — Fleck v1.2.0, porta 8181, broadcast hardware 1s, comandos get_games/launch_game/get_achievements, start/stop automatico com o app |
 | 2.19.2.0 | 17/07/2026 | Pagina promocional do E.M.E Core na sidebar (substitui placeholder AdSense) - layout com logo, stats, feature cards e botao de download; carregamento via file URI para URLs relativas funcionarem |
 | 2.19.1.0 | 17/07/2026 | Melhoria no instalador - verificacao de dependencias (.NET 8 Desktop Runtime + WebView2 Runtime) antes da instalacao com opcao de download automatico |
