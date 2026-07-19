@@ -584,9 +584,28 @@ public class HardwareMonitorService
     {
         try
         {
-            var netHw = _lhm.GetHardware(HardwareType.Network).FirstOrDefault();
-            if (netHw == null) return;
+            var adapters = _lhm.GetHardware(HardwareType.Network).ToList();
+            if (adapters.Count == 0) return;
 
+            IHardware? bestAdapter = null;
+            double bestTraffic = -1;
+            foreach (var hw in adapters)
+            {
+                double totalTraffic = 0;
+                foreach (var sensor in hw.Sensors)
+                {
+                    if (!sensor.Value.HasValue) continue;
+                    if (sensor.SensorType != SensorType.Data) continue;
+                    totalTraffic += Math.Abs((double)sensor.Value);
+                }
+                if (totalTraffic > bestTraffic)
+                {
+                    bestTraffic = totalTraffic;
+                    bestAdapter = hw;
+                }
+            }
+
+            var netHw = bestAdapter ?? adapters.First();
             s.NetworkName = string.IsNullOrEmpty(_cachedNetworkName)
                 ? (netHw.Name ?? "Rede")
                 : _cachedNetworkName;
@@ -596,6 +615,7 @@ public class HardwareMonitorService
             foreach (var sensor in netHw.Sensors)
             {
                 if (!sensor.Value.HasValue) continue;
+                if (sensor.SensorType != SensorType.Data) continue;
                 var name = sensor.Name?.ToLowerInvariant() ?? "";
                 if (name.Contains("download") || name.Contains("received"))
                 { totalReceived += (double)sensor.Value; hasSensor = true; }

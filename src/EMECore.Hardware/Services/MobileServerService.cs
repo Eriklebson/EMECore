@@ -211,6 +211,12 @@ public class MobileServerService : IDisposable
                 stats.Disks = _lastWmiStats.Disks;
                 stats.GpuDriverVersion = _lastWmiStats.GpuDriverVersion;
                 stats.GpuMemoryTotalMb = _lastWmiStats.GpuMemoryTotalMb;
+                if (_lastWmiStats.NetworkDownloadSpeed > 0 || _lastWmiStats.NetworkUploadSpeed > 0)
+                {
+                    stats.NetworkDownloadSpeed = _lastWmiStats.NetworkDownloadSpeed;
+                    stats.NetworkUploadSpeed = _lastWmiStats.NetworkUploadSpeed;
+                    stats.NetworkName = _lastWmiStats.NetworkName;
+                }
             }
 
             var json = JsonSerializer.Serialize(new
