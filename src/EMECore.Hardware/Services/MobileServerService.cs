@@ -210,7 +210,8 @@ public class MobileServerService : IDisposable
                 stats.DiskUsagePercent = _lastWmiStats.DiskUsagePercent;
                 stats.Disks = _lastWmiStats.Disks;
                 stats.GpuDriverVersion = _lastWmiStats.GpuDriverVersion;
-                stats.GpuMemoryTotalMb = _lastWmiStats.GpuMemoryTotalMb;
+                if (stats.GpuMemoryTotalMb <= 0 && _lastWmiStats.GpuMemoryTotalMb > 0)
+                    stats.GpuMemoryTotalMb = _lastWmiStats.GpuMemoryTotalMb;
                 if (_lastWmiStats.NetworkDownloadSpeed > 0 || _lastWmiStats.NetworkUploadSpeed > 0)
                 {
                     stats.NetworkDownloadSpeed = _lastWmiStats.NetworkDownloadSpeed;
@@ -245,26 +246,36 @@ public class MobileServerService : IDisposable
 
         var games = await _database.GetGamesAsync();
 
-        var coverTasks = games.Select(async g =>
-        {
-            var coverUrl = await ResolveCoverForMobileAsync(g);
-            var cachedUrl = await DownloadAndCacheCoverAsync(g.Id, coverUrl, g.Name);
-            return (Game: g, Cover: cachedUrl);
-        }).ToList();
+        var gameList = new List<object>();
+        var unresolvedCovers = new List<(string GameId, string GameName, string CoverUrl)>();
 
-        var results = await Task.WhenAll(coverTasks);
-
-        var gameList = results.Select(r => new
+        foreach (var g in games)
         {
-            id = r.Game.Id,
-            name = r.Game.Name,
-            platform = r.Game.Platform,
-            coverImage = r.Cover,
-            genre = r.Game.Genre,
-            playTime = r.Game.PlayTime,
-            lastPlayed = r.Game.LastPlayed?.ToString("o"),
-            steamAppId = r.Game.SteamAppId
-        }).ToList();
+            var cachedPath = Path.Combine(CoversCacheDir, $"{g.Id}.jpg");
+            var coverUrl = "";
+
+            if (File.Exists(cachedPath) && new FileInfo(cachedPath).Length > 8000)
+            {
+                coverUrl = $"http://{LocalIp}:{ImagePort}/{g.Id}.jpg";
+            }
+            else if (!string.IsNullOrEmpty(g.CoverImage) && g.CoverImage.StartsWith("http"))
+            {
+                coverUrl = g.CoverImage;
+                unresolvedCovers.Add((g.Id, g.Name, g.CoverImage));
+            }
+
+            gameList.Add(new
+            {
+                id = g.Id,
+                name = g.Name,
+                platform = g.Platform,
+                coverImage = coverUrl,
+                genre = g.Genre,
+                playTime = g.PlayTime,
+                lastPlayed = g.LastPlayed?.ToString("o"),
+                steamAppId = g.SteamAppId
+            });
+        }
 
         var json = JsonSerializer.Serialize(new
         {
@@ -274,6 +285,22 @@ public class MobileServerService : IDisposable
         }, _jsonOptions);
 
         await socket.Send(json);
+        Log?.Invoke($"[MobileServer] Enviou {gameList.Count} jogos para o celular");
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                var remaining = unresolvedCovers.Take(10).ToList();
+                foreach (var cover in remaining)
+                {
+                    if (cts.Token.IsCancellationRequested) break;
+                    await DownloadAndCacheCoverAsync(cover.GameId, cover.CoverUrl, cover.GameName);
+                }
+            }
+            catch { }
+        });
     }
 
     private async Task HandleLaunchGame(IWebSocketConnection socket, string gameId)
@@ -447,6 +474,14 @@ public class MobileServerService : IDisposable
                 name = f.Name,
                 rpm = f.Rpm,
                 dutyPercent = f.DutyPercent
+            }).ToList() ?? new List<object>(),
+            gamepads = s.Gamepads?.Where(g => g.IsConnected).Select(g => (object)new
+            {
+                name = g.Name,
+                isConnected = g.IsConnected,
+                batteryType = g.BatteryType.ToString(),
+                batteryLevel = g.BatteryLevel.ToString(),
+                hasBattery = g.HasBattery
             }).ToList() ?? new List<object>()
         };
     }
@@ -600,7 +635,8 @@ public class MobileServerService : IDisposable
             await Task.Delay(2000);
             if (_database == null) return;
 
-            var games = await _database.GetGamesAsync();
+        var games = await _database.GetGamesAsync();
+        Log?.Invoke($"[MobileServer] GetGames retornou {games.Count} jogos");
             Log?.Invoke($"[MobileServer] Pre-cache: {games.Count} jogos para verificar");
 
             var sem = new SemaphoreSlim(4);

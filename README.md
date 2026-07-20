@@ -137,6 +137,7 @@ O app Flutter (EMECoreMobile) sera desenvolvido separadamente e se conecta ao IP
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.22.1.0 | 20/07/2026 | Fix jogos no mobile: IndexedStack preserva widgets na troca de aba, HandleGetGames envia lista imediatamente (capas em background), cache de game_list, loading indicator no GamesPage |
 | 2.22.0.0 | 18/07/2026 | Correcao hardware monitor para mobile: instancia persistente de HardwareMonitorService, cache WMI para RAM/rede/disco, correcao de divisao dupla por 1024 em RAM |
 | 2.21.0.0 | 18/07/2026 | HTTP Image Server para capas de jogos (porta 8183), cache local de capas no PC, coleta automatica de conquistas via mobile, normalizacao de nomes para busca de capas, fallback Steam Store page scraping, deteccao de placeholders do Twitch |
 | 2.20.0.0 | 17/07/2026 | Servidor WebSocket para app mobile (controle remoto) — Fleck v1.2.0, porta 8181, broadcast hardware 1s, comandos get_games/launch_game/get_achievements, start/stop automatico com o app |
