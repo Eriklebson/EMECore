@@ -19,7 +19,8 @@ public class GamepadLayout
 public static class GamepadLayoutService
 {
     private static readonly string LayoutPath = Path.Combine(
-        AppContext.BaseDirectory, "config", "gamepad-layout.json");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "EMECore", "config", "gamepad-layout.json");
 
     private static GamepadLayout? _cached;
 
@@ -50,13 +51,12 @@ public static class GamepadLayoutService
     {
         var layout = new GamepadLayout();
         var btns = layout.Buttons;
-        // Xbox layout (left-to-right, top-to-bottom on 360×256 image)
         btns["LeftStick"]  = new() { X = 0.220, Y = 0.580, Radius = 0.065 };
         btns["RightStick"] = new() { X = 0.390, Y = 0.580, Radius = 0.065 };
-        btns["DpadUp"]    = new() { X = 0.220, Y = 0.260, Radius = 0.030 };
-        btns["DpadDown"]  = new() { X = 0.220, Y = 0.450, Radius = 0.030 };
-        btns["DpadLeft"]  = new() { X = 0.155, Y = 0.355, Radius = 0.030 };
-        btns["DpadRight"] = new() { X = 0.285, Y = 0.355, Radius = 0.030 };
+        btns["DPadUp"]    = new() { X = 0.220, Y = 0.260, Radius = 0.030 };
+        btns["DPadDown"]  = new() { X = 0.220, Y = 0.450, Radius = 0.030 };
+        btns["DPadLeft"]  = new() { X = 0.155, Y = 0.355, Radius = 0.030 };
+        btns["DPadRight"] = new() { X = 0.285, Y = 0.355, Radius = 0.030 };
         btns["Y"]         = new() { X = 0.568, Y = 0.260, Radius = 0.030 };
         btns["A"]         = new() { X = 0.568, Y = 0.450, Radius = 0.030 };
         btns["X"]         = new() { X = 0.503, Y = 0.355, Radius = 0.030 };

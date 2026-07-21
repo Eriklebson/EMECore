@@ -1,218 +1,68 @@
-# Arquitetura do Sistema
+# 2. Arquitetura do desktop (`EMECore`)
 
-## Estrutura de Pastas
+## Estrutura de solução
 
-```
-C:\laragon\www\LancherGamesV2\EMECore\
-├── Directory.Build.props          # UICulture: en-US, NeutralLanguage: en-US
-├── build-en.ps1                   # Script PowerShell que forca cultura en-US no build
-├── fix_sdk.cmd                    # Copia Platform.xml entre versoes do SDK Windows
-├── global.json                    # Fixa .NET SDK 8.0.422 com rollForward: latestPatch
-├── EMECore.sln                    # Solucao VS2022 com 3 projetos
-│
-├── docs/                          # Esta documentacao
-│
-└── src/
-    ├── EMECore.Core/              # Camada de dominio (models + interfaces)
-    │   ├── Helpers/
-    │   │   └── FormatHelpers.cs
-    │   ├── Models/
-    │   │   ├── Game.cs
-    │   │   ├── Achievement.cs
-    │   │   ├── PlaySession.cs
-    │   │   ├── ScannedGame.cs
-    │   │   └── SteamStoreInfo.cs
-    │   └── Services/
-    │       ├── IDatabaseService.cs
-    │       ├── IGameScannerService.cs
-    │       └── ISteamStoreService.cs
-    │
-    ├── EMECore.Hardware/          # Camada de infraestrutura (implementacoes)
-    │   └── Services/
-    │       ├── DatabaseService.cs
-    │       ├── GameScannerService.cs
-    │       ├── SteamStoreService.cs
-    │       ├── AchievementService.cs      # STUB
-    │       ├── FpsMonitorService.cs       # STUB
-    │       ├── HardwareMonitorService.cs  # STUB
-    │       ├── SensorService.cs           # STUB
-    │       └── StellarBladeParser.cs      # STUB
-    │
-    └── EMECore.WinUI/             # Aplicacao desktop WinUI 3
-        ├── Program.cs             # Entry point (RoInitialize + Application.Start)
-        ├── App.xaml.cs            # Aplicacao WinUI (OnLaunched)
-        ├── App.g.cs               # Stub InitializeComponent (sem XAML)
-        ├── MainWindow.xaml.cs     # Janela principal (UI toda em codigo C#)
-        ├── Directory.Build.targets # Vazio (overrides removidos)
-        ├── app.manifest           # DPI awareness, Windows 10 compat
-        ├── Assets/                # Icones e splash screen
-        ├── Converters/
-        │   └── Converters.cs
-        ├── Theme/
-        │   └── SteamColors.cs
-        ├── ViewModels/
-        │   └── MainViewModel.cs
-        └── Views/
-            ├── Sidebar.xaml.cs
-            ├── LibraryPage.xaml.cs
-            ├── GameCard.xaml.cs
-            ├── GameDetailPage.xaml.cs
-            └── AddGamePage.xaml.cs
+```text
+EMECore/
+├─ EMECore.sln
+├─ config/
+│  ├─ hardware-mapping.json
+│  └─ cpu-sensors-mapping.json
+└─ src/
+   ├─ EMECore.Core/       # domínio: modelos, contratos e helpers
+   ├─ EMECore.Hardware/   # infraestrutura: SQLite, scanner, sensores e rede
+   └─ EMECore.WinUI/      # apresentação: janela, Views, ViewModel e tema
 ```
 
-## Diagrama de Dependencias
+Dependências permitidas:
 
-```
-┌─────────────────────────────────────────┐
-│           EMECore.WinUI                 │
-│  (WinExe, net8.0-windows10.0.26100.0)  │
-│                                         │
-│  Program.cs ──► App.xaml.cs             │
-│                    └──► MainWindow      │
-│                           ├── Views/    │
-│                           ├── VMs/      │
-│                           └── Theme/    │
-│                                         │
-│  Refs: EMECore.Core                     │
-│        EMECore.Hardware                 │
-├─────────────┬───────────────────────────┤
-│             │                           │
-▼             ▼                           │
-┌────────────────────┐  ┌─────────────────┘
-│   EMECore.Core     │◄─┤ EMECore.Hardware
-│   (net8.0)         │  │   (net8.0)
-│                    │  │
-│ Models:            │  │ Services:
-│  Game              │  │  DatabaseService
-│  Achievement       │  │  GameScannerService
-│  PlaySession       │  │  SteamStoreService
-│  ScannedGame       │  │  (stubs...)
-│  SteamStoreInfo    │  │
-│                    │  │ Pkgs:
-│ Interfaces:        │  │  Microsoft.Data.Sqlite
-│  IDatabaseService  │  │  System.Text.Json
-│  ISteamStoreSvc    │  │  System.Management
-│  IGameScannerSvc   │  │
-│                    │  │
-│ Helpers:           │  │
-│  FormatHelpers     │  │
-│                    │  │
-│ Pkgs:              │  │
-│  CommunityToolkit  │  │
-│  .Mvvm             │  │
-└────────────────────┘  └─────────────────┘
+```text
+EMECore.WinUI ─► EMECore.Core
+       │
+       └────────► EMECore.Hardware ─► EMECore.Core
 ```
 
-## Padroes Arquiteturais
+`Core` não depende de UI ou infraestrutura. `Hardware` implementa contratos de `Core`. `WinUI` consome as duas camadas e deve apenas orquestrar e apresentar dados.
 
-### Dependency Inversion
-- **Core** define interfaces (`IDatabaseService`, `ISteamStoreService`, `IGameScannerService`)
-- **Hardware** implementa as interfaces concretas
-- **WinUI** consome interfaces via construtor do `MainViewModel`
+## Componentes principais
 
-### Clean Architecture
-- Core nao tem conhecimento de Hardware
-- Hardware referencia Core (nao o inverso)
-- WinUI referencia ambos
+| Camada | Local | Conteúdo |
+|---|---|---|
+| Domínio | `EMECore.Core/Models` | `Game`, `Achievement`, `HardwareStats`, `PlaySession`, `ScannedGame` e modelos auxiliares. |
+| Contratos | `EMECore.Core/Services` | Interfaces de banco, scanner, Steam, discovery e providers de conquistas. |
+| Infraestrutura | `EMECore.Hardware/Services` | Implementações concretas, integrações externas, parsers e servidor mobile. |
+| UI | `EMECore.WinUI/Views` | Biblioteca, detalhes, configurações, loja, sidebar e janelas auxiliares. |
+| Estado de UI | `EMECore.WinUI/ViewModels/MainViewModel.cs` | Navegação, lista de jogos, scanner e operações principais. |
+| Tema | `EMECore.WinUI/Theme` | `ThemeManager`, `SteamColors`, `Design` e estilos. |
 
-### MVVM
-- `MainViewModel` usa `CommunityToolkit.Mvvm` com `[ObservableProperty]` e `[RelayCommand]`
-- Views se comunicam com ViewModel via eventos e bindings programaticos
-- Nao ha XAML binding (tudo e feito em codigo C#)
+Pacotes relevantes: `Microsoft.WindowsAppSDK`, `CommunityToolkit.Mvvm`, `LiveChartsCore`, `LibreHardwareMonitorLib`, `Microsoft.Data.Sqlite`, `Fleck`, `NAudio` e `System.Management`.
 
-### UI Sem XAML
-- Todos os componentes de UI sao `UserControl` construidos 100% em codigo C#
-- Nenhum arquivo `.xaml` existe no projeto (todos foram removidos)
-- `App.g.cs` fornece um stub vazio de `InitializeComponent()`
-- O compilador XAML do WindowsAppSDK (net472) e incompativel com .NET 10 SDK
+## Inicialização e encerramento
 
-## Fluxo de Inicializacao
+Arquivos-chave: `App.xaml.cs`, `MainWindow.xaml.cs` e `MainViewModel.cs`.
 
-```
-1. Program.Main()
-   ├── RoInitialize(2)                    # Inicializa COM/WinRT
-   └── Application.Start(callback)
-       └── new App()
-           └── OnLaunched()
-               ├── SteamColors.ApplyToApplication(this)  # Carrega resources
-               ├── new MainWindow()
-               │   ├── Cria services (DatabaseService, SteamStoreService, GameScannerService)
-               │   ├── Cria MainViewModel
-               │   ├── Constroi UI (title bar, sidebar, content area, pages)
-               │   └── Registra event handlers
-               └── window.Activate()
-                   └── MainWindow_Activated (CodeActivated)
-                       ├── Resize para 1400x900
-                       ├── Estiliza title bar (cores Steam)
-                       ├── SetTitleBar(_dragRegion)
-                       ├── ViewModel.InitializeAsync(dbPath)  # Abre SQLite, carrega jogos
-                       ├── _libraryPage.LoadGames(...)
-                       └── _sidebar.UpdateStats(...)
-```
+1. O app instancia `MainWindow`.
+2. A janela monta barra de título, sidebar e instâncias das páginas; depois carrega `SettingsService` e o tema salvo.
+3. No primeiro evento `Activated`, restaura posição, ajusta a janela e chama `ViewModel.InitializeAsync(dbPath)`.
+4. A ViewModel inicializa o SQLite e carrega a biblioteca.
+5. `StartMobileServer()` inicia `MobileServerService` se `mobile_server_enabled` for `True`; porta padrão `8181` e configurável por `mobile_server_port`.
+6. No fechamento, a janela persiste posição, encerra servidor mobile, monitor de saves e janelas, fecha o banco e tenta remover arquivos SQLite residuais `-wal` e `-shm`.
 
-## Navegacao entre Paginas
+## Navegação
 
-A navegacao e controlada por `MainViewModel.CurrentPage` (string):
-- `"library"` → `LibraryPage` visivel
-- `"detail"` → `GameDetailPage` visivel
-- `"addgame"` → `AddGamePage` visivel
+`MainViewModel.CurrentPage` define visibilidade das páginas:
 
-`MainWindow.ViewModel_PropertyChanged` observa mudancas em `CurrentPage` e ajusta `Visibility` das pages.
+| Valor | Página |
+|---|---|
+| `library` | Biblioteca e filtros por categoria. |
+| `detail` | Dados do jogo, requisitos e conquistas. |
+| `addgame` | Inclusão manual. |
+| `achievements` | Visão de conquistas. |
+| `settings` | Preferências e tema. |
+| `store` / `store_detail` | Loja e detalhe de oferta. |
 
----
+`MonitorWindow` é uma janela separada, aberta pela sidebar. Ao criar uma página, conecte eventos à ViewModel/serviços e não a regras de persistência na View.
 
-## Servidor Mobile (WebSocket)
+## Tema e preferências
 
-### Visao Geral
-
-O `MobileServerService` roda dentro do EMECore desktop e fornece uma API WebSocket para o app mobile Flutter (EMECoreMobile).
-
-### Arquivos
-- `EMECore.Hardware/Services/MobileServerService.cs` — Servidor WebSocket
-- `Fleck` v1.2.0 — Biblioteca WebSocket (zero dependencias)
-
-### Inicializacao
-```
-MainWindow_Activated
-  └── StartMobileServer()
-        ├── Le settings (mobile_server_enabled, mobile_server_port)
-        ├── Cria HardwareMonitorService dedicado
-        ├── Cria MobileServerService(port)
-        └── Start(monitor, database)
-```
-
-### Protocolo JSON
-
-**Desktop → Mobile:**
-```json
-{
-  "type": "hardware_stats",
-  "timestamp": 1234567890,
-  "data": {
-    "cpu": { "usage": 45, "temp": 65, "model": "..." },
-    "gpu": { "usage": 80, "temp": 72, "model": "..." },
-    "ram": { "usedGb": 12.5, "totalGb": 32, "percent": 39 },
-    "fps": { "current": 120, "low1": 90 }
-  }
-}
-```
-
-**Mobile → Desktop:**
-```json
-{ "type": "get_hardware" }
-{ "type": "get_games" }
-{ "type": "launch_game", "gameId": "abc123" }
-{ "type": "get_achievements", "gameId": "abc123" }
-{ "type": "ping" }
-```
-
-### Configuracoes
-| Key | Default | Descricao |
-|-----|---------|-----------|
-| `mobile_server_enabled` | `True` | Habilita/desabilita o servidor |
-| `mobile_server_port` | `8181` | Porta do WebSocket |
-
-### Portas e Firewall
-- Servidor escuta em `0.0.0.0:8181` (todas as interfaces)
-- Para conexoes locais (mesmo PC), nao precisa de firewall
-- Para conexoes de outros dispositivos na rede, pode ser necessario liberar a porta 8181
+Use `ThemeManager` e `SteamColors`; não crie paletas paralelas em cada View. O design é escuro e inspirado no Steam. `SettingsService` persiste, entre outros, tema, posição da janela, categoria ativa e estado colapsado da sidebar.

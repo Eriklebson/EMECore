@@ -1,11 +1,16 @@
+[Preprocessor]
+#ifndef ReleaseDir
+  #define ReleaseDir "release"
+#endif
+
 [Setup]
 AppName=EME Core
-AppVersion=2.22.2.0
+AppVersion=2.23.0.0
 AppPublisher=E.M.E Core
 DefaultDirName={autopf}\EMECore
 DefaultGroupName=EME Core
 OutputDir=..\installer
-OutputBaseFilename=EMECore_v2.22.2.0_Setup
+OutputBaseFilename=EMECore_v2.23.0.0_Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 SetupIconFile=src\EMECore.WinUI\Assets\Logo\logo.ico
@@ -24,7 +29,7 @@ Name: "desktopicon"; Description: "Criar atalho na area de trabalho"; GroupDescr
 Name: "startmenuicon"; Description: "Criar atalho no Menu Iniciar"; GroupDescription: "Atalhos:"; Flags: checkedonce
 
 [Files]
-Source: "release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#ReleaseDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\EME Core"; Filename: "{app}\EMECore.WinUI.exe"; Comment: "Abrir E.M.E Core"

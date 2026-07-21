@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-07-21 — Versão 2.23.0.0: gamepad mobile e comportamento da janela do monitor
+
+### Arquivos modificados
+- `src/EMECore.WinUI/Views/MonitorWindow.cs` — removido o uso residual da API Win32 de janela sempre no topo.
+- `src/EMECore.Hardware/Services/MobileServerService.cs` — transmissão do estado do gamepad para clientes mobile.
+- `src/EMECore.Hardware/Services/GamepadLayoutService.cs` — layout do controle movido para o perfil local do usuário.
+- `docs/ui-components.md` — documentado o comportamento normal da janela do monitor.
+- `docs/hardware-project.md` e `README.md` — documentados protocolo, persistência e nova versão.
+- `app.manifest`, `Sidebar.xaml.cs` e `installer.iss` — versão atualizada para `2.23.0.0`.
+- `installer.iss` — adicionada opção de usar uma publicação isolada na compilação do instalador.
+
+### O que mudou
+- O Monitor de Hardware deixa de usar `HWND_TOPMOST`.
+- Ao selecionar outra janela ou outro aplicativo, o monitor pode ir para trás normalmente.
+- As constantes e a declaração Win32 que ficaram sem uso também foram removidas.
+- O desktop transmite botões, gatilhos e analógicos do controle somente quando o estado muda.
+- A calibração do controle passa a ser gravada no perfil local do usuário.
+
+### Motivo
+Permitir que o monitor se comporte como uma janela comum e completar a integração de periféricos entre o desktop e o aplicativo mobile.
+
+### Possíveis impactos
+- Não altera a coleta de hardware, gráficos, FPS ou periféricos.
+- O monitor continuará aberto, mas poderá ficar encoberto quando outra janela receber foco.
+- Clientes mobile antigos ignoram a nova mensagem `gamepad_state` e continuam compatíveis.
+- A publicação isolada evita incluir caches do WebView2 e runtimes de outras plataformas no instalador.
+
+### Próximos passos recomendados
+- Confirmar em execução que o monitor vai para trás ao alternar para outro aplicativo.
+
+---
+
 ## 2026-07-20 — Documentação: revisão técnica da arquitetura atual
 
 ### Arquivos modificados

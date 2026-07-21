@@ -1,145 +1,53 @@
-# Banco de Dados SQLite
+# 3. Dados, biblioteca e scanner
 
-## Visao Geral
+## Banco SQLite
 
-Banco local usando SQLite via `Microsoft.Data.Sqlite`. Localizacao: `%LocalAppData%\EMECore\eme_core.db`
+Localização: `%LocalAppData%\EMECore\eme_core.db`.
 
-**Inicializacao:** `DatabaseService.InitializeAsync(dbPath)` cria o arquivo, abre a conexao, ativa WAL e foreign keys, e cria as tabelas.
+`DatabaseService` abre uma conexão sem pooling, ativa `foreign_keys=ON` e configura `journal_mode=DELETE`. Apesar de referências antigas a WAL, o comportamento atual é DELETE; não mudar sem revisar o fechamento da aplicação e os riscos de lock.
 
----
+| Tabela | Conteúdo e regras |
+|---|---|
+| `games` | Identidade, executável obrigatório, plataforma, capa, Steam App ID, gênero, tempo de jogo e datas. |
+| `achievements` | Conquistas com chave única `(game_id, apiname)`, estado, ícones e progresso. |
+| `play_sessions` | Sessões de jogo, início/fim e duração. |
 
-## Schema
+Exclusão de um jogo remove conquistas e sessões por `ON DELETE CASCADE`. Datas são gravadas em ISO (`DateTime.ToString("o")`). O banco possui migrações leves com `ALTER TABLE` protegido por `try/catch`; qualquer coluna nova deve funcionar tanto em instalações novas quanto existentes.
 
-### Tabela `games`
+## Fluxo da biblioteca
 
-```sql
-CREATE TABLE IF NOT EXISTS games (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    executable_path TEXT NOT NULL,
-    cover_image TEXT DEFAULT '',
-    platform TEXT DEFAULT 'other',
-    last_played TEXT,
-    play_time INTEGER DEFAULT 0,
-    last_session_start TEXT,
-    steam_app_id TEXT DEFAULT '',
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-)
-```
+Arquivos: `MainViewModel.cs`, `LibraryPage.xaml.cs`, `GameDetailPage.xaml.cs`, `DatabaseService.cs`.
 
-| Coluna | Tipo | Constraints | Descricao |
-|--------|------|-------------|-----------|
-| `id` | TEXT | PRIMARY KEY | GUID como string |
-| `name` | TEXT | NOT NULL | Nome do jogo |
-| `executable_path` | TEXT | NOT NULL | Caminho do .exe |
-| `cover_image` | TEXT | DEFAULT `''` | URL/caminho da capa |
-| `platform` | TEXT | DEFAULT `'other'` | steam/epic/gog/xbox/other |
-| `last_played` | TEXT | nullable | ISO 8601 datetime |
-| `play_time` | INTEGER | DEFAULT 0 | Minutos totais |
-| `last_session_start` | TEXT | nullable | ISO 8601 datetime |
-| `steam_app_id` | TEXT | DEFAULT `''` | AppID do Steam |
-| `created_at` | TEXT | NOT NULL | ISO 8601 datetime |
-| `updated_at` | TEXT | NOT NULL | ISO 8601 datetime |
+1. `InitializeAsync` chama `DatabaseService.InitializeAsync` e carrega os jogos em `ObservableCollection<Game>`.
+2. Nomes duplicados são identificados sem diferenciar maiúsculas/minúsculas; duplicatas são excluídas do banco.
+3. A biblioteca apresenta lista, busca e categorias `game`, `tool` e `training`.
+4. Inclusão manual cria um `Game` com `Guid`, persiste e volta à biblioteca.
+5. Iniciar jogo atualiza `LastPlayed` e `LastSessionStart`, salva e inicia `PlayTimeTrackerService`.
 
-### Tabela `achievements`
+## Scanner
 
-```sql
-CREATE TABLE IF NOT EXISTS achievements (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    game_id TEXT NOT NULL,
-    apiname TEXT NOT NULL,
-    achieved INTEGER DEFAULT 0,
-    unlocktime INTEGER DEFAULT 0,
-    name TEXT DEFAULT '',
-    description TEXT DEFAULT '',
-    icon TEXT DEFAULT '',
-    icongray TEXT DEFAULT '',
-    updated_at TEXT NOT NULL,
-    UNIQUE(game_id, apiname),
-    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
-)
-```
+Arquivo: `EMECore.Hardware/Services/GameScannerService.cs`.
 
-| Coluna | Tipo | Constraints | Descricao |
-|--------|------|-------------|-----------|
-| `id` | INTEGER | PK AUTOINCREMENT | ID auto-incremento |
-| `game_id` | TEXT | NOT NULL, FK→games(id) CASCADE | Jogo associado |
-| `apiname` | TEXT | NOT NULL, UNIQUE(game_id, apiname) | Nome na API Steam |
-| `achieved` | INTEGER | DEFAULT 0 | 0=falso, 1=verdadeiro |
-| `unlocktime` | INTEGER | DEFAULT 0 | Unix timestamp do desbloqueio |
-| `name` | TEXT | DEFAULT `''` | Nome de exibicao |
-| `description` | TEXT | DEFAULT `''` | Descricao |
-| `icon` | TEXT | DEFAULT `''` | URL icone colorido |
-| `icongray` | TEXT | DEFAULT `''` | URL icone cinza |
-| `updated_at` | TEXT | NOT NULL | ISO 8601 datetime |
+Fontes pesquisadas incluem Steam, Xbox/Game Pass, diretórios comuns e instalações de Riot, Ubisoft, EA/Origin, Battle.net, Rockstar, Bethesda e Amazon Games. O scanner evita diretórios e executáveis que não são jogos, como uninstallers, redistribuíveis e crash handlers.
 
-### Tabela `play_sessions`
+O fluxo normal só adiciona um resultado quando o nome ainda não existir na coleção. O fluxo de reset limpa jogos e recria a lista inteira; usar com cautela porque remove a biblioteca existente.
 
-```sql
-CREATE TABLE IF NOT EXISTS play_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    game_id TEXT NOT NULL,
-    start_time TEXT NOT NULL,
-    end_time TEXT,
-    duration_minutes INTEGER DEFAULT 0,
-    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
-)
-```
+## Capas e gêneros
 
-| Coluna | Tipo | Constraints | Descricao |
-|--------|------|-------------|-----------|
-| `id` | INTEGER | PK AUTOINCREMENT | ID auto-incremento |
-| `game_id` | TEXT | NOT NULL, FK→games(id) CASCADE | Jogo associado |
-| `start_time` | TEXT | NOT NULL | ISO 8601 datetime |
-| `end_time` | TEXT | nullable | ISO 8601 datetime (null = ativa) |
-| `duration_minutes` | INTEGER | DEFAULT 0 | Duracao em minutos |
+Após scan, a ViewModel tenta enriquecer jogos sem bloquear a operação principal:
 
----
+1. Para Steam com `SteamAppId`, consulta dados da loja e usa `HeaderImage`.
+2. Sem ID, pesquisa a Steam pelo nome e associa o ID/capa quando encontra correspondência.
+3. O scanner procura imagens dentro da instalação (`Splash`, `Logo`, `cover` etc.).
+4. Como último fallback, usa URL de box art Twitch.
+5. Gêneros são buscados por `GenreService`; falhas não impedem o scan.
 
-## Operacoes
+Chamadas de Steam usam limites de concorrência. Ao mudar buscas externas, manter timeout, tolerância a falhas e evitar bloquear a UI.
 
-### CRUD de Jogos
+## Alterar modelos persistidos
 
-| Metodo | SQL | Observacao |
-|--------|-----|------------|
-| `GetGamesAsync()` | `SELECT * FROM games ORDER BY name` | Retorna todos |
-| `GetGameAsync(id)` | `SELECT * FROM games WHERE id = @id` | Retorna nullable |
-| `UpsertGameAsync(game)` | `INSERT OR REPLACE INTO games ...` | Insere ou substitui |
-| `DeleteGameAsync(id)` | `DELETE FROM games WHERE id = @id` | CASCADE remove achievements e sessions |
-
-### Play Time
-
-| Metodo | SQL |
-|--------|-----|
-| `UpdateGamePlayTimeAsync(id, playTime, lastSessionStart)` | `UPDATE games SET play_time=@playTime, last_session_start=@lastSessionStart WHERE id=@id` |
-| `GetTotalPlayTimeAsync()` | `SELECT SUM(play_time) FROM games` |
-
-### Sessoes
-
-| Metodo | SQL |
-|--------|-----|
-| `RecordPlaySessionAsync(id, startTime, duration)` | `INSERT INTO play_sessions ...` |
-| `GetPlaySessionsAsync(gameId)` | `SELECT * FROM play_sessions WHERE game_id=@gameId ORDER BY start_time DESC` |
-
-### Conquistas
-
-| Metodo | Estrategia |
-|--------|-----------|
-| `SaveAchievementsAsync(gameId, achievements)` | DELETE all + INSERT all (full replace) |
-| `GetAchievementsAsync(gameId)` | `SELECT * WHERE game_id=@gameId ORDER BY achieved, name` |
-
-### Agregacoes
-
-| Metodo | SQL |
-|--------|-----|
-| `GetTotalPlayTimeAsync()` | `SELECT SUM(play_time) FROM games` |
-| `GetGameCountAsync()` | `SELECT platform, COUNT(*) FROM games GROUP BY platform` |
-
----
-
-## Configuracoes
-
-- **Journal Mode:** WAL (Write-Ahead Logging) - melhor performance para leitura concorrente
-- **Foreign Keys:** Habilitadas - CASCADE delete em achievements e play_sessions
-- **Conexao:** Unica `SqliteConnection` por instancia de `DatabaseService`
+1. Alterar o modelo em `EMECore.Core/Models`.
+2. Incluir migração segura em `DatabaseService.InitializeAsync` quando for coluna nova.
+3. Atualizar `SELECT`, mapeamento de `SqliteDataReader`, `INSERT OR REPLACE` e comandos de atualização.
+4. Revisar ViewModel, páginas WinUI e o payload do servidor mobile.
+5. Atualizar os modelos Dart e o documento do protocolo, se o campo for exposto.

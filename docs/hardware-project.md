@@ -1,115 +1,58 @@
-# EMECore.Hardware - Implementacoes de Servicos
+# 4. Hardware, conquistas e saves
 
-## Visao Geral
+## Monitoramento de hardware
 
-Projeto class library (`net8.0`) contendo as implementacoes concretas dos servicos definidos no Core. Referencia `EMECore.Core` para acessar modelos e interfaces.
+Arquivos relevantes: `HardwareMonitorService.cs`, `LhmHardwareService.cs`, `MappingService.cs`, `CpuSensorMappingService.cs` e `HardwareStats.cs`.
 
-**Localizacao:** `src/EMECore.Hardware/`
-**Dependencias:** `EMECore.Core`, `Microsoft.Data.Sqlite 8.0.0`, `System.Text.Json 8.0.5`, `System.Management 8.0.0`
+O projeto usa arquitetura de duas camadas:
 
----
+| Fonte | Dados | Regra de uso |
+|---|---|---|
+| LibreHardwareMonitor (LHM) | Carga/temperatura/tensão/potência de CPU e GPU, fans e sensores dinâmicos | Usar nas coletas frequentes. Pode requerer elevação para SuperIO/placa-mãe. |
+| WMI | Modelo de CPU/GPU/RAM, BIOS, disco, rede e informações pouco mutáveis | Usar de forma pontual ou com cache; nunca como polling em tempo real. |
 
-## Servicos Implementados
+No servidor mobile, `CollectFast()` entrega dados dinâmicos e `Collect()` renova WMI no máximo a cada 5 s. Não mover WMI para a atualização de 1 s do aplicativo móvel.
 
-### DatabaseService (`Services/DatabaseService.cs`)
+Os mapeamentos de sensores ficam em `config/hardware-mapping.json` e `config/cpu-sensors-mapping.json`, copiados para a saída. Para adaptar suporte a uma placa/sensor, priorizar esses arquivos antes de condicional específica no código.
 
-Implementacao completa de `IDatabaseService` usando SQLite.
+## FPS, gamepad e periféricos
 
-**Detalhes:**
-- Conexao: `SqliteConnection` com caminho customizavel
-- Journal mode: WAL (Write-Ahead Logging) para performance
-- Foreign keys habilitadas
-- Estrategia de upsert: `INSERT OR REPLACE`
-- Estrategia de achievements: full replace (deleta todos, insere novos)
+`FpsMonitorService` fornece FPS e métricas como lows e frame time; `FpsOverlayWindow` apresenta o overlay. `GamepadService`, `GamepadLayoutService`, `GamepadCalibrationWindow` e `PeripheralBatteryService` tratam controles e bateria. O layout calibrado do controle é persistido em `%LocalAppData%\EMECore\config\gamepad-layout.json`, evitando gravação na pasta de instalação. A UI deve lidar com hardware ausente e valores não disponíveis sem exceção.
 
-**Tabelas criadas em `InitializeAsync`:**
-- `games` - Tabela principal de jogos
-- `achievements` - Conquistas (FK para games com CASCADE)
-- `play_sessions` - Sessoes de jogo (FK para games com CASCADE)
+Ao alterar coleta de hardware, verificar impacto no monitor desktop e no objeto `MapHardwareStats` do servidor mobile.
 
-Ver [database.md](database.md) para schema completo.
+## Conquistas
 
----
+Arquivos-chave: `AchievementService.cs`, `AchievementCheckerService.cs`, `AchievementImageService.cs`, `SaveBasedAchievementProvider.cs` e `AchievementNotificationWindow.cs`.
 
-### SteamStoreService (`Services/SteamStoreService.cs`)
+As conquistas podem vir da Steam ou de parsers de save. O modelo contém identificador (`Apiname`), nome, descrição, ícones, estado, progresso e máximo. A persistência é por jogo no SQLite.
 
-Implementacao de `ISteamStoreService` usando a API publica da Steam Store.
+Na página de detalhes, o desktop pode buscar um `SteamAppId` ausente, obter requisitos da Steam, carregar conquistas e comparar o resultado anterior para gerar notificações novas. Não assumir que todo jogo possui SteamAppId, parser ou ícone disponível.
 
-**Detalhes:**
-- HTTP client estatico (compartilhado entre chamadas)
-- Cache em memoria com TTL de 6 horas
-- Endpoint: `https://store.steampowered.com/api/appdetails?appids={appId}`
-- Parsing com `System.Text.Json.JsonDocument`
-- Falha silenciosa: retorna `null` em qualquer erro
+## Saves e parsers
 
-**Fluxo:**
-1. Verifica cache (se existe e nao expirou, retorna)
-2. Faz requisicao HTTP GET
-3. Parseia JSON: `root[appId].data.{name, header_image, short_description}`
-4. Armazena no cache e retorna
-5. Em erro: retorna `null`
+Arquivos: `SaveParserService.cs`, `SaveMonitorService.cs`, `LocalizedPaths.cs` e parsers específicos como `StellarBladeParser`, `EldenRingSaveParser`, `CyberpunkSaveParser`, `Witcher3SaveParser`, `SkyrimSaveParser`, `RDR2SaveParser`, `GodOfWarSaveParser` e outros.
 
----
+`SaveMonitorService` é iniciado somente quando o jogo selecionado tem parser registrado. Ao trocar/sair da tela de detalhe, o monitor anterior é interrompido. Desbloqueios são enviados para a janela principal e exibidos em `AchievementNotificationWindow`.
 
-### GameScannerService (`Services/GameScannerService.cs`)
+### Checklist para novo parser
 
-Implementacao de `IGameScannerService` que descobre jogos instalados.
+1. Identificar formato, caminho e condições seguras de leitura do save.
+2. Criar parser seguindo as interfaces/serviços existentes.
+3. Registrar parser no orquestrador de conquistas.
+4. Usar `LocalizedPaths` quando o caminho depender do idioma/localização do Windows.
+5. Testar arquivo ausente, arquivo em escrita, dados inválidos e save válido.
+6. Confirmar persistência, notificação e resposta ao mobile.
+7. Adicionar configuração em `EMECore.WinUI/config/achievements/` quando aplicável.
 
-**Estrategias de scanning:**
+## Servidor para o aplicativo móvel
 
-#### 1. ScanSteamAsync()
-- Percorre paths conhecidos de Steam:
-  - `C:\Program Files (x86)\Steam\steamapps`
-  - `D:\Steam\steamapps`
-  - `E:\Steam\steamapps`
-  - `C:\SteamLibrary\steamapps`
-- Busca arquivos `appmanifest_*.acf`
-- Extrai `name`, `appid`, `installdir` via regex (VDF parsing)
-- Constroi caminho de instalacao
+`MobileServerService` fica nesta camada e é iniciado pela janela principal. O desktop é a fonte de verdade; o Flutter não acessa SQLite diretamente.
 
-#### 2. ScanCommonDirsAsync()
-- Busca recursiva por `*.exe` em:
-  - `C:\Games`
-  - `D:\Games`
-  - `E:\Games`
-- Cada .exe encontrado e tratado como potencial jogo
+| Canal | Porta | Responsabilidade |
+|---|---:|---|
+| WebSocket | `8181` configurável | `get_hardware`, `get_games`, `launch_game`, `get_achievements` e `ping`. |
+| UDP | `8182` | Beacon a cada 2 s para descoberta automática. |
+| HTTP | `8183` | Capas em `%LocalAppData%\EMECore\CoverCache`. |
 
-#### Helper: ExtractVdfValue()
-- Parsing regex de pares chave-valor no formato Valve Data Format (VDF)
-
----
-
-## Servicos Stub (Nao Implementados)
-
-### AchievementService (`Services/AchievementService.cs`)
-- `CheckAchievementsAsync(gameId)` → retorna `List<Achievement>` vazia
-- **Intencao:** Chamar API Steam `ISteamUserStats` para buscar conquistas
-
-### FpsMonitorService (`Services/FpsMonitorService.cs`)
-- `StartMonitoring()` → vazio
-- `StopMonitoring()` → vazio
-- `GetFps()` → retorna `0`
-- **Intencao:** Monitorar FPS de jogos em execucao
-
-### HardwareMonitorService (`Services/HardwareMonitorService.cs`)
-- `GetCpuUsage()` → retorna `0`
-- **Intencao:** Usar WMI (`System.Management`) para medir uso de CPU
-
-### SensorService (`Services/SensorService.cs`)
-- `GetCpuTemperature()` → retorna `0`
-- `GetGpuTemperature()` → retorna `0`
-- **Intencao:** Ler temperaturas de hardware via sensores
-
-### StellarBladeParser (`Services/StellarBladeParser.cs`)
-- `HasSave()` → retorna `false`
-- `ParseSaveAsync()` → retorna `List<Achievement>` vazia
-- **Intencao:** Parse do save file local do Stellar Blade para extrair conquistas
-
----
-
-## Observacoes
-
-- Todos os stubs estao com implementacao minima (retornam valores padrao)
-- Nenhum stub esta sendo chamado pela UI atualmente
-- A implementacao futura dos stubs requererá novos pacotes NuGet (ex: `OpenHardwareMonitor` para sensores)
-- `System.Management` ja esta referenciado para WMI mas nao esta em uso
+Mensagens usam JSON com `type` em camelCase. Respostas principais: `welcome`, `hardware_stats`, `gamepad_state`, `game_list`, `achievements`, `game_launched`, `pong` e `error`. `gamepad_state` é enviado somente quando o `PacketNumber` muda, com intervalo alvo de 33 ms e pausa de 500 ms sem clientes. Ao mudar campos, atualizar simultaneamente `MobileServerService`, os modelos Dart e `WebSocketService` do projeto mobile; preferir campos opcionais para manter compatibilidade entre versões.

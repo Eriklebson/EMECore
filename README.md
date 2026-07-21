@@ -28,7 +28,7 @@
 | **Filtro Inteligente** | Ignora automaticamente uninstallers, redistributiveis, crash handlers e outros nao-jogos | ✅ |
 | **100% Offline** | Banco SQLite local, sem dependencia de nuvem | ✅ |
 | **Nativo Windows** | Aplicacao leve em C# WinUI 3, baixo consumo de RAM/CPU | ✅ |
-| **Servidor Mobile** | WebSocket para controle remoto via app Flutter | ✅ |
+| **Servidor Mobile** | WebSocket para controle remoto, hardware e estado do gamepad no app Flutter | ✅ |
 
 ---
 
@@ -129,6 +129,8 @@ Servidor WebSocket integrado no desktop para comunicacao com app Flutter.
 
 **Comandos suportados:** `get_hardware`, `get_games`, `launch_game`, `get_achievements`, `ping`
 
+O servidor tambem transmite `gamepad_state` quando o estado do controle muda, permitindo acompanhar botoes, gatilhos e analogicos pelo celular sem enviar mensagens redundantes.
+
 O app Flutter (EMECoreMobile) sera desenvolvido separadamente e se conecta ao IP do PC na porta 8181.
 
 ---
@@ -137,6 +139,7 @@ O app Flutter (EMECoreMobile) sera desenvolvido separadamente e se conecta ao IP
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.23.0.0 | 21/07/2026 | Streaming de gamepad para o app mobile, layout do controle persistido no perfil do usuario e Monitor de Hardware sem modo sempre no topo |
 | 2.22.2.0 | 20/07/2026 | Remocao da loja (GameDeal, StoreService, StorePriceService, StorePage, scraper Python); fix beacon UDP - broadcast para todas as sub-redes (multi-interface) |
 | 2.22.1.0 | 20/07/2026 | Fix jogos no mobile: IndexedStack preserva widgets na troca de aba, HandleGetGames envia lista imediatamente (capas em background), cache de game_list, loading indicator no GamesPage |
 | 2.22.0.0 | 18/07/2026 | Correcao hardware monitor para mobile: instancia persistente de HardwareMonitorService, cache WMI para RAM/rede/disco, correcao de divisao dupla por 1024 em RAM |

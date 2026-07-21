@@ -18,6 +18,7 @@ public class MobileServerService : IDisposable
     private bool _disposed;
     private CancellationTokenSource? _beaconCts;
     private CancellationTokenSource? _httpCts;
+    private CancellationTokenSource? _gamepadCts;
     private HttpListener? _httpListener;
     private readonly SteamStoreService _steamStore = new();
     private readonly HardwareMonitorService _monitor = new();
@@ -75,6 +76,7 @@ public class MobileServerService : IDisposable
 
         StartBeacon();
         StartImageServer();
+        StartGamepadStreaming();
         _ = PreloadCoversAsync();
 
         Log?.Invoke($"[MobileServer] Iniciado em {listenUrl}");
@@ -88,6 +90,7 @@ public class MobileServerService : IDisposable
 
         StopBeacon();
         StopImageServer();
+        StopGamepadStreaming();
 
         foreach (var client in _clients.Values)
         {
@@ -576,6 +579,63 @@ public class MobileServerService : IDisposable
         _beaconCts?.Cancel();
         _beaconCts?.Dispose();
         _beaconCts = null;
+    }
+
+    private void StartGamepadStreaming()
+    {
+        _gamepadCts?.Cancel();
+        _gamepadCts = new CancellationTokenSource();
+        var token = _gamepadCts.Token;
+        uint lastPacket = 0;
+
+        Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                try
+                {
+                    if (_clients.IsEmpty)
+                    {
+                        await Task.Delay(500, token);
+                        continue;
+                    }
+
+                    var gp = _monitor.GamepadService.GetState(0);
+                    if (gp.IsConnected && gp.PacketNumber != lastPacket)
+                    {
+                        lastPacket = gp.PacketNumber;
+                        var msg = JsonSerializer.Serialize(new
+                        {
+                            type = "gamepad_state",
+                            buttons = gp.Buttons,
+                            leftTrigger = (int)gp.LeftTrigger,
+                            rightTrigger = (int)gp.RightTrigger,
+                            thumbLX = (int)gp.ThumbLX,
+                            thumbLY = (int)gp.ThumbLY,
+                            thumbRX = (int)gp.ThumbRX,
+                            thumbRY = (int)gp.ThumbRY,
+                            packetNumber = gp.PacketNumber
+                        }, _jsonOptions);
+
+                        foreach (var client in _clients.Values)
+                        {
+                            try { client.Send(msg).Wait(100); } catch { }
+                        }
+                    }
+
+                    await Task.Delay(33, token);
+                }
+                catch (OperationCanceledException) { break; }
+                catch { await Task.Delay(1000, token); }
+            }
+        }, token);
+    }
+
+    private void StopGamepadStreaming()
+    {
+        _gamepadCts?.Cancel();
+        _gamepadCts?.Dispose();
+        _gamepadCts = null;
     }
 
     private void StartImageServer()

@@ -1,122 +1,68 @@
-# EMECore.WinUI - Camada de Aplicacao
+# 2. Arquitetura do desktop (`EMECore`)
 
-## Visao Geral
+## Estrutura de solução
 
-Aplicacao desktop WinUI 3 que consome os servicos do Core/Hardware e apresenta a interface grafica. Toda a UI e construida em codigo C# (sem XAML).
-
-**Localizacao:** `src/EMECore.WinUI/`
-**Target:** `net8.0-windows10.0.26100.0`
-**Tipo:** `WinExe` (despackaged)
-
----
-
-## Entry Point
-
-### Program.cs (23 linhas)
-
-Ponto de entrada da aplicacao. Inicializa o runtime COM/WinRT e inicia o loop da aplicacao WinUI.
-
-**Fluxo:**
-1. `[STAThread]` - Thread de apartamento unico (necessario para UI)
-2. `RoInitialize(2)` - Inicializa COM como MTA (Multi-Threaded Apartment)
-3. `Application.Start(callback)` - Inicia o loop de mensagens WinUI
-4. No callback:
-   - Obtem `DispatcherQueue` da thread atual
-   - Cria `SynchronizationContext` para async/await
-   - Instancia `new App()`
-
-**Importante:** `RoInitialize(2)` e chamado via P/Invoke do `combase.dll`, nao via `WinRT.ComWrappers.InitializeComWrappers()` (que nao e gerado pelo CsWinRT neste contexto).
-
----
-
-### App.xaml.cs (21 linhas)
-
-Subclasse de `Microsoft.UI.Xaml.Application`.
-
-**OnLaunched:**
-1. `SteamColors.ApplyToApplication(this)` - Carrega cores/brushes no resource dictionary
-2. `new MainWindow()` - Cria a janela principal
-3. `m_window.Activate()` - Ativa a janela
-
-### App.g.cs (9 linhas)
-
-Stub vazio de `InitializeComponent()`. Necessario porque o compilador XAML nao esta sendo usado.
-
----
-
-## MainWindow (`MainWindow.xaml.cs` - 276 linhas)
-
-Janela principal da aplicacao. Constroi toda a UI programaticamente.
-
-### Layout
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ Title Bar (40px)                                        │
-│ [Logo] [E.M.E Core]          [Drag Region] [_][□][X]    │
-├────────────┬────────────────────────────────────────────┤
-│            │                                            │
-│  Sidebar   │         Content Area                       │
-│  (220px)   │    ┌──────────────────────┐                │
-│            │    │  LibraryPage          │ (visivel)     │
-│  [Biblio]  │    │  GameDetailPage       │ (collapsed)   │
-│  [Add]     │    │  AddGamePage          │ (collapsed)   │
-│  [Scan]    │    └──────────────────────┘                │
-│            │                                            │
-│ [Status]   │                                            │
-│            │                                            │
-├────────────┤                                            │
-│ [Stats]    │                                            │
-└────────────┴────────────────────────────────────────────┘
+```text
+EMECore/
+├─ EMECore.sln
+├─ config/
+│  ├─ hardware-mapping.json
+│  └─ cpu-sensors-mapping.json
+└─ src/
+   ├─ EMECore.Core/       # domínio: modelos, contratos e helpers
+   ├─ EMECore.Hardware/   # infraestrutura: SQLite, scanner, sensores e rede
+   └─ EMECore.WinUI/      # apresentação: janela, Views, ViewModel e tema
 ```
 
-### Construtor - Servicos
+Dependências permitidas:
 
-Cria instancias dos servicos e do ViewModel:
-```csharp
-var databaseService = new DatabaseService();
-var steamStoreService = new SteamStoreService();
-var gameScannerService = new GameScannerService(steamStoreService);
-ViewModel = new MainViewModel(databaseService, gameScannerService);
+```text
+EMECore.WinUI ─► EMECore.Core
+       │
+       └────────► EMECore.Hardware ─► EMECore.Core
 ```
 
-### Construtor - UI
+`Core` não depende de UI ou infraestrutura. `Hardware` implementa contratos de `Core`. `WinUI` consome as duas camadas e deve apenas orquestrar e apresentar dados.
 
-1. **Root Grid** - 2 rows: Title Bar (40px) + Content (star)
-2. **Title Bar** - Grid com 3 colunas: Logo | Drag Region | Window Buttons
-3. **Content Grid** - 2 colunas: Sidebar (220px) + Page Container (star)
-4. **Pages** - 3 UserControl empilhados, visibility controlada
+## Componentes principais
 
-### MainWindow_Activated
+| Camada | Local | Conteúdo |
+|---|---|---|
+| Domínio | `EMECore.Core/Models` | `Game`, `Achievement`, `HardwareStats`, `PlaySession`, `ScannedGame` e modelos auxiliares. |
+| Contratos | `EMECore.Core/Services` | Interfaces de banco, scanner, Steam, discovery e providers de conquistas. |
+| Infraestrutura | `EMECore.Hardware/Services` | Implementações concretas, integrações externas, parsers e servidor mobile. |
+| UI | `EMECore.WinUI/Views` | Biblioteca, detalhes, configurações, loja, sidebar e janelas auxiliares. |
+| Estado de UI | `EMECore.WinUI/ViewModels/MainViewModel.cs` | Navegação, lista de jogos, scanner e operações principais. |
+| Tema | `EMECore.WinUI/Theme` | `ThemeManager`, `SteamColors`, `Design` e estilos. |
 
-Executado quando a janela e ativada pela primeira vez (`CodeActivated`):
-1. Remove handler para nao executar novamente
-2. Obtem `AppWindow` via Win32Interop
-3. Redimensiona para 1400x900
-4. Estiliza title bar com cores Steam
-5. Define `_dragRegion` como title bar customizada
-6. Inicializa database via `ViewModel.InitializeAsync(dbPath)`
-7. Carrega jogos na LibraryPage
-8. Configura listeners de `PropertyChanged`
+Pacotes relevantes: `Microsoft.WindowsAppSDK`, `CommunityToolkit.Mvvm`, `LiveChartsCore`, `LibreHardwareMonitorLib`, `Microsoft.Data.Sqlite`, `Fleck`, `NAudio` e `System.Management`.
 
-### Event Handlers
+## Inicialização e encerramento
 
-| Handler | Origem | Acao |
-|---------|--------|------|
-| `Sidebar_NavigationRequested` | Sidebar | Navega via ViewModel |
-| `Sidebar_ScanRequested` | Sidebar | Executa scan de jogos |
-| `LibraryPage_GameSelected` | LibraryPage | Abre detalhes do jogo |
-| `LibraryPage_GameLaunchRequested` | LibraryPage | Lanca o jogo |
-| `DetailPage_BackRequested` | GameDetailPage | Volta para biblioteca |
-| `DetailPage_LaunchRequested` | GameDetailPage | Lanca o jogo |
-| `DetailPage_DeleteRequested` | GameDetailPage | Remove o jogo |
-| `AddGamePage_GameAdded` | AddGamePage | Adiciona jogo manual |
-| `AddGamePage_CancelRequested` | AddGamePage | Volta para biblioteca |
+Arquivos-chave: `App.xaml.cs`, `MainWindow.xaml.cs` e `MainViewModel.cs`.
 
-### Title Bar Custom Buttons
+1. O app instancia `MainWindow`.
+2. A janela monta barra de título, sidebar e instâncias das páginas; depois carrega `SettingsService` e o tema salvo.
+3. No primeiro evento `Activated`, restaura posição, ajusta a janela e chama `ViewModel.InitializeAsync(dbPath)`.
+4. A ViewModel inicializa o SQLite e carrega a biblioteca.
+5. `StartMobileServer()` inicia `MobileServerService` se `mobile_server_enabled` for `True`; porta padrão `8181` e configurável por `mobile_server_port`.
+6. No fechamento, a janela persiste posição, encerra servidor mobile, monitor de saves e janelas, fecha o banco e tenta remover arquivos SQLite residuais `-wal` e `-shm`.
 
-| Botao | Glyph | Acao |
-|-------|-------|------|
-| Minimizar | `\uE921` | `ShowWindow(hwnd, 6)` (SW_MINIMIZE) |
-| Maximizar | `\uE922` | Toggle maximize/restore via `OverlappedPresenter` |
-| Fechar | `\uE8BB` | `this.Close()` |
+## Navegação
+
+`MainViewModel.CurrentPage` define visibilidade das páginas:
+
+| Valor | Página |
+|---|---|
+| `library` | Biblioteca e filtros por categoria. |
+| `detail` | Dados do jogo, requisitos e conquistas. |
+| `addgame` | Inclusão manual. |
+| `achievements` | Visão de conquistas. |
+| `settings` | Preferências e tema. |
+| `store` / `store_detail` | Loja e detalhe de oferta. |
+
+`MonitorWindow` é uma janela separada, aberta pela sidebar. Ao criar uma página, conecte eventos à ViewModel/serviços e não a regras de persistência na View.
+
+## Tema e preferências
+
+Use `ThemeManager` e `SteamColors`; não crie paletas paralelas em cada View. O design é escuro e inspirado no Steam. `SettingsService` persiste, entre outros, tema, posição da janela, categoria ativa e estado colapsado da sidebar.
