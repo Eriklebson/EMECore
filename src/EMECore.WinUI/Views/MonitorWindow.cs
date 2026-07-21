@@ -57,12 +57,12 @@ public sealed partial class MonitorWindow : Window
     private Grid _cpuDetailPanel = null!;
 
     // GPU
-    private TextBlock _gpuPct = null!, _gpuCoreTemp = null!, _gpuModel = null!, _gpuVoltage = null!;
+    private TextBlock _gpuPct = null!, _gpuCoreTemp = null!, _gpuVram = null!, _gpuModel = null!, _gpuVoltage = null!;
     private Grid _gpuBar = null!;
     private CartesianChart _gpuChart = null!;
     private readonly ObservableCollection<double> _gpuValues = new();
     private StackPanel _gpuFansPanel = null!;
-    private TextBlock _gpuCompactPct = null!, _gpuCompactTemp = null!;
+    private TextBlock _gpuCompactPct = null!, _gpuCompactTemp = null!, _gpuCompactVram = null!;
     private Grid _gpuDetailPanel = null!;
 
     // Disk (dynamic multi-disk)
@@ -622,6 +622,7 @@ public sealed partial class MonitorWindow : Window
         var gpuMetricsGrid = new Grid { ColumnSpacing = 24 };
         gpuMetricsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         gpuMetricsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        gpuMetricsGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var gpuUsageStack = new StackPanel { Spacing = 2 };
         gpuUsageStack.Children.Add(new TextBlock { Text = "USO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50 });
         _gpuPct = new TextBlock { FontSize = 32, FontWeight = Microsoft.UI.Text.FontWeights.Bold, Foreground = GpuColor };
@@ -633,6 +634,12 @@ public sealed partial class MonitorWindow : Window
         gpuTempStack.Children.Add(_gpuCoreTemp);
         Grid.SetColumn(gpuTempStack, 1);
         gpuMetricsGrid.Children.Add(gpuTempStack);
+        var gpuVramStack = new StackPanel { Spacing = 2 };
+        gpuVramStack.Children.Add(new TextBlock { Text = "VRAM", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50 });
+        _gpuVram = new TextBlock { FontSize = 18, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White) };
+        gpuVramStack.Children.Add(_gpuVram);
+        Grid.SetColumn(gpuVramStack, 2);
+        gpuMetricsGrid.Children.Add(gpuVramStack);
         gpuStack.Children.Add(gpuMetricsGrid);
         gpuStack.Children.Add(CreateBar(out _gpuBar, GpuColor));
 
@@ -686,10 +693,13 @@ public sealed partial class MonitorWindow : Window
         var gpuCompact = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 20, Padding = new Thickness(0, 4, 0, 4) };
         _gpuCompactPct = new TextBlock { FontSize = 12, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = GpuColor };
         _gpuCompactTemp = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
+        _gpuCompactVram = new TextBlock { FontSize = 12, Foreground = new SolidColorBrush(Colors.White) };
         gpuCompact.Children.Add(new TextBlock { Text = "USO", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
         gpuCompact.Children.Add(_gpuCompactPct);
         gpuCompact.Children.Add(new TextBlock { Text = "TEMP", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
         gpuCompact.Children.Add(_gpuCompactTemp);
+        gpuCompact.Children.Add(new TextBlock { Text = "VRAM", FontSize = 9, Foreground = SubtleText, CharacterSpacing = 50, VerticalAlignment = VerticalAlignment.Center });
+        gpuCompact.Children.Add(_gpuCompactVram);
         RegisterCard("gpu", gpuCard, gpuStack, gpuCompact);
         _hardwareCards["gpu"] = gpuCard;
 
@@ -2078,6 +2088,8 @@ public sealed partial class MonitorWindow : Window
             if (_gpuValues.Count > 60) _gpuValues.RemoveAt(0);
             _gpuCompactPct.Text = $"{s.GpuUsage:F0}%";
             _gpuCompactTemp.Text = s.GpuTemp > 0 ? $"{s.GpuTemp:F0}°C" : "--";
+            _gpuVram.Text = FormatGpuMemory(s.GpuMemoryTotalMb);
+            _gpuCompactVram.Text = FormatGpuMemory(s.GpuMemoryTotalMb);
 
             // Fans
             if (s.Fans.Count != _fanCount)
@@ -2252,6 +2264,11 @@ public sealed partial class MonitorWindow : Window
             foreach (var c in s.GpuClocks)
                 AddDetailRow(_gpuDetailPanel, c.Name, $"{c.Value:F0} MHz");
         }
+    }
+
+    private static string FormatGpuMemory(double memoryMb)
+    {
+        return memoryMb > 0 ? $"{memoryMb / 1024.0:F0} GB" : "--";
     }
 
     private void UpdateMbDetails(HardwareStats s)
@@ -2531,6 +2548,8 @@ public sealed partial class MonitorWindow : Window
             if (_gpuValues.Count > 60) _gpuValues.RemoveAt(0);
             _gpuCompactPct.Text = $"{s.GpuUsage:F0}%";
             _gpuCompactTemp.Text = s.GpuTemp > 0 ? $"{s.GpuTemp:F0}°C" : "--";
+            _gpuVram.Text = FormatGpuMemory(s.GpuMemoryTotalMb);
+            _gpuCompactVram.Text = FormatGpuMemory(s.GpuMemoryTotalMb);
 
             // Disks
             PopulateDisks(s.Disks);

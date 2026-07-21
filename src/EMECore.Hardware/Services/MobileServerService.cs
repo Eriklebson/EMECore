@@ -411,6 +411,8 @@ public class MobileServerService : IDisposable
             {
                 usage = s.CpuUsage,
                 temp = s.CpuPackageTemp,
+                coreTemp = s.CpuTemp,
+                packageTemp = s.CpuPackageTemp,
                 voltage = s.CpuVoltage,
                 power = s.CpuPower,
                 model = s.CpuModel,

@@ -13,6 +13,8 @@ O projeto usa arquitetura de duas camadas:
 
 No servidor mobile, `CollectFast()` entrega dados dinâmicos e `Collect()` renova WMI no máximo a cada 5 s. Não mover WMI para a atualização de 1 s do aplicativo móvel.
 
+A VRAM total deve priorizar o sensor do LHM e, em GPUs NVIDIA, o valor exposto pelo `nvidia-smi`. O campo WMI `Win32_VideoController.AdapterRAM` é apenas fallback, pois seu limite de 32 bits pode reportar aproximadamente 4 GB em placas com mais memória. Os dados estáticos de GPU são mantidos em cache pelo serviço para permanecerem disponíveis tanto nas atualizações rápidas do desktop quanto no servidor mobile. O card de GPU exibe a VRAM total também em seu resumo principal e no modo compacto.
+
 Os mapeamentos de sensores ficam em `config/hardware-mapping.json` e `config/cpu-sensors-mapping.json`, copiados para a saída. Para adaptar suporte a uma placa/sensor, priorizar esses arquivos antes de condicional específica no código.
 
 ## FPS, gamepad e periféricos
@@ -55,6 +57,10 @@ A montagem inicial do `MonitorWindow` é protegida contra falhas. Erros inespera
 
 Ao alterar coleta de hardware, verificar impacto no monitor desktop e no objeto `MapHardwareStats` do servidor mobile.
 
+## Publicação do WinUI
+
+O Hardware Monitor depende de recursos XAML compilados no arquivo `EMECore.WinUI.pri`, inclusive para construir os controles `CartesianChart`. O projeto possui o alvo MSBuild `CopyWinUiPriToPublish`, executado depois de `Publish`: ele falha explicitamente se o PRI não existir e copia o arquivo para `$(PublishDir)`. A imagem `Assets/Gamepad/8bitdoUltimate2.png` também possui cópia obrigatória para saída e publicação. Uma publicação ou instalador nunca deve ser validado apenas pela presença do `.exe`; é obrigatório abrir o Hardware Monitor usando exatamente a saída que será empacotada e conferir os recursos visuais.
+
 ## Conquistas
 
 Arquivos-chave: `AchievementService.cs`, `AchievementCheckerService.cs`, `AchievementImageService.cs`, `SaveBasedAchievementProvider.cs` e `AchievementNotificationWindow.cs`.
@@ -89,4 +95,4 @@ Arquivos: `SaveParserService.cs`, `SaveMonitorService.cs`, `LocalizedPaths.cs` e
 | UDP | `8182` | Beacon a cada 2 s para descoberta automática. |
 | HTTP | `8183` | Capas em `%LocalAppData%\EMECore\CoverCache`. |
 
-Mensagens usam JSON com `type` em camelCase. Respostas principais: `welcome`, `hardware_stats`, `gamepad_state`, `game_list`, `achievements`, `game_launched`, `pong` e `error`. `gamepad_state` é enviado somente quando o `PacketNumber` muda, com intervalo alvo de 33 ms e pausa de 500 ms sem clientes. Ao mudar campos, atualizar simultaneamente `MobileServerService`, os modelos Dart e `WebSocketService` do projeto mobile; preferir campos opcionais para manter compatibilidade entre versões.
+Mensagens usam JSON com `type` em camelCase. Respostas principais: `welcome`, `hardware_stats`, `gamepad_state`, `game_list`, `achievements`, `game_launched`, `pong` e `error`. Na seção `cpu` de `hardware_stats`, `coreTemp` representa o CCD/core selecionado pelo LHM e `packageTemp` representa o pacote/Tctl; o campo legado `temp` continua sendo enviado com o valor do pacote para clientes antigos. `gamepad_state` é enviado somente quando o `PacketNumber` muda, com intervalo alvo de 33 ms e pausa de 500 ms sem clientes. Ao mudar campos, atualizar simultaneamente `MobileServerService`, os modelos Dart e `WebSocketService` do projeto mobile; preferir campos opcionais para manter compatibilidade entre versões.

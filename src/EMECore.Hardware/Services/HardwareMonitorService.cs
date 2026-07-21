@@ -30,6 +30,11 @@ public class HardwareMonitorService
     private double _lastLhmBytesSent;
     private DateTime _lastLhmNetworkCheck = DateTime.MinValue;
     private string _cachedNetworkName = "";
+    private double _cachedGpuMemoryTotalMb;
+    private double _cachedGpuMemoryUsedMb;
+    private string _cachedGpuManufacturer = "";
+    private string _cachedGpuDriverVersion = "";
+    private string _cachedGpuMemoryType = "";
 
     // WMI network cache (refreshed every 5s to avoid WMI overhead)
     private double _cachedWmiNetDown, _cachedWmiNetUp;
@@ -82,15 +87,18 @@ public class HardwareMonitorService
 
             CollectNetworkFromWmi(s);
 
-            if (s.GpuUsage == 0 || s.GpuTemp == 0)
-            {
-                var (gpuLoad, gpuTemp) = ReadGpuViaSmi();
-                if (gpuLoad > 0) s.GpuUsage = gpuLoad;
-                if (gpuTemp > 0) s.GpuTemp = gpuTemp;
-            }
+            var (gpuLoad, gpuTemp, gpuMemoryTotalMb, gpuMemoryUsedMb) = ReadGpuViaSmi();
+            if (s.GpuUsage == 0 && gpuLoad > 0) s.GpuUsage = gpuLoad;
+            if (s.GpuTemp == 0 && gpuTemp > 0) s.GpuTemp = gpuTemp;
+            if (gpuMemoryTotalMb > 0) s.GpuMemoryTotalMb = gpuMemoryTotalMb;
+            if (gpuMemoryUsedMb > 0) s.GpuMemoryUsedMb = gpuMemoryUsedMb;
+
+            CacheGpuInfo(s);
 
             s.Monitors = CollectMonitorData();
         }
+
+        ApplyCachedGpuInfo(s);
 
         // Network via LHM (fast, only when LHM data is fresh)
         if (refreshLhm)
@@ -125,6 +133,24 @@ public class HardwareMonitorService
         CollectDiskSpeeds(s);
 
         return s;
+    }
+
+    private void CacheGpuInfo(HardwareStats s)
+    {
+        if (s.GpuMemoryTotalMb > 0) _cachedGpuMemoryTotalMb = s.GpuMemoryTotalMb;
+        if (s.GpuMemoryUsedMb > 0) _cachedGpuMemoryUsedMb = s.GpuMemoryUsedMb;
+        if (!string.IsNullOrWhiteSpace(s.GpuManufacturer)) _cachedGpuManufacturer = s.GpuManufacturer;
+        if (!string.IsNullOrWhiteSpace(s.GpuDriverVersion)) _cachedGpuDriverVersion = s.GpuDriverVersion;
+        if (!string.IsNullOrWhiteSpace(s.GpuMemoryType)) _cachedGpuMemoryType = s.GpuMemoryType;
+    }
+
+    private void ApplyCachedGpuInfo(HardwareStats s)
+    {
+        if (_cachedGpuMemoryTotalMb > 0) s.GpuMemoryTotalMb = _cachedGpuMemoryTotalMb;
+        if (_cachedGpuMemoryUsedMb > 0 && s.GpuMemoryUsedMb <= 0) s.GpuMemoryUsedMb = _cachedGpuMemoryUsedMb;
+        if (string.IsNullOrWhiteSpace(s.GpuManufacturer)) s.GpuManufacturer = _cachedGpuManufacturer;
+        if (string.IsNullOrWhiteSpace(s.GpuDriverVersion)) s.GpuDriverVersion = _cachedGpuDriverVersion;
+        if (string.IsNullOrWhiteSpace(s.GpuMemoryType)) s.GpuMemoryType = _cachedGpuMemoryType;
     }
 
     private static void CollectDiskSpeeds(HardwareStats s)
@@ -666,13 +692,13 @@ public class HardwareMonitorService
 
     // ===== GPU via nvidia-smi =====
     
-    private static (double load, double temp) ReadGpuViaSmi()
+    private static (double load, double temp, double memoryTotalMb, double memoryUsedMb) ReadGpuViaSmi()
     {
         try
         {
             var psi = new ProcessStartInfo("nvidia-smi")
             {
-                Arguments = "--query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader",
+                Arguments = "--query-gpu=utilization.gpu,temperature.gpu,memory.total,memory.used --format=csv,noheader,nounits",
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
@@ -680,20 +706,22 @@ public class HardwareMonitorService
             using var p = Process.Start(psi);
             if (p != null)
             {
-                var output = p.StandardOutput.ReadToEnd().Trim();
+                var output = p.StandardOutput.ReadLine();
                 p.WaitForExit(3000);
-                
-                var match = System.Text.RegularExpressions.Regex.Match(output, @"(\d+) %, (\d+)");
-                if (match.Success)
+
+                var values = output?.Split(',', StringSplitOptions.TrimEntries);
+                if (values?.Length >= 4)
                 {
-                    double.TryParse(match.Groups[1].Value, out var load);
-                    double.TryParse(match.Groups[2].Value, out var temp);
-                    return (load, temp);
+                    double.TryParse(values[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var load);
+                    double.TryParse(values[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var temp);
+                    double.TryParse(values[2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var memoryTotalMb);
+                    double.TryParse(values[3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var memoryUsedMb);
+                    return (load, temp, memoryTotalMb, memoryUsedMb);
                 }
             }
         }
         catch { }
-        return (0, 0);
+        return (0, 0, 0, 0);
     }
 
     // ===== LHM Data Collection =====

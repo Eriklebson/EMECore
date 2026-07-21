@@ -57,7 +57,10 @@
     <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="Assets\Gamepad\8bitdoUltimate2.png" />
+    <Content Include="Assets\Gamepad\8bitdoUltimate2.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
     <Content Include="Assets\ad.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -69,4 +72,15 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+  <Target Name="CopyWinUiPriToPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <WinUiPriSource>$(TargetDir)$(AssemblyName).pri</WinUiPriSource>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(WinUiPriSource)')"
+           Text="O arquivo PRI obrigatório do WinUI não foi gerado: $(WinUiPriSource)" />
+    <Copy SourceFiles="$(WinUiPriSource)"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
