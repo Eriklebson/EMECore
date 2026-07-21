@@ -3,7 +3,7 @@ using EMECore.Core.Models;
 
 namespace EMECore.WinUI.Services;
 
-public class PeripheralBatteryService
+internal sealed class LegacyPeripheralBatteryService
 {
     // Win32 HID imports (mínimo necessário)
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]

@@ -1,0 +1,198 @@
+[
+  {
+    "vendorId": "046D", "productId": "C54D", "name": "Logitech G PRO X SUPERLIGHT 2", "type": "mouse",
+    "provider": "logitech-feature-index", "usagePage": 65280, "usageId": 2, "deviceIndex": 1,
+    "batteryFeature": 4100, "supportsPollingRate": true
+  },
+  {
+    "vendorId": "046D", "productId": "C548", "name": "Logitech MX Ergo S", "type": "mouse",
+    "provider": "logitech-feature-index", "usagePage": 65280, "usageId": 2, "deviceIndex": 2,
+    "batteryFeature": 4100, "supportsPollingRate": true, "fixedPollingRateHz": 125
+  },
+  {
+    "vendorId": "046D", "productId": "0AA7", "name": "Logitech G PRO Wireless Gaming Headset", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "060D",
+    "minimumVoltage": 3300, "maximumVoltage": 4700,
+    "batteryPolynomial": [-1779008.5824253613, 2369.2153307344888, -1.258090504150684, 0.00033295201187388395, -0.000000043913981733597497, 0.0000000000023093121045539907]
+  },
+  {
+    "vendorId": "046D", "productId": "0AAA", "name": "Logitech G PRO X Wireless Gaming Headset", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "060D",
+    "minimumVoltage": 3300, "maximumVoltage": 4700,
+    "batteryPolynomial": [-1779008.5824253613, 2369.2153307344888, -1.258090504150684, 0.00033295201187388395, -0.000000043913981733597497, 0.0000000000023093121045539907]
+  },
+  {
+    "vendorId": "046D", "productId": "0ABA", "name": "Logitech PRO X Wireless Gaming Headset", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "060D",
+    "minimumVoltage": 3300, "maximumVoltage": 4700,
+    "batteryPolynomial": [-1779008.5824253613, 2369.2153307344888, -1.258090504150684, 0.00033295201187388395, -0.000000043913981733597497, 0.0000000000023093121045539907]
+  },
+  {
+    "vendorId": "046D", "productId": "0AFB", "name": "Logitech G PRO X 2 HID++", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "060D",
+    "minimumVoltage": 3300, "maximumVoltage": 4700,
+    "batteryPolynomial": [-1779008.5824253613, 2369.2153307344888, -1.258090504150684, 0.00033295201187388395, -0.000000043913981733597497, 0.0000000000023093121045539907]
+  },
+  {
+    "vendorId": "046D", "productId": "0AFC", "name": "Logitech G PRO X 2 HID++", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "060D",
+    "minimumVoltage": 3300, "maximumVoltage": 4700,
+    "batteryPolynomial": [-1779008.5824253613, 2369.2153307344888, -1.258090504150684, 0.00033295201187388395, -0.000000043913981733597497, 0.0000000000023093121045539907]
+  },
+  {
+    "vendorId": "046D", "productId": "0A66", "name": "Logitech G533", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "0701",
+    "minimumVoltage": 3330, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 50, 30, 20, 5, 0], "batteryVoltages": [4200, 3850, 3790, 3750, 3680, 3330]
+  },
+  {
+    "vendorId": "046D", "productId": "0A5C", "name": "Logitech G633", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "080A",
+    "minimumVoltage": 3150, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 80, 60, 40, 20, 10, 5, 0], "batteryVoltages": [4100, 3950, 3850, 3750, 3650, 3500, 3300, 3150]
+  },
+  {
+    "vendorId": "046D", "productId": "0A5B", "name": "Logitech G933", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "080A",
+    "minimumVoltage": 3150, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 80, 60, 40, 20, 10, 5, 0], "batteryVoltages": [4100, 3950, 3850, 3750, 3650, 3500, 3300, 3150]
+  },
+  {
+    "vendorId": "046D", "productId": "0A87", "name": "Logitech G935", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "080A",
+    "minimumVoltage": 3150, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 80, 60, 40, 20, 10, 5, 0], "batteryVoltages": [4100, 3950, 3850, 3750, 3650, 3500, 3300, 3150]
+  },
+  {
+    "vendorId": "046D", "productId": "0AB5", "name": "Logitech G733", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "080A",
+    "minimumVoltage": 3150, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 80, 60, 40, 20, 10, 5, 0], "batteryVoltages": [4100, 3950, 3850, 3750, 3650, 3500, 3300, 3150]
+  },
+  {
+    "vendorId": "046D", "productId": "0A89", "name": "Logitech G635", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "080A",
+    "minimumVoltage": 3150, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 80, 60, 40, 20, 10, 5, 0], "batteryVoltages": [4100, 3950, 3850, 3750, 3650, 3500, 3300, 3150]
+  },
+  {
+    "vendorId": "046D", "productId": "0AFE", "name": "Logitech G733", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "080A",
+    "minimumVoltage": 3150, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 80, 60, 40, 20, 10, 5, 0], "batteryVoltages": [4100, 3950, 3850, 3750, 3650, 3500, 3300, 3150]
+  },
+  {
+    "vendorId": "046D", "productId": "0B1F", "name": "Logitech G733", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 65347, "usageId": 514, "batteryCommand": "080A",
+    "minimumVoltage": 3150, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 80, 60, 40, 20, 10, 5, 0], "batteryVoltages": [4100, 3950, 3850, 3750, 3650, 3500, 3300, 3150]
+  },
+  {
+    "vendorId": "046D", "productId": "0AC4", "name": "Logitech G535", "type": "headset",
+    "provider": "logitech-voltage", "usagePage": 12, "usageId": 1, "batteryCommand": "050D",
+    "minimumVoltage": 3310, "maximumVoltage": 4700,
+    "batteryPercentages": [100, 50, 30, 20, 5, 0], "batteryVoltages": [4175, 3817, 3766, 3730, 3664, 3310]
+  },
+  {
+    "vendorId": "046D", "productIds": ["0AF7"], "name": "Logitech G PRO X 2 LIGHTSPEED", "type": "headset",
+    "provider": "logitech-centurion", "usagePage": 65440, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "046D", "productIds": ["0B18"], "name": "Logitech G522 LIGHTSPEED", "type": "headset",
+    "provider": "logitech-centurion", "usagePage": 65440, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "046D", "productIds": ["0B1C"], "name": "Logitech ASTRO A50 Gen 5", "type": "headset",
+    "provider": "logitech-astro-a50", "usagePage": 65330, "usageId": 116, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["12B3","12B6","12D7","12D5"], "name": "SteelSeries Arctis 1/7X/7P Wireless", "type": "headset",
+    "provider": "steelseries-direct", "usagePage": 65347, "usageId": 514, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["1260","12AD","1252","1280"], "name": "SteelSeries Arctis 7/Pro", "type": "headset",
+    "provider": "steelseries-direct", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["220E","2212","2216","2236"], "name": "SteelSeries Arctis 7+", "type": "headset",
+    "provider": "steelseries-direct", "usagePage": 65472, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["12C2"], "name": "SteelSeries Arctis 9", "type": "headset",
+    "provider": "steelseries-direct", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["220A","2202","22A1","227E","2206","2258","229E","22AD","223A","22A9","227A","22A4","22A5","22A7"], "name": "SteelSeries Arctis Nova 7 Family", "type": "headset",
+    "provider": "steelseries-nova", "usagePage": 65472, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["2232","2253"], "name": "SteelSeries Arctis Nova 5/5X", "type": "headset",
+    "provider": "steelseries-nova", "usagePage": 65472, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["2269","226D"], "name": "SteelSeries Arctis Nova 3P Wireless", "type": "headset",
+    "provider": "steelseries-nova", "usagePage": 65472, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["12E0","12E5","1290"], "name": "SteelSeries Arctis Pro/Nova Pro Wireless", "type": "headset",
+    "provider": "steelseries-pro", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1038", "productIds": ["230A"], "name": "SteelSeries Arctis GameBuds", "type": "earbuds",
+    "provider": "steelseries-gamebuds", "usagePage": 65472, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1B1C", "productIds": ["1B27","0A14","0A16","0A17","0A1D","0A1A","1B2A","1B23","1B29","0A55","0A51","0A52","0A38","0A4F","0A2B","0A75","0A56"], "name": "Corsair Wireless Headset Family", "type": "headset",
+    "provider": "corsair-battery", "usagePage": 65477, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "1B1C", "productIds": ["2A08","2A02"], "name": "Corsair Wireless V2 Headset Family", "type": "headset",
+    "provider": "corsair-v2", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "03F0", "productIds": ["0696"], "name": "HyperX Cloud II Wireless", "type": "headset",
+    "provider": "hyperx-cloud2", "usagePage": 65424, "usageId": 771, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "0951", "productIds": ["1718"], "name": "HyperX Cloud II Wireless Kingston", "type": "headset",
+    "provider": "hyperx-cloud2-kingston", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "03F0", "productIds": ["098D"], "name": "HyperX Cloud Alpha Wireless", "type": "headset",
+    "provider": "hyperx-alpha", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "0951", "productIds": ["16C4","1723","100B"], "name": "HyperX Cloud Flight Wireless Family", "type": "headset",
+    "provider": "hyperx-flight", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "3329", "productIds": ["4B19","4B18"], "name": "Audeze Maxwell", "type": "headset",
+    "provider": "audeze-input-report", "usagePage": 65299, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "3329", "productIds": ["4B29"], "name": "Audeze Maxwell 2", "type": "headset",
+    "provider": "audeze-input-report", "usagePage": 65299, "usageId": 1, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "054C", "productIds": ["0EC2"], "name": "Sony INZONE Buds", "type": "earbuds",
+    "provider": "sony-inzone", "enabled": false, "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  },
+  {
+    "vendorId": "17EF", "productIds": ["A07D"], "name": "Lenovo Wireless VoIP Headset", "type": "headset",
+    "provider": "lenovo-voip", "usagePage": 65287, "usageId": 546, "enabled": false,
+    "supportStatus": "cataloged-parser-pending", "source": "HeadsetControl 2026-06-29"
+  }
+]

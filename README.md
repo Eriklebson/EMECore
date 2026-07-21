@@ -24,7 +24,7 @@
 | **Badge de Plataforma** | Identifica Steam, Xbox e Outros com cores especificas | ✅ |
 | **Detalhe do Jogo** | Informacoes completas: plataforma, tempo, ultimo acesso, caminho | ✅ |
 | **Conquistas** | Parser de conquistas do Stellar Blade, cards estilo Steam, notificacao com som | ✅ |
-| **Monitor de Hardware** | CPU, GPU, RAM, temperaturas, fans, FPS em tempo real | ✅ |
+| **Monitor de Hardware** | CPU, GPU, RAM, temperaturas, fans, FPS e periféricos com catálogo extensível de bateria | ✅ |
 | **Filtro Inteligente** | Ignora automaticamente uninstallers, redistributiveis, crash handlers e outros nao-jogos | ✅ |
 | **100% Offline** | Banco SQLite local, sem dependencia de nuvem | ✅ |
 | **Nativo Windows** | Aplicacao leve em C# WinUI 3, baixo consumo de RAM/CPU | ✅ |
@@ -139,6 +139,7 @@ O app Flutter (EMECoreMobile) sera desenvolvido separadamente e se conecta ao IP
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.24.0.0 | 21/07/2026 | Monitor de periféricos com bateria Logitech HID++, polling rate, ícones por tipo, grade responsiva e catálogo extensível com 84 identificadores multimarcas |
 | 2.23.0.0 | 21/07/2026 | Streaming de gamepad para o app mobile, layout do controle persistido no perfil do usuario e Monitor de Hardware sem modo sempre no topo |
 | 2.22.2.0 | 20/07/2026 | Remocao da loja (GameDeal, StoreService, StorePriceService, StorePage, scraper Python); fix beacon UDP - broadcast para todas as sub-redes (multi-interface) |
 | 2.22.1.0 | 20/07/2026 | Fix jogos no mobile: IndexedStack preserva widgets na troca de aba, HandleGetGames envia lista imediatamente (capas em background), cache de game_list, loading indicator no GamesPage |

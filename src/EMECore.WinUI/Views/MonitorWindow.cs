@@ -249,7 +249,71 @@ public sealed partial class MonitorWindow : Window
         Content = _loadingOverlay;
 
         // Defer full UI build + data load to after first frame renders
-        _ = BuildAndLoadAsync();
+        _ = BuildAndLoadSafelyAsync();
+    }
+
+    private async Task BuildAndLoadSafelyAsync()
+    {
+        try
+        {
+            await BuildAndLoadAsync();
+        }
+        catch (Exception ex)
+        {
+            WriteMonitorError(ex);
+            ShowLoadingError();
+        }
+    }
+
+    private void ShowLoadingError()
+    {
+        if (_loadingOverlay == null) return;
+
+        _loadingOverlay.Children.Clear();
+        var errorStack = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Spacing = 10,
+            MaxWidth = 520,
+            Margin = new Thickness(24)
+        };
+        errorStack.Children.Add(new TextBlock
+        {
+            Text = "Não foi possível carregar o Hardware Monitor.",
+            FontSize = 18,
+            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+            Foreground = new SolidColorBrush(Colors.White),
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        });
+        errorStack.Children.Add(new TextBlock
+        {
+            Text = "O erro foi registrado em %LocalAppData%\\EMECore\\Logs\\hardware-monitor.log.",
+            FontSize = 12,
+            Foreground = SubtleText,
+            TextAlignment = TextAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        });
+        _loadingOverlay.Children.Add(errorStack);
+    }
+
+    private static void WriteMonitorError(Exception ex)
+    {
+        try
+        {
+            var logDirectory = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "EMECore",
+                "Logs");
+            Directory.CreateDirectory(logDirectory);
+            var logPath = System.IO.Path.Combine(logDirectory, "hardware-monitor.log");
+            File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\r\n\r\n");
+        }
+        catch
+        {
+            // O registro de diagnóstico nunca deve impedir a abertura da interface.
+        }
     }
 
     private bool _isResizing = false;
@@ -830,7 +894,7 @@ public sealed partial class MonitorWindow : Window
         // ===== Gamepad Card (inline in Hardware tab) =====
         var gpHwCard = CreateCard();
         var gpHwStack = new StackPanel { Spacing = 12 };
-        var gpHwHeader = CreateCardHeaderGrid("\uE711", "CONTROLE", new SolidColorBrush(ColorFromHex("#4ADE80")), "gamepad");
+        var gpHwHeader = CreateCardHeaderGrid("\uE7FC", "CONTROLE", new SolidColorBrush(ColorFromHex("#4ADE80")), "gamepad", "Segoe MDL2 Assets");
         _gpHwHeaderRow = gpHwHeader;
 
         var miniTrigColor = new SolidColorBrush(ColorFromHex("#4ADE80"));
@@ -1271,15 +1335,10 @@ public sealed partial class MonitorWindow : Window
 
         // Peripheral battery refresh (every 30s)
         var batteryService = new PeripheralBatteryService();
+        _ = RefreshPeripheralBatteriesAsync(batteryService);
         _batteryTimer = new System.Threading.Timer(async _ =>
         {
-            try
-            {
-                var batteries = await batteryService.GetBatteriesAsync();
-                _peripheralBatteries = batteries;
-                DispatcherQueue.TryEnqueue(RefreshPerifericosBatteries);
-            }
-            catch { }
+            await RefreshPeripheralBatteriesAsync(batteryService);
         }, null, 2000, 30000);
 
         // Detect FurMark on startup
@@ -1307,6 +1366,20 @@ public sealed partial class MonitorWindow : Window
 
         // PHASE 2: WMI slow data (RAM/Disk/Network/Monitors) — background
         _ = LoadWmiInBackgroundAsync();
+    }
+
+    private async Task RefreshPeripheralBatteriesAsync(PeripheralBatteryService batteryService)
+    {
+        try
+        {
+            var batteries = await batteryService.GetBatteriesAsync();
+            _peripheralBatteries = batteries;
+            DispatcherQueue.TryEnqueue(RefreshPerifericosBatteries);
+        }
+        catch
+        {
+            // Um provedor de bateria não pode interromper o restante do monitor.
+        }
     }
 
     private bool _wmiLoading;
@@ -1354,10 +1427,11 @@ public sealed partial class MonitorWindow : Window
         return stack;
     }
 
-    private StackPanel CreateCardHeaderGrid(string icon, string title, SolidColorBrush accentColor, string cardKey)
+    private StackPanel CreateCardHeaderGrid(string icon, string title, SolidColorBrush accentColor,
+        string cardKey, string iconFontFamily = "Assets/tabler-icons.ttf#tabler-icons")
     {
         var hdr = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-        hdr.Children.Add(new FontIcon { Glyph = icon, FontSize = 18, Foreground = accentColor, FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons") });
+        hdr.Children.Add(new FontIcon { Glyph = icon, FontSize = 18, Foreground = accentColor, FontFamily = new FontFamily(iconFontFamily) });
         hdr.Children.Add(new TextBlock { Text = title, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
 
         return hdr;
@@ -2900,9 +2974,6 @@ public sealed partial class MonitorWindow : Window
     private void RefreshPerifericosWith(HardwareStats s)
     {
         _perifBuildCount++;
-        var stackTrace = new System.Diagnostics.StackTrace(1, true).GetFrame(0);
-        File.AppendAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "perif-rebuild.txt"),
-            $"REBUILD #{_perifBuildCount} from {stackTrace?.GetMethod()?.Name} at {DateTime.UtcNow:HH:mm:ss.fff}\n");
         
         try
         {
@@ -2935,7 +3006,7 @@ public sealed partial class MonitorWindow : Window
                 var cardStack = new StackPanel { Spacing = 12 };
 
                 // Header
-                var hdr = CreateCardHeaderGrid("\uE711", gp.Name, gamepadColor, "gp_" + gp.Name);
+                var hdr = CreateCardHeaderGrid("\uE7FC", gp.Name, gamepadColor, "gp_" + gp.Name, "Segoe MDL2 Assets");
                 cardStack.Children.Add(hdr);
 
                 // Calibrate button
@@ -3160,8 +3231,6 @@ public sealed partial class MonitorWindow : Window
         if (layout.Buttons.TryGetValue("A", out var btnA))
         {
             var (px, py, pr) = GamepadLayoutService.ToPixels(btnA, layout.ImageWidth, layout.ImageHeight);
-            File.AppendAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "calib-debug.txt"),
-                $"VISUAL: A loaded X={btnA.X} Y={btnA.Y} → px=({px:F0},{py:F0}) canvas=({layout.ImageWidth},{layout.ImageHeight})\n");
             _gpBtnA = CreateOverlayBtn(pr * 2, pr * 2);
             Canvas.SetLeft(_gpBtnA, px - pr); Canvas.SetTop(_gpBtnA, py - pr);
         }
@@ -3605,8 +3674,6 @@ public sealed partial class MonitorWindow : Window
                 {
                     var nx = Math.Round(cx / canvas.Width, 3);
                     var ny = Math.Round(cy / canvas.Height, 3);
-                    File.AppendAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "calib-debug.txt"),
-                        $"CALIB: {savedKey} px=({cx:F0},{cy:F0}) norm=({nx},{ny}) canvas=({canvas.Width},{canvas.Height})\n");
                     _calibrationLayout.Buttons[savedKey].X = nx;
                     _calibrationLayout.Buttons[savedKey].Y = ny;
                 }
@@ -3695,6 +3762,10 @@ public sealed partial class MonitorWindow : Window
                 {
                     stack.Children.RemoveAt(i);
                 }
+                else if (stack.Children[i] is Grid grid && grid.Tag is string gridTag && gridTag == "battery-section")
+                {
+                    stack.Children.RemoveAt(i);
+                }
                 else if (stack.Children[i] is TextBlock tb && tb.Tag is string tbTag && tbTag == "battery-header")
                 {
                     stack.Children.RemoveAt(i);
@@ -3705,7 +3776,7 @@ public sealed partial class MonitorWindow : Window
 
             var batHeader = new TextBlock
             {
-                Text = $"{_peripheralBatteries.Count} periférico(s) com bateria",
+                Text = $"{_peripheralBatteries.Count} periférico(s) detectado(s)",
                 FontSize = 13,
                 Foreground = SubtleText,
                 Margin = new Thickness(0, 16, 0, 8),
@@ -3713,15 +3784,24 @@ public sealed partial class MonitorWindow : Window
             };
             stack.Children.Add(batHeader);
 
+            var batteryGrid = new Grid
+            {
+                ColumnSpacing = 12,
+                RowSpacing = 12,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Tag = "battery-section"
+            };
+
             foreach (var bat in _peripheralBatteries)
             {
                 var card = CreateCard();
                 card.Tag = "battery-card";
+                card.HorizontalAlignment = HorizontalAlignment.Stretch;
                 var cardStack = new StackPanel { Spacing = 8 };
 
                 var hdr = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-                hdr.Children.Add(new FontIcon { Glyph = "\uE9F5", FontSize = 16, Foreground = new SolidColorBrush(ColorFromHex("#60A5FA")), FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons") });
-                hdr.Children.Add(new TextBlock { Text = bat.DeviceName, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
+                hdr.Children.Add(CreatePeripheralTypeIcon(bat.DeviceName));
+                hdr.Children.Add(new TextBlock { Text = bat.DeviceName, FontSize = 13, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap });
                 cardStack.Children.Add(hdr);
 
                 var batColor = bat.BatteryPercent switch
@@ -3738,20 +3818,56 @@ public sealed partial class MonitorWindow : Window
                 batRow.Children.Add(new TextBlock { Text = bat.Status, FontSize = 12, Foreground = SubtleText, VerticalAlignment = VerticalAlignment.Center });
                 cardStack.Children.Add(batRow);
 
+                if (bat.SupportsPollingRate)
+                {
+                    var pollingText = bat.PollingRateHz > 0
+                        ? $"Polling rate: {bat.PollingRateHz} Hz"
+                        : "Polling rate: Detectando...";
+                    cardStack.Children.Add(new TextBlock { Text = pollingText, FontSize = 12, Foreground = SubtleText });
+                }
+
                 // Battery bar
                 if (bat.BatteryPercent >= 0)
                 {
                     var barGrid = new Grid { Height = 6, CornerRadius = new CornerRadius(3), Background = Design.C.SecB };
-                    var barFill = new Border { CornerRadius = new CornerRadius(3), Background = batColor, Width = bat.BatteryPercent / 100.0 * 200, MaxWidth = 200, HorizontalAlignment = HorizontalAlignment.Left };
+                    barGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(bat.BatteryPercent, GridUnitType.Star) });
+                    barGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(100 - bat.BatteryPercent, GridUnitType.Star) });
+                    var barFill = new Border { CornerRadius = new CornerRadius(3), Background = batColor, HorizontalAlignment = HorizontalAlignment.Stretch };
+                    Grid.SetColumn(barFill, 0);
                     barGrid.Children.Add(barFill);
                     cardStack.Children.Add(barGrid);
                 }
 
                 card.Child = cardStack;
-                stack.Children.Add(card);
+                batteryGrid.Children.Add(card);
             }
+
+            ArrangePeripheralCards(batteryGrid, stack.ActualWidth);
+            batteryGrid.SizeChanged += (_, args) => ArrangePeripheralCards(batteryGrid, args.NewSize.Width);
+            stack.Children.Add(batteryGrid);
         }
         catch { }
+    }
+
+    private static void ArrangePeripheralCards(Grid grid, double availableWidth)
+    {
+        var columnCount = availableWidth >= 680 ? 2 : 1;
+        grid.ColumnDefinitions.Clear();
+        grid.RowDefinitions.Clear();
+
+        for (var column = 0; column < columnCount; column++)
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var rowCount = (int)Math.Ceiling(grid.Children.Count / (double)columnCount);
+        for (var row = 0; row < rowCount; row++)
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        for (var index = 0; index < grid.Children.Count; index++)
+        {
+            if (grid.Children[index] is not FrameworkElement card) continue;
+            Grid.SetColumn(card, index % columnCount);
+            Grid.SetRow(card, index / columnCount);
+        }
     }
 
     private void RefreshPerifericos()
@@ -3759,6 +3875,27 @@ public sealed partial class MonitorWindow : Window
         var s = _monitor.Collect();
         _lastGamepadCount = s.Gamepads.Count(g => g.IsConnected);
         RefreshPerifericosWith(s);
+    }
+
+    private static FontIcon CreatePeripheralTypeIcon(string deviceName)
+    {
+        var glyph = deviceName.Contains("Headset", StringComparison.OrdinalIgnoreCase) ||
+                    deviceName.Contains("Headphone", StringComparison.OrdinalIgnoreCase)
+            ? "\uE95B"
+            : deviceName.Contains("Mouse", StringComparison.OrdinalIgnoreCase) ||
+              deviceName.Contains("Superlight", StringComparison.OrdinalIgnoreCase) ||
+              deviceName.Contains("Ergo", StringComparison.OrdinalIgnoreCase)
+                ? "\uE962"
+                : "\uE961";
+
+        return new FontIcon
+        {
+            Glyph = glyph,
+            FontSize = 18,
+            Foreground = new SolidColorBrush(ColorFromHex("#60A5FA")),
+            FontFamily = new FontFamily("Segoe MDL2 Assets"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
     }
 
     private void UpdateGamepadUi()

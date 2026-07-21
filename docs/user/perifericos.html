@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E.M.E Core — Periféricos</title>
+  <style>
+    :root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#07111f;color:#e5edf7}body{max-width:980px;margin:auto;padding:32px}header,section{background:#0d1b2c;border:1px solid #20334a;border-radius:16px;padding:24px;margin-bottom:18px}h1,h2{margin-top:0;color:#fff}input{box-sizing:border-box;width:100%;padding:12px;border-radius:10px;border:1px solid #36506d;background:#07111f;color:#fff}code{color:#60a5fa}li{margin:8px 0}@media print{body{background:#fff;color:#111}header,section{background:#fff;border-color:#bbb}}
+  </style>
+</head>
+<body>
+  <header><h1>Monitoramento de periféricos</h1><p>Como o E.M.E Core identifica dispositivos e apresenta a bateria.</p><input id="busca" placeholder="Pesquisar nesta página" aria-label="Pesquisar"></header>
+  <main>
+    <section><h2>Detecção automática</h2><p>Dispositivos que fornecem bateria ao Windows são detectados automaticamente. Modelos proprietários usam definições verificadas do catálogo interno.</p></section>
+    <section><h2>Catálogo extensível</h2><p>O arquivo <code>config/peripheral-devices.json</code> descreve VID/PID, tipo, coleção HID, comando e calibração. Isso permite ampliar famílias compatíveis sem colocar regras de modelo na interface.</p></section>
+    <section><h2>Compatibilidade inicial</h2><p>O catálogo possui 84 identificadores de oito fabricantes. A leitura proprietária ativa cobre as famílias Logitech validadas; SteelSeries, Corsair, HyperX, Audeze, Sony e Lenovo já estão identificados e aguardam seus parsers. Dispositivos compatíveis com a API de bateria do Windows funcionam sem parser proprietário.</p></section>
+    <section><h2>Limitações</h2><p>Alguns fabricantes usam protocolos fechados. Estar catalogado significa que o E.M.E Core reconhece a família e conhece sua referência técnica; não significa que comandos ainda não implementados serão enviados ao dispositivo.</p></section>
+  </main>
+  <script>busca.addEventListener('input',()=>{const q=busca.value.toLowerCase();document.querySelectorAll('section').forEach(s=>s.hidden=q&&!s.innerText.toLowerCase().includes(q))})</script>
+</body>
+</html>
