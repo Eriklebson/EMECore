@@ -521,21 +521,54 @@ public class MobileServerService : IDisposable
                 name = machineName
             });
             var data = System.Text.Encoding.UTF8.GetBytes(beacon);
-            var endpoint = new IPEndPoint(IPAddress.Broadcast, BeaconPort);
 
-            Log?.Invoke($"[MobileServer] Beacon UDP ativo na porta {BeaconPort}");
+            var broadcastEndpoints = GetBroadcastEndpoints();
+            Log?.Invoke($"[MobileServer] Beacon UDP ativo na porta {BeaconPort} para {broadcastEndpoints.Count} sub-redes");
 
             while (!token.IsCancellationRequested)
             {
                 try
                 {
-                    await udp.SendAsync(data, data.Length, endpoint);
+                    foreach (var ep in broadcastEndpoints)
+                    {
+                        await udp.SendAsync(data, data.Length, ep);
+                    }
                     await Task.Delay(2000, token);
                 }
                 catch (OperationCanceledException) { break; }
                 catch { await Task.Delay(5000, token); }
             }
         }, token);
+    }
+
+    private static List<IPEndPoint> GetBroadcastEndpoints()
+    {
+        var endpoints = new List<IPEndPoint>();
+        try
+        {
+            foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
+
+                foreach (var addr in nic.GetIPProperties().UnicastAddresses)
+                {
+                    if (addr.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                    var ip = addr.Address.GetAddressBytes();
+                    var mask = addr.IPv4Mask.GetAddressBytes();
+                    var broadcast = new byte[4];
+                    for (int i = 0; i < 4; i++)
+                        broadcast[i] = (byte)(ip[i] | ~mask[i]);
+                    endpoints.Add(new IPEndPoint(new IPAddress(broadcast), BeaconPort));
+                }
+            }
+        }
+        catch { }
+
+        if (endpoints.Count == 0)
+            endpoints.Add(new IPEndPoint(IPAddress.Broadcast, BeaconPort));
+
+        return endpoints;
     }
 
     private void StopBeacon()

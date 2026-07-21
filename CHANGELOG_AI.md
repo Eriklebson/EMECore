@@ -2,6 +2,27 @@
 
 ---
 
+## 2026-07-20 — Documentação: revisão técnica da arquitetura atual
+
+### Arquivos modificados
+- `docs/README.md` — Índice atualizado da documentação oficial.
+- `docs/architecture.md`, `core-project.md`, `database.md`, `hardware-project.md`, `winui-project.md`, `ui-components.md`, `viewmodel.md`, `theme.md`, `build-setup.md`, `known-issues.md` — Arquivos existentes revisados contra o código atual.
+- `docs/stellar-blade-*.md` — Pesquisa de saves do Stellar Blade mantida como material específico.
+
+### O que mudou
+- A documentação foi confrontada com o código atual e reorganizada em arquivos por assunto.
+- Foram registrados o monitor LHM/WMI, FPS via PresentMon, conquistas e parsers de save, SQLite em modo `DELETE`, servidor WebSocket, descoberta UDP e servidor HTTP de capas.
+- Instruções antigas que descreviam esses recursos como stubs, ou diziam que não havia XAML, foram retiradas do índice de manutenção.
+
+### Motivo
+Evitar que futuras alterações usem documentação de uma versão inicial do projeto e introduzam regressões no banco, no monitoramento ou na integração mobile.
+
+### Impacto
+- Não há mudança de comportamento no aplicativo.
+- Desenvolvedores e agentes devem usar `docs/README.md` e os arquivos atuais ligados por ele como fonte de verdade.
+
+---
+
 ## 2026-07-17 — Feature: Servidor WebSocket para App Mobile (Controle Remoto)
 
 ### Arquivos criados
