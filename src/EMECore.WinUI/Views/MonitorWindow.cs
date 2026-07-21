@@ -208,6 +208,7 @@ public sealed partial class MonitorWindow : Window
     public MonitorWindow()
     {
         Title = "Hardware Monitor";
+        ThemeManager.ThemeChanged += OnThemeChanged;
         _monitor = new HardwareMonitorService();
 
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -224,21 +225,7 @@ public sealed partial class MonitorWindow : Window
             presenter.IsMinimizable = true;
         }
 
-        // Dark title bar
-        var titleBar = appWindow.TitleBar;
-        titleBar.ExtendsContentIntoTitleBar = false;
-        var darkBg = ColorFromHex("#0A0B0D");
-        var hoverBg = ColorFromHex("#2A2D31");
-        var pressedBg = ColorFromHex("#1E2023");
-        var mutedFg = Windows.UI.Color.FromArgb(255, 128, 128, 128);
-        titleBar.BackgroundColor = darkBg;
-        titleBar.ForegroundColor = Colors.White;
-        titleBar.ButtonBackgroundColor = darkBg;
-        titleBar.ButtonForegroundColor = Colors.White;
-        titleBar.ButtonHoverBackgroundColor = hoverBg;
-        titleBar.ButtonPressedBackgroundColor = pressedBg;
-        titleBar.ButtonInactiveBackgroundColor = darkBg;
-        titleBar.ButtonInactiveForegroundColor = mutedFg;
+        ApplyWindowTheme(appWindow);
 
         // Loading overlay — shown FIRST so window appears immediately
         _loadingOverlay = new Grid { Background = SurfaceBg };
@@ -250,6 +237,32 @@ public sealed partial class MonitorWindow : Window
 
         // Defer full UI build + data load to after first frame renders
         _ = BuildAndLoadSafelyAsync();
+    }
+
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            ThemeVisualTree.Refresh(Content as DependencyObject, ThemeManager.Previous, ThemeManager.Current);
+            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+            ApplyWindowTheme(Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId));
+        });
+    }
+
+    private static void ApplyWindowTheme(Microsoft.UI.Windowing.AppWindow appWindow)
+    {
+        var theme = ThemeManager.Current;
+        var titleBar = appWindow.TitleBar;
+        titleBar.ExtendsContentIntoTitleBar = false;
+        titleBar.BackgroundColor = theme.Background;
+        titleBar.ForegroundColor = theme.TextPrimary;
+        titleBar.ButtonBackgroundColor = theme.Background;
+        titleBar.ButtonForegroundColor = theme.TextPrimary;
+        titleBar.ButtonHoverBackgroundColor = theme.CardHover;
+        titleBar.ButtonPressedBackgroundColor = theme.Card;
+        titleBar.ButtonInactiveBackgroundColor = theme.Background;
+        titleBar.ButtonInactiveForegroundColor = theme.TextMuted;
     }
 
     private async Task BuildAndLoadSafelyAsync()
@@ -1302,7 +1315,7 @@ public sealed partial class MonitorWindow : Window
             UpdateGamepadCompactMode(w);
         };
 
-        Closed += (_, _) => { _fpsOverlay?.Dispose(); _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _batteryTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
+        Closed += (_, _) => { ThemeManager.ThemeChanged -= OnThemeChanged; _fpsOverlay?.Dispose(); _bgTimer?.Dispose(); _gpPollTimer?.Dispose(); _batteryTimer?.Dispose(); _graphTimer.Stop(); _stressTimer.Stop(); _gamepadTimer.Stop(); _stressTest.Dispose(); _monitor.Dispose(); };
         var hwnd2 = WinRT.Interop.WindowNative.GetWindowHandle(this);
         var windowId2 = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd2);
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId2);

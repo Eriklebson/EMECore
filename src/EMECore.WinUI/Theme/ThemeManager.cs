@@ -60,19 +60,19 @@ public static class ThemeManager
     {
         Name = "Padrão",
         Description = "Tema escuro com verde-água — layout oficial E.M.E Core",
-        Background = ColorFromHex("#1a1a1d"),
-        Surface = ColorFromHex("#2a2a2e"),
-        Card = ColorFromHex("#2a2a2e"),
-        CardHover = ColorFromHex("#35353a"),
-        Accent = ColorFromHex("#3dcc91"),
-        AccentSecondary = ColorFromHex("#2ea87a"),
-        AccentGlow = ColorFromHex("#3dcc91"),
-        Success = ColorFromHex("#3dcc91"),
+        Background = ColorFromHex("#0a0b0d"),
+        Surface = ColorFromHex("#161719"),
+        Card = ColorFromHex("#2a2d31"),
+        CardHover = ColorFromHex("#3a3d43"),
+        Accent = ColorFromHex("#4ccba0"),
+        AccentSecondary = ColorFromHex("#35a982"),
+        AccentGlow = ColorFromHex("#4ccba0"),
+        Success = ColorFromHex("#4ccba0"),
         Warning = ColorFromHex("#e6a030"),
         Danger = ColorFromHex("#e03a44"),
-        TextPrimary = ColorFromHex("#e4e4e4"),
-        TextSecondary = ColorFromHex("#a8aab0"),
-        TextMuted = ColorFromHex("#707075"),
+        TextPrimary = ColorFromHex("#e8e9eb"),
+        TextSecondary = ColorFromHex("#a8abb0"),
+        TextMuted = ColorFromHex("#70747a"),
         Border = Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF),
         BorderHover = Color.FromArgb(0x19, 0xFF, 0xFF, 0xFF),
     };
@@ -225,14 +225,21 @@ public static class ThemeManager
     };
 
     public static AppTheme Current { get; private set; } = SteamTheme;
+    public static AppTheme Previous { get; private set; } = SteamTheme;
 
     public static AppTheme[] AvailableThemes => new[] { SteamTheme, GamerTheme, NeonTheme, RedTheme, BlueTheme, PurpleTheme, OrangeTheme, MidnightTheme };
 
     public static void SetTheme(AppTheme theme)
     {
+        Previous = Current;
         Current = theme;
+        Design.C.RefreshColors(theme);
+        AppStyles.Colors.RefreshColors(theme);
+        SteamColors.RefreshColors(theme);
         ThemeChanged?.Invoke(null, EventArgs.Empty);
     }
+
+    public static Color WithAlpha(Color color, byte alpha) => Color.FromArgb(alpha, color.R, color.G, color.B);
 
     private static Color ColorFromHex(string hex)
     {

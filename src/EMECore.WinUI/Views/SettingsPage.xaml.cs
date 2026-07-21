@@ -205,6 +205,7 @@ public sealed partial class SettingsPage : UserControl
             // Color preview dots
             var dots = new StackPanel
             {
+                Tag = ThemeVisualTree.PreviewTag,
                 Orientation = Orientation.Horizontal,
                 Spacing = 4,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -276,12 +277,14 @@ public sealed partial class SettingsPage : UserControl
 
     private void SelectTheme(AppTheme theme, Border card, Border indicator)
     {
+        ThemeChangeDiagnostics.StartSession(theme.Name);
+        TraceThemeChange($"início seleção: {theme.Name}");
         // Reset previous selection
         if (_selectedCard != null)
         {
-            _selectedCard.BorderBrush = new SolidColorBrush(SteamColors.Card);
+            _selectedCard.BorderBrush = new SolidColorBrush(ThemeManager.Current.Border);
             _selectedCard.BorderThickness = new Thickness(1);
-            _selectedCard.Background = new SolidColorBrush(SteamColors.Card);
+            _selectedCard.Background = new SolidColorBrush(ThemeManager.Current.Card);
         }
 
         // Apply new selection
@@ -298,23 +301,30 @@ public sealed partial class SettingsPage : UserControl
             if (child is Border b && b.Child is Grid g && g.Children.Count > 2 && g.Children[2] is Border ind && b != card)
             {
                 ind.Background = new SolidColorBrush(Colors.Transparent);
-                ind.BorderBrush = new SolidColorBrush(SteamColors.TextSecondary);
+                ind.BorderBrush = new SolidColorBrush(theme.TextSecondary);
             }
         }
 
         // Save and apply
         SettingsService.Set("theme", theme.Name);
+        TraceThemeChange("preferência salva");
         ThemeManager.SetTheme(theme);
-        SteamColors.RefreshColors(theme);
+        TraceThemeChange("ThemeManager concluído");
         ThemeChanged?.Invoke(this, EventArgs.Empty);
+        TraceThemeChange("evento global concluído");
+    }
+
+    private static void TraceThemeChange(string stage)
+    {
+        ThemeChangeDiagnostics.Write(stage);
     }
 
     private static Border CreateCard() => new()
     {
-        Background = new SolidColorBrush(SteamColors.Card),
+        Background = new SolidColorBrush(ThemeManager.Current.Card),
         CornerRadius = new CornerRadius(8),
         BorderThickness = new Thickness(1),
-        BorderBrush = new SolidColorBrush(SteamColors.Card),
+        BorderBrush = new SolidColorBrush(ThemeManager.Current.Border),
         Padding = new Thickness(16)
     };
 

@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
 using EMECore.Hardware.Services;
+using EMECore.WinUI.Theme;
 
 namespace EMECore.WinUI.Views;
 
@@ -235,21 +236,21 @@ public class FpsOverlayWindow : IDisposable
         }
         string line2 = extras.Count > 0 ? string.Join("   ", extras) : "";
 
-        int r, g, b;
-        if (fps >= 55) { r = 74; g = 222; b = 128; }
-        else if (fps >= 30) { r = 250; g = 204; b = 21; }
-        else if (fps > 0) { r = 248; g = 113; b = 113; }
-        else { r = 120; g = 120; b = 120; }
+        var valueColor = fps >= 55 ? ThemeManager.Current.Success
+            : fps >= 30 ? ThemeManager.Current.Warning
+            : fps > 0 ? ThemeManager.Current.Danger
+            : ThemeManager.Current.TextMuted;
+        var detailColor = ThemeManager.Current.TextSecondary;
 
         var oldFont = SelectObject(hdc, _hFontMain);
         SetBkMode(hdc, 1);
 
-        DrawTextOutline(hdc, 4, 2, fpsText, (byte)r, (byte)g, (byte)b);
+        DrawTextOutline(hdc, 4, 2, fpsText, valueColor.R, valueColor.G, valueColor.B);
 
         SelectObject(hdc, _hFontDetail);
-        DrawTextOutline(hdc, 4, 32, line1, 200, 200, 200);
+        DrawTextOutline(hdc, 4, 32, line1, detailColor.R, detailColor.G, detailColor.B);
         if (line2.Length > 0)
-            DrawTextOutline(hdc, 4, 48, line2, 200, 200, 200);
+            DrawTextOutline(hdc, 4, 48, line2, detailColor.R, detailColor.G, detailColor.B);
 
         SelectObject(hdc, oldFont);
         EndPaint(hWnd, ref ps);

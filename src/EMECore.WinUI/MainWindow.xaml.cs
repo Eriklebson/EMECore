@@ -49,6 +49,13 @@ public sealed partial class MainWindow : Window
         var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId);
         appWindow.SetIcon("Assets/Logo/logo.ico");
 
+        // O tema salvo precisa ser aplicado antes da criação de qualquer View.
+        SettingsService.Load();
+        var savedThemeName = SettingsService.Get("theme", "Padrão");
+        var savedTheme = ThemeManager.AvailableThemes.FirstOrDefault(t => t.Name == savedThemeName)
+            ?? ThemeManager.SteamTheme;
+        ThemeManager.SetTheme(savedTheme);
+
         var databaseService = new DatabaseService();
         var steamStoreService = new SteamStoreService();
         var gameScannerService = new GameScannerService(steamStoreService);
@@ -105,17 +112,6 @@ public sealed partial class MainWindow : Window
         _sidebar.SettingsRequested += Sidebar_SettingsRequested;
         contentGrid.Children.Add(_sidebar);
 
-        SettingsService.Load();
-
-        // Apply saved theme
-        var savedThemeName = SettingsService.Get("theme", "Padrão");
-        var savedTheme = ThemeManager.AvailableThemes.FirstOrDefault(t => t.Name == savedThemeName);
-        if (savedTheme != null)
-        {
-            ThemeManager.SetTheme(savedTheme);
-            SteamColors.RefreshColors(savedTheme);
-        }
-
         var lastCategory = SettingsService.Get("sidebar_category", "library");
         _sidebar.SetActiveCategory(lastCategory);
 
@@ -151,6 +147,7 @@ public sealed partial class MainWindow : Window
         rootGrid.Children.Add(contentGrid);
 
         Content = rootGrid;
+        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
         Closed += (_, _) =>
         {
@@ -201,10 +198,12 @@ public sealed partial class MainWindow : Window
 
         appWindow.TitleBar.ExtendsContentIntoTitleBar = true;
         var titleBarObj = appWindow.TitleBar;
-        titleBarObj.BackgroundColor = ParseColor("#0e1621");
-        titleBarObj.ButtonBackgroundColor = ParseColor("#0e1621");
-        titleBarObj.ButtonHoverBackgroundColor = ParseColor("#1b2838");
-        titleBarObj.ButtonPressedBackgroundColor = ParseColor("#2a475e");
+        titleBarObj.BackgroundColor = ThemeManager.Current.Background;
+        titleBarObj.ForegroundColor = ThemeManager.Current.TextPrimary;
+        titleBarObj.ButtonBackgroundColor = ThemeManager.Current.Background;
+        titleBarObj.ButtonForegroundColor = ThemeManager.Current.TextPrimary;
+        titleBarObj.ButtonHoverBackgroundColor = ThemeManager.Current.CardHover;
+        titleBarObj.ButtonPressedBackgroundColor = ThemeManager.Current.Card;
         
         SetTitleBar(_dragRegion);
 
@@ -214,7 +213,6 @@ public sealed partial class MainWindow : Window
         await ViewModel.InitializeAsync(dbPath);
 
         _libraryPage.LoadGames(ViewModel.Games);
-        ViewModel.PropertyChanged += ViewModel_PropertyChanged;
 
         _sidebar.UpdateStats(
             $"{ViewModel.TotalGames} jogos",
@@ -430,13 +428,31 @@ public sealed partial class MainWindow : Window
     private void SettingsPage_ThemeChanged(object? sender, EventArgs e)
     {
         var theme = ThemeManager.Current;
-        var rootGrid = (Grid)Content;
-        rootGrid.Background = new SolidColorBrush(theme.Background);
-
-        var titleBar = (Grid)rootGrid.Children[0];
-        titleBar.Background = new SolidColorBrush(theme.Background);
-
+        TraceThemeChange("MainWindow: antes da árvore visual");
+        ThemeVisualTree.Refresh(Content as DependencyObject, ThemeManager.Previous, theme);
+        TraceThemeChange("MainWindow: árvore visual concluída");
+        SteamColors.ApplyToApplication(Application.Current);
+        TraceThemeChange("MainWindow: recursos concluídos");
         _sidebar.RefreshTheme();
+        TraceThemeChange("MainWindow: sidebar concluída");
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+        var titleBar = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(windowId).TitleBar;
+        titleBar.BackgroundColor = theme.Background;
+        titleBar.ForegroundColor = theme.TextPrimary;
+        titleBar.ButtonBackgroundColor = theme.Background;
+        titleBar.ButtonForegroundColor = theme.TextPrimary;
+        titleBar.ButtonHoverBackgroundColor = theme.CardHover;
+        titleBar.ButtonPressedBackgroundColor = theme.Card;
+        TraceThemeChange("MainWindow: barra de título concluída");
+        if (_monitorWindow?.Content is DependencyObject monitorRoot)
+            ThemeVisualTree.Refresh(monitorRoot, ThemeManager.Previous, theme);
+        TraceThemeChange("MainWindow: monitor concluído");
+    }
+
+    private static void TraceThemeChange(string stage)
+    {
+        ThemeChangeDiagnostics.Write(stage);
     }
 
     private void OnAchievementUnlocked(Achievement achievement, string gameName)

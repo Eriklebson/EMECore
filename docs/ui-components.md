@@ -10,6 +10,8 @@ As Views ficam em `src/EMECore.WinUI/Views`. A maior parte da interface é const
 | `AddGamePage` | Inclusão manual de executável. |
 | `AchievementsPage` | Visão de conquistas por jogos. |
 | `SettingsPage` | Preferências e troca de tema. |
+
+Ao abrir Configurações pela sidebar, o item correspondente deve ser ativado pelo mesmo fluxo visual dos itens Jogos, Ferramentas e Treinamento. `Sidebar.SetActiveCategory("settings")` também deve restaurar esse estado quando necessário.
 | `MonitorWindow` | Hardware, gráficos, FPS, fans, discos, rede e gamepads. É uma janela independente comum e não permanece acima de outros aplicativos. |
 | `FpsOverlayWindow` | Overlay de FPS. |
 | `GamepadCalibrationWindow` | Calibração e layout de controle. |

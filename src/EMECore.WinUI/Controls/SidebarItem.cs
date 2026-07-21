@@ -47,6 +47,7 @@ public sealed class SidebarItem : Button
             Background = Design.C.Pri10B;
             Foreground = Design.C.PriB;
             _icon.Foreground = Design.C.PriB;
+            _label.Foreground = Design.C.PriB;
             BorderThickness = new Thickness(1);
             BorderBrush = new SolidColorBrush(Design.C.PriRing20);
         }
@@ -55,6 +56,7 @@ public sealed class SidebarItem : Button
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
             Foreground = Design.C.FgB;
             _icon.Foreground = Design.C.MutedB;
+            _label.Foreground = Design.C.FgB;
             BorderThickness = new Thickness(0);
         }
     }
@@ -65,4 +67,6 @@ public sealed class SidebarItem : Button
         Padding = collapsed ? new Thickness(0, Design.S.SM, 0, Design.S.SM) : new Thickness(Design.S.MD, Design.S.SM, Design.S.MD, Design.S.SM);
         _label.Visibility = collapsed ? Visibility.Collapsed : Visibility.Visible;
     }
+
+    public void RefreshTheme() => UpdateVisual();
 }

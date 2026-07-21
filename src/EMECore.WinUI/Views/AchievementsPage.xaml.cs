@@ -196,7 +196,7 @@ public sealed class AchievementsPage : UserControl
         var achieved = achievements.Count(a => a.Achieved);
         var badge = new Border
         {
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x20, 0x4C, 0xCB, 0xA0)),
+            Background = new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x20)),
             CornerRadius = Design.R.SM,
             Padding = new Thickness(8, 2, 8, 2),
             VerticalAlignment = VerticalAlignment.Center
@@ -240,14 +240,14 @@ public sealed class AchievementsPage : UserControl
         var card = new Border
         {
             Background = new SolidColorBrush(achievement.Achieved
-                ? Windows.UI.Color.FromArgb(0x15, 0x4C, 0xCB, 0xA0)
+                ? ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x15)
                 : Design.C.Card),
             CornerRadius = Design.R.MD,
             Padding = new Thickness(Design.S.MD),
             Margin = new Thickness(0, 2, 0, 2),
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(achievement.Achieved
-                ? Windows.UI.Color.FromArgb(0x40, 0x4C, 0xCB, 0xA0)
+                ? ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x40)
                 : Design.C.Bor),
             Opacity = achievement.Achieved ? 1.0 : 0.7
         };
@@ -264,7 +264,7 @@ public sealed class AchievementsPage : UserControl
             Height = 40,
             CornerRadius = new CornerRadius(20),
             Background = new SolidColorBrush(achievement.Achieved
-                ? Windows.UI.Color.FromArgb(0x30, 0x4C, 0xCB, 0xA0)
+                ? ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x30)
                 : Design.C.Card),
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(achievement.Achieved

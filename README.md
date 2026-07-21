@@ -29,6 +29,7 @@
 | **100% Offline** | Banco SQLite local, sem dependencia de nuvem | ✅ |
 | **Nativo Windows** | Aplicacao leve em C# WinUI 3, baixo consumo de RAM/CPU | ✅ |
 | **Servidor Mobile** | WebSocket para controle remoto, hardware e estado do gamepad no app Flutter | ✅ |
+| **Temas Globais** | Paletas aplicadas em todas as telas e restauradas automaticamente ao reabrir | ✅ |
 
 ---
 
@@ -139,6 +140,7 @@ O app Flutter (EMECoreMobile) sera desenvolvido separadamente e se conecta ao IP
 
 | Versao | Data | Mudanca |
 |--------|------|---------|
+| 2.26.0.0 | 21/07/2026 | Temas globais persistentes em todas as telas e janelas, atualização segura de brushes WinUI e estado visual correto da sidebar |
 | 2.25.0.0 | 21/07/2026 | VRAM correta e visível no card desktop, recursos WinUI completos na publicação e temperaturas Core/Package independentes no protocolo mobile |
 | 2.24.1.0 | 21/07/2026 | Correção da publicação WinUI para incluir obrigatoriamente o arquivo PRI usado pelos gráficos do Hardware Monitor |
 | 2.24.0.0 | 21/07/2026 | Monitor de periféricos com bateria Logitech HID++, polling rate, ícones por tipo, grade responsiva e catálogo extensível com 84 identificadores multimarcas |

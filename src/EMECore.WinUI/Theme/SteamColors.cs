@@ -6,32 +6,32 @@ namespace EMECore.WinUI.Theme;
 
 public static class SteamColors
 {
-    public static readonly Color Dark = AppStyles.Colors.Bg;
-    public static readonly Color Darker = AppStyles.Colors.Side;
-    public static readonly Color Darkest = AppStyles.Colors.Inset;
-    public static readonly Color Card = AppStyles.Colors.Card;
-    public static readonly Color CardHover = AppStyles.Colors.Sec;
-    public static readonly Color Hover = AppStyles.Colors.Primary;
-    public static readonly Color Blue = AppStyles.Colors.Primary;
-    public static readonly Color Green = AppStyles.Colors.Primary;
-    public static readonly Color Orange = AppStyles.Colors.Warn;
-    public static readonly Color Red = AppStyles.Colors.Danger;
-    public static readonly Color Text = AppStyles.Colors.Fg;
-    public static readonly Color TextSecondary = AppStyles.Colors.Muted;
+    public static Color Dark => DarkBrush.Color;
+    public static Color Darker => DarkerBrush.Color;
+    public static Color Darkest => DarkestBrush.Color;
+    public static Color Card => CardBrush.Color;
+    public static Color CardHover => CardHoverBrush.Color;
+    public static Color Hover => HoverBrush.Color;
+    public static Color Blue => BlueBrush.Color;
+    public static Color Green => GreenBrush.Color;
+    public static Color Orange => OrangeBrush.Color;
+    public static Color Red => RedBrush.Color;
+    public static Color Text => TextBrush.Color;
+    public static Color TextSecondary => TextSecondaryBrush.Color;
     public static readonly Color Light = Microsoft.UI.Colors.White;
 
-    public static readonly SolidColorBrush DarkBrush = new(Dark);
-    public static readonly SolidColorBrush DarkerBrush = new(Darker);
-    public static readonly SolidColorBrush DarkestBrush = new(Darkest);
-    public static readonly SolidColorBrush CardBrush = new(Card);
-    public static readonly SolidColorBrush CardHoverBrush = new(CardHover);
-    public static readonly SolidColorBrush HoverBrush = new(Hover);
-    public static readonly SolidColorBrush BlueBrush = new(Blue);
-    public static readonly SolidColorBrush GreenBrush = new(Green);
-    public static readonly SolidColorBrush OrangeBrush = new(Orange);
-    public static readonly SolidColorBrush RedBrush = new(Red);
-    public static readonly SolidColorBrush TextBrush = new(Text);
-    public static readonly SolidColorBrush TextSecondaryBrush = new(TextSecondary);
+    public static readonly SolidColorBrush DarkBrush = new(AppStyles.Colors.Bg);
+    public static readonly SolidColorBrush DarkerBrush = new(AppStyles.Colors.Side);
+    public static readonly SolidColorBrush DarkestBrush = new(AppStyles.Colors.Inset);
+    public static readonly SolidColorBrush CardBrush = new(AppStyles.Colors.Card);
+    public static readonly SolidColorBrush CardHoverBrush = new(AppStyles.Colors.Sec);
+    public static readonly SolidColorBrush HoverBrush = new(AppStyles.Colors.Primary);
+    public static readonly SolidColorBrush BlueBrush = new(AppStyles.Colors.Primary);
+    public static readonly SolidColorBrush GreenBrush = new(AppStyles.Colors.Primary);
+    public static readonly SolidColorBrush OrangeBrush = new(AppStyles.Colors.Warn);
+    public static readonly SolidColorBrush RedBrush = new(AppStyles.Colors.Danger);
+    public static readonly SolidColorBrush TextBrush = new(AppStyles.Colors.Fg);
+    public static readonly SolidColorBrush TextSecondaryBrush = new(AppStyles.Colors.Muted);
     public static readonly SolidColorBrush LightBrush = new(Light);
 
     public static void RefreshColors(AppTheme theme)

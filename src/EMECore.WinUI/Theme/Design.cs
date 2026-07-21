@@ -13,24 +13,24 @@ public static class Design
     // ═══════════ CORES (HTML exactas) ═══════════
     public static class C
     {
-        public static readonly Color Bg       = Make(0x0A, 0x0B, 0x0D);
-        public static readonly Color Sidebar  = Make(0x16, 0x17, 0x19);
-        public static readonly Color Card     = Make(0x2A, 0x2D, 0x31);
-        public static readonly Color Card60   = Make(0x99, 0x2A, 0x2D, 0x31);
-        public static readonly Color Inset    = Make(0x1B, 0x1D, 0x22);
-        public static readonly Color Fg       = Make(0xE8, 0xE9, 0xEB);
-        public static readonly Color Muted    = Make(0xA8, 0xAB, 0xB0);
-        public static readonly Color Muted70  = Make(0xB3, 0xA8, 0xAB, 0xB0);
-        public static readonly Color Pri      = Make(0x4C, 0xCB, 0xA0);
-        public static readonly Color Warn     = Make(0xE6, 0xA0, 0x30);
-        public static readonly Color Danger   = Make(0xE8, 0x4D, 0x4D);
-        public static readonly Color Sec      = Make(0x3A, 0x3D, 0x43);
-        public static readonly Color Bor      = Make(0x0F, 0xFF, 0xFF, 0xFF);
-        public static readonly Color BorH     = Make(0x80, 0x4C, 0xCB, 0xA0);
-        public static readonly Color Pri10    = Make(0x1A, 0x4C, 0xCB, 0xA0);
-        public static readonly Color Pri5     = Make(0x0D, 0x4C, 0xCB, 0xA0);
-        public static readonly Color PriRing  = Make(0x40, 0x4C, 0xCB, 0xA0);
-        public static readonly Color PriRing20= Make(0x33, 0x4C, 0xCB, 0xA0);
+        public static Color Bg       { get; private set; } = Make(0x0A, 0x0B, 0x0D);
+        public static Color Sidebar  { get; private set; } = Make(0x16, 0x17, 0x19);
+        public static Color Card     { get; private set; } = Make(0x2A, 0x2D, 0x31);
+        public static Color Card60   { get; private set; } = Make(0x99, 0x2A, 0x2D, 0x31);
+        public static Color Inset    { get; private set; } = Make(0x1B, 0x1D, 0x22);
+        public static Color Fg       { get; private set; } = Make(0xE8, 0xE9, 0xEB);
+        public static Color Muted    { get; private set; } = Make(0xA8, 0xAB, 0xB0);
+        public static Color Muted70  { get; private set; } = Make(0xB3, 0xA8, 0xAB, 0xB0);
+        public static Color Pri      { get; private set; } = Make(0x4C, 0xCB, 0xA0);
+        public static Color Warn     { get; private set; } = Make(0xE6, 0xA0, 0x30);
+        public static Color Danger   { get; private set; } = Make(0xE8, 0x4D, 0x4D);
+        public static Color Sec      { get; private set; } = Make(0x3A, 0x3D, 0x43);
+        public static Color Bor      { get; private set; } = Make(0x0F, 0xFF, 0xFF, 0xFF);
+        public static Color BorH     { get; private set; } = Make(0x80, 0x4C, 0xCB, 0xA0);
+        public static Color Pri10    { get; private set; } = Make(0x1A, 0x4C, 0xCB, 0xA0);
+        public static Color Pri5     { get; private set; } = Make(0x0D, 0x4C, 0xCB, 0xA0);
+        public static Color PriRing  { get; private set; } = Make(0x40, 0x4C, 0xCB, 0xA0);
+        public static Color PriRing20{ get; private set; } = Make(0x33, 0x4C, 0xCB, 0xA0);
         public static readonly Color White10  = Make(0x1A, 0xFF, 0xFF, 0xFF);
         public static readonly Color White06  = Make(0x0F, 0xFF, 0xFF, 0xFF);
         // Platform
@@ -59,6 +59,41 @@ public static class Design
         public static readonly SolidColorBrush SecB   = new(Sec);
         public static readonly SolidColorBrush BorB   = new(Bor);
         public static readonly SolidColorBrush BorHB  = new(BorH);
+
+        public static void RefreshColors(AppTheme theme)
+        {
+            Bg = theme.Background;
+            Sidebar = theme.Surface;
+            Card = theme.Card;
+            Card60 = WithAlpha(theme.Card, 0x99);
+            Inset = Blend(theme.Background, theme.Surface, 0.55);
+            Fg = theme.TextPrimary;
+            Muted = theme.TextSecondary;
+            Muted70 = WithAlpha(theme.TextSecondary, 0xB3);
+            Pri = theme.Accent;
+            Warn = theme.Warning;
+            Danger = theme.Danger;
+            Sec = theme.CardHover;
+            Bor = theme.Border;
+            BorH = theme.BorderHover;
+            Pri10 = WithAlpha(theme.Accent, 0x1A);
+            Pri5 = WithAlpha(theme.Accent, 0x0D);
+            PriRing = WithAlpha(theme.Accent, 0x40);
+            PriRing20 = WithAlpha(theme.Accent, 0x33);
+
+            BgB.Color = Bg; SideB.Color = Sidebar; CardB.Color = Card; Card60B.Color = Card60;
+            InsetB.Color = Inset; FgB.Color = Fg; MutedB.Color = Muted; Muted70B.Color = Muted70;
+            PriB.Color = Pri; Pri10B.Color = Pri10; Pri5B.Color = Pri5; SecB.Color = Sec;
+            BorB.Color = Bor; BorHB.Color = BorH;
+        }
+
+        private static Color WithAlpha(Color color, byte alpha) => Color.FromArgb(alpha, color.R, color.G, color.B);
+
+        private static Color Blend(Color first, Color second, double amount)
+        {
+            byte Mix(byte a, byte b) => (byte)Math.Round(a + ((b - a) * amount));
+            return Color.FromArgb(255, Mix(first.R, second.R), Mix(first.G, second.G), Mix(first.B, second.B));
+        }
 
         static Color Make(byte a, byte r, byte g, byte b) => Color.FromArgb(a, r, g, b);
         static Color Make(byte r, byte g, byte b) => Color.FromArgb(255, r, g, b);

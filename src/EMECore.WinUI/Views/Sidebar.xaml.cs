@@ -23,6 +23,7 @@ public sealed partial class Sidebar : UserControl
     private readonly TextBlock _navLbl, _utilLbl;
     private readonly Border _indicator;
     private readonly SidebarItem _libraryBtn;
+    private readonly SidebarItem _settingsBtn;
     private readonly SidebarItem _monBtn;
     private readonly SidebarItem _toolsBtn;
     private readonly SidebarItem _trainBtn;
@@ -52,7 +53,7 @@ public sealed partial class Sidebar : UserControl
         logoRow.Children.Add(logoImage);
         _logo = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Spacing = 1 };
         _logo.Children.Add(new TextBlock { Text = "E.M.E Core", FontSize = 14, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.FgB });
-        _logo.Children.Add(new TextBlock { Text = "v2.25.0.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
+        _logo.Children.Add(new TextBlock { Text = "v2.26.0.0", FontSize = 10, Foreground = Design.C.Muted70B, FontFamily = new("Consolas"), CharacterSpacing = 100 });
         logoRow.Children.Add(_logo);
         var lb = new Border { Padding = new Thickness(Design.S.XL), Child = logoRow };
         Grid.SetRow(lb, 0); _root.Children.Add(lb);
@@ -83,8 +84,8 @@ public sealed partial class Sidebar : UserControl
         _toolsBtn.Click += (_, _) => { Activate(_toolsBtn); NavigationRequested?.Invoke(this, "tools"); };
         _trainBtn = AddItem("\uE9D9", "Treinamento");
         _trainBtn.Click += (_, _) => { Activate(_trainBtn); NavigationRequested?.Invoke(this, "training"); };
-        var settBtn = AddItem("\uE713", "Configurações");
-        settBtn.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        _settingsBtn = AddItem("\uE713", "Configurações");
+        _settingsBtn.Click += (_, _) => { Activate(_settingsBtn); SettingsRequested?.Invoke(this, EventArgs.Empty); };
 
         var divC = new Grid { Height = Design.S.LG, Margin = new Thickness(Design.S.XL, Design.S.MD, Design.S.XL, Design.S.MD) };
         divC.Children.Add(new Border { Background = Design.C.BorB, Width = 1, HorizontalAlignment = HorizontalAlignment.Center });
@@ -148,6 +149,7 @@ public sealed partial class Sidebar : UserControl
             "library" or "game" => _libraryBtn,
             "tools" or "tool" => _toolsBtn,
             "training" => _trainBtn,
+            "settings" => _settingsBtn,
             _ => _libraryBtn
         };
         Activate(item);
@@ -178,5 +180,10 @@ public sealed partial class Sidebar : UserControl
     private void Activate(SidebarItem item) { foreach (var i in _items) i.IsActive = false; item.IsActive = true; var t = item.TransformToVisual(_nav); _indicator.Margin = new Thickness(0, (int)(t.TransformPoint(new Windows.Foundation.Point(0, 0)).Y + 6), 0, 0); }
     private static TextBlock SectionLabel(string t) => new() { Text = t, FontSize = 10, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = Design.C.Muted70B, Padding = new Thickness(Design.S.XL, 0, Design.S.XL, 0), Margin = new Thickness(0, 0, 0, Design.S.SM), CharacterSpacing = 180 };
     public void UpdateStats(string s, string t, string st) { }
-    public void RefreshTheme() { _root.Background = new SolidColorBrush(ThemeManager.Current.Surface); }
+    public void RefreshTheme()
+    {
+        _root.Background = new SolidColorBrush(ThemeManager.Current.Surface);
+        foreach (var item in _items)
+            item.RefreshTheme();
+    }
 }

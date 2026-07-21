@@ -42,7 +42,7 @@ Pacotes relevantes: `Microsoft.WindowsAppSDK`, `CommunityToolkit.Mvvm`, `LiveCha
 Arquivos-chave: `App.xaml.cs`, `MainWindow.xaml.cs` e `MainViewModel.cs`.
 
 1. O app instancia `MainWindow`.
-2. A janela monta barra de título, sidebar e instâncias das páginas; depois carrega `SettingsService` e o tema salvo.
+2. A janela carrega `SettingsService` e o tema salvo antes de montar barra de título, sidebar e instâncias das páginas.
 3. No primeiro evento `Activated`, restaura posição, ajusta a janela e chama `ViewModel.InitializeAsync(dbPath)`.
 4. A ViewModel inicializa o SQLite e carrega a biblioteca.
 5. `StartMobileServer()` inicia `MobileServerService` se `mobile_server_enabled` for `True`; porta padrão `8181` e configurável por `mobile_server_port`.
@@ -65,4 +65,4 @@ Arquivos-chave: `App.xaml.cs`, `MainWindow.xaml.cs` e `MainViewModel.cs`.
 
 ## Tema e preferências
 
-Use `ThemeManager` e `SteamColors`; não crie paletas paralelas em cada View. O design é escuro e inspirado no Steam. `SettingsService` persiste, entre outros, tema, posição da janela, categoria ativa e estado colapsado da sidebar.
+Use `ThemeManager`, `Design.C` e `SteamColors`; não crie paletas paralelas em cada View. O design é escuro e inspirado no Steam. `ThemeVisualTree` atualiza brushes já existentes quando a seleção muda. `SettingsService` persiste, entre outros, tema, posição da janela, categoria ativa e estado colapsado da sidebar. O tema salvo é aplicado antes da construção da árvore visual.

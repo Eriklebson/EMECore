@@ -29,7 +29,7 @@ public sealed partial class GameCard : UserControl
         var cg = new Grid();
         _cover = new Image { Stretch=Stretch.UniformToFill, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center, Visibility=Visibility.Collapsed }; cg.Children.Add(_cover);
         _ph = new FontIcon { Glyph="\uE7F3", FontSize=48, Foreground=Design.C.Pri5B, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center }; cg.Children.Add(_ph);
-        cg.Children.Add(new Border { Background=new LinearGradientBrush{StartPoint=new(0,0),EndPoint=new(0,1),GradientStops={new(){Color=Windows.UI.Color.FromArgb(0,0,0,0),Offset=0},new(){Color=Windows.UI.Color.FromArgb(0xD9,0x0A,0x0B,0x0D),Offset=1}}}, VerticalAlignment=VerticalAlignment.Bottom, Height=64 });
+        cg.Children.Add(new Border { Background=new LinearGradientBrush{StartPoint=new(0,0),EndPoint=new(0,1),GradientStops={new(){Color=Windows.UI.Color.FromArgb(0,0,0,0),Offset=0},new(){Color=ThemeManager.WithAlpha(ThemeManager.Current.Background, 0xD9),Offset=1}}}, VerticalAlignment=VerticalAlignment.Bottom, Height=64 });
 
         // BADGE
         var bp = new StackPanel { Orientation=Orientation.Horizontal, Spacing=Design.S.XS, VerticalAlignment=VerticalAlignment.Center };
@@ -38,7 +38,7 @@ public sealed partial class GameCard : UserControl
         _badge = new Border { HorizontalAlignment=HorizontalAlignment.Right, VerticalAlignment=VerticalAlignment.Top, CornerRadius=Design.R.SM, Padding=new Thickness(6,2,6,2), Margin=new Thickness(0,Design.S.SM,Design.S.SM,0), Child=bp }; cg.Children.Add(_badge);
 
         // HOVER overlay
-        _hover = new Border { Background=new SolidColorBrush(Windows.UI.Color.FromArgb(0x80,0,0,0)), Opacity=0 };
+        _hover = new Border { Background=new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Background, 0x80)), Opacity=0 };
         var ov = new StackPanel { HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center, Spacing=Design.S.SM };
         var pb = new Border { Background=Design.C.PriB, CornerRadius=Design.R.MD, Padding=new Thickness(Design.S.XL,10,Design.S.XL,10), Child=new StackPanel{Orientation=Orientation.Horizontal,Spacing=Design.S.SM,Children={new FontIcon{Glyph="\uE768",FontSize=16},new TextBlock{Text="Jogar",FontWeight=Microsoft.UI.Text.FontWeights.SemiBold,FontSize=14,Foreground=Design.C.BgB}}} };
         pb.Tapped += (_, e) => { e.Handled=true; if(_game!=null)PlayRequested?.Invoke(this,_game); };
@@ -56,7 +56,7 @@ public sealed partial class GameCard : UserControl
         o.Children.Add(mr);
 
         var w = new Border { Child=o, Background=new SolidColorBrush(Microsoft.UI.Colors.Transparent), Margin=new Thickness(6) };
-        w.PointerEntered += (_, _) => { _hover.Opacity=1; _name.Foreground=Design.C.PriB; _coverBorder.BorderBrush=new SolidColorBrush(Windows.UI.Color.FromArgb(0x80,0x4C,0xCB,0xA0)); };
+        w.PointerEntered += (_, _) => { _hover.Opacity=1; _name.Foreground=Design.C.PriB; _coverBorder.BorderBrush=new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x80)); };
         w.PointerExited += (_, _) => { _hover.Opacity=0; _name.Foreground=Design.C.FgB; _coverBorder.BorderBrush=Design.C.BorB; };
         w.Tapped += (_, e) =>
         {

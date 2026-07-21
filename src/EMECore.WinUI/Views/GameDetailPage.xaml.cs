@@ -28,7 +28,7 @@ public sealed partial class GameDetailPage : UserControl
     {
         var root = new Grid();
         _hero = new Image { Stretch=Stretch.UniformToFill, Visibility=Visibility.Collapsed, Opacity=0.3, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center }; root.Children.Add(_hero);
-        root.Children.Add(new Grid { Background=new LinearGradientBrush{StartPoint=new(0,0),EndPoint=new(0,1),GradientStops={new GradientStop{Color=Windows.UI.Color.FromArgb(0x99,0x0A,0x0B,0x0D),Offset=0},new GradientStop{Color=Windows.UI.Color.FromArgb(0xD9,0x0A,0x0B,0x0D),Offset=0.45},new GradientStop{Color=Windows.UI.Color.FromArgb(0xFF,0x0A,0x0B,0x0D),Offset=1}}} });
+        root.Children.Add(new Grid { Background=new LinearGradientBrush{StartPoint=new(0,0),EndPoint=new(0,1),GradientStops={new GradientStop{Color=ThemeManager.WithAlpha(ThemeManager.Current.Background,0x99),Offset=0},new GradientStop{Color=ThemeManager.WithAlpha(ThemeManager.Current.Background,0xD9),Offset=0.45},new GradientStop{Color=ThemeManager.Current.Background,Offset=1}}} });
 
         var scroll = new ScrollViewer(); var c = new StackPanel();
 
@@ -59,7 +59,7 @@ public sealed partial class GameDetailPage : UserControl
         var btns = new StackPanel { Orientation=Orientation.Horizontal, Spacing=Design.S.MD, Margin=new Thickness(0,0,0,Design.S.XXL) };
         var play = new Button { Content=new StackPanel{Orientation=Orientation.Horizontal,Spacing=Design.S.SM,Children={new FontIcon{Glyph="\uE768",FontSize=16},new TextBlock{Text="Jogar",FontSize=14}}}, Background=Design.C.PriB, Foreground=Design.C.BgB, FontWeight=Microsoft.UI.Text.FontWeights.SemiBold, CornerRadius=Design.R.MD, Padding=new Thickness(Design.S.XX,10,Design.S.XX,10), BorderThickness=new Thickness(1), BorderBrush=Design.C.PriB };
         play.Click += (_, _) => { if(_game!=null)LaunchRequested?.Invoke(this,_game); }; btns.Children.Add(play);
-        var del = new Button { Content=new StackPanel{Orientation=Orientation.Horizontal,Spacing=Design.S.SM,Children={new FontIcon{Glyph="\uE74D",FontSize=16},new TextBlock{Text="Remover",FontSize=14}}}, Background=new SolidColorBrush(Windows.UI.Color.FromArgb(0x1F,0xE8,0x4D,0x4D)), Foreground=new SolidColorBrush(Design.C.Danger), FontWeight=Microsoft.UI.Text.FontWeights.SemiBold, CornerRadius=Design.R.MD, Padding=new Thickness(Design.S.LG,10,Design.S.LG,10) };
+        var del = new Button { Content=new StackPanel{Orientation=Orientation.Horizontal,Spacing=Design.S.SM,Children={new FontIcon{Glyph="\uE74D",FontSize=16},new TextBlock{Text="Remover",FontSize=14}}}, Background=new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Danger,0x1F)), Foreground=new SolidColorBrush(Design.C.Danger), FontWeight=Microsoft.UI.Text.FontWeights.SemiBold, CornerRadius=Design.R.MD, Padding=new Thickness(Design.S.LG,10,Design.S.LG,10) };
         del.Click += (_, _) => { if(_game!=null)DeleteRequested?.Invoke(this,_game); }; btns.Children.Add(del);
         info.Children.Add(btns);
 

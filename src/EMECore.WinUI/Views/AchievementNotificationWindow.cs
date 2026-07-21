@@ -80,10 +80,10 @@ public sealed class AchievementNotificationWindow
         // Main container
         _container = new Border
         {
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0xF5, 0x17, 0x1e, 0x29)),
+            Background = new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Card, 0xF5)),
             CornerRadius = new CornerRadius(8),
             BorderThickness = new Thickness(1),
-            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x30, 0x66, 0xC0, 0xF4)),
+            BorderBrush = new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x30)),
             Opacity = 0
         };
 
@@ -98,13 +98,13 @@ public sealed class AchievementNotificationWindow
                 EndPoint = new Windows.Foundation.Point(1, 0),
                 GradientStops =
                 {
-                    new GradientStop { Color = Windows.UI.Color.FromArgb(0x40, 0x66, 0xC0, 0xF4), Offset = 0 },
-                    new GradientStop { Color = Windows.UI.Color.FromArgb(0x00, 0x66, 0xC0, 0xF4), Offset = 1 }
+                    new GradientStop { Color = ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x40), Offset = 0 },
+                    new GradientStop { Color = ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x00), Offset = 1 }
                 }
             },
             Padding = new Thickness(8, 4, 8, 4),
             BorderThickness = new Thickness(0, 0, 0, 1),
-            BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x15, 0xFF, 0xFF, 0xFF))
+            BorderBrush = new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Border, 0x60))
         };
 
         var headerContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -142,7 +142,7 @@ public sealed class AchievementNotificationWindow
             Width = 40,
             Height = 40,
             CornerRadius = new CornerRadius(6),
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0x20, 0x66, 0xC0, 0xF4)),
+            Background = new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x20)),
             VerticalAlignment = VerticalAlignment.Center
         };
         _icon = new FontIcon
@@ -185,7 +185,7 @@ public sealed class AchievementNotificationWindow
         _gameName = new TextBlock
         {
             FontSize = 10,
-            Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(0x60, 0xFF, 0xFF, 0xFF)),
+            Foreground = new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.TextSecondary, 0xA0)),
             Margin = new Thickness(0, 4, 0, 0)
         };
         textStack.Children.Add(_gameName);
@@ -267,11 +267,11 @@ public sealed class AchievementNotificationWindow
 
         if (achievement.Achieved)
         {
-            _container.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x40, 0x66, 0xC0, 0xF4));
+            _container.BorderBrush = new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Accent, 0x40));
         }
         else
         {
-            _container.BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(0x15, 0xFF, 0xFF, 0xFF));
+            _container.BorderBrush = new SolidColorBrush(ThemeManager.Current.Border);
         }
 
         // Reset progress bar

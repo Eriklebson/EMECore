@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using EMECore.Hardware.Services;
+using EMECore.WinUI.Theme;
 using System.IO;
 
 namespace EMECore.WinUI.Views;
@@ -20,15 +21,16 @@ public class GamepadCalibrationWindow : Window
     private string? _dragKey;
     private double _dragOffsetX, _dragOffsetY;
     private readonly Dictionary<Border, (TextBlock Label, string ButtonKey)> _overlays = new();
-    private readonly SolidColorBrush _dragHighlight = new(Windows.UI.Color.FromArgb(120, 245, 158, 11));
-    private readonly SolidColorBrush _normalBg = new(Windows.UI.Color.FromArgb(80, 245, 158, 11));
+    private readonly SolidColorBrush _dragHighlight = new(ThemeManager.WithAlpha(ThemeManager.Current.Accent, 120));
+    private readonly SolidColorBrush _normalBg = new(ThemeManager.WithAlpha(ThemeManager.Current.Accent, 80));
 
     public GamepadCalibrationWindow()
     {
         _layout = GamepadLayoutService.Load();
         Title = "Gamepad Calibration Mode";
         Content = BuildUI();
-        Closed += (_, _) => GamepadLayoutService.InvalidateCache();
+        ThemeManager.ThemeChanged += OnThemeChanged;
+        Closed += (_, _) => { ThemeManager.ThemeChanged -= OnThemeChanged; GamepadLayoutService.InvalidateCache(); };
 
         Activated += (_, _) =>
         {
@@ -41,19 +43,19 @@ public class GamepadCalibrationWindow : Window
 
     private FrameworkElement BuildUI()
     {
-        var root = new Grid { Background = new SolidColorBrush(ColorFromHex("#0F172A")) };
+        var root = new Grid { Background = new SolidColorBrush(ThemeManager.Current.Background) };
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         // Header
         var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Padding = new Thickness(16, 12, 16, 12) };
-        header.Children.Add(new TextBlock { Text = "\uE7F4", FontSize = 18, Foreground = new SolidColorBrush(ColorFromHex("#F59E0B")),
+        header.Children.Add(new TextBlock { Text = "\uE7F4", FontSize = 18, Foreground = new SolidColorBrush(ThemeManager.Current.Accent),
             FontFamily = new FontFamily("Assets/tabler-icons.ttf#tabler-icons"), VerticalAlignment = VerticalAlignment.Center });
         header.Children.Add(new TextBlock { Text = "Gamepad Calibration", FontSize = 16, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Colors.White), VerticalAlignment = VerticalAlignment.Center });
+            Foreground = new SolidColorBrush(ThemeManager.Current.TextPrimary), VerticalAlignment = VerticalAlignment.Center });
         header.Children.Add(new TextBlock { Text = "Arraste os pontos sobre os botoes da imagem", FontSize = 12,
-            Foreground = new SolidColorBrush(ColorFromHex("#64748B")), VerticalAlignment = VerticalAlignment.Center });
+            Foreground = new SolidColorBrush(ThemeManager.Current.TextSecondary), VerticalAlignment = VerticalAlignment.Center });
         Grid.SetRow(header, 0);
         root.Children.Add(header);
 
@@ -81,7 +83,7 @@ public class GamepadCalibrationWindow : Window
             {
                 Width = diameter, Height = diameter,
                 Background = new SolidColorBrush(Windows.UI.Color.FromArgb(80, 245, 158, 11)),
-                BorderBrush = new SolidColorBrush(ColorFromHex("#F59E0B")),
+                BorderBrush = new SolidColorBrush(ThemeManager.Current.Accent),
                 BorderThickness = new(2),
                 CornerRadius = new CornerRadius(diameter / 2),
                 Tag = key,
@@ -92,7 +94,7 @@ public class GamepadCalibrationWindow : Window
 
             var label = new TextBlock
             {
-                Text = key, FontSize = 8, Foreground = new SolidColorBrush(Colors.White),
+                Text = key, FontSize = 8, Foreground = new SolidColorBrush(ThemeManager.Current.TextPrimary),
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 IsHitTestVisible = false
             };
@@ -119,8 +121,8 @@ public class GamepadCalibrationWindow : Window
         footer.Children.Add(saveBtn);
 
         var resetBtn = new Button { Content = "Resetar", Padding = new Thickness(24, 8, 24, 8),
-            Background = new SolidColorBrush(ColorFromHex("#1E293B")),
-            Foreground = new SolidColorBrush(ColorFromHex("#94A3B8")) };
+            Background = new SolidColorBrush(ThemeManager.Current.Card),
+            Foreground = new SolidColorBrush(ThemeManager.Current.TextSecondary) };
         resetBtn.Click += ResetBtn_Click;
         footer.Children.Add(resetBtn);
 
@@ -240,9 +242,10 @@ public class GamepadCalibrationWindow : Window
         }
     }
 
-    private static Windows.UI.Color ColorFromHex(string hex) =>
-        Windows.UI.Color.FromArgb(255,
-            byte.Parse(hex[..2], System.Globalization.NumberStyles.HexNumber),
-            byte.Parse(hex[2..4], System.Globalization.NumberStyles.HexNumber),
-            byte.Parse(hex[4..6], System.Globalization.NumberStyles.HexNumber));
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+            ThemeVisualTree.Refresh(Content as DependencyObject, ThemeManager.Previous, ThemeManager.Current));
+    }
+
 }

@@ -36,6 +36,23 @@ public static class AppStyles
         public static readonly SolidColorBrush DangerBrush = new(Danger);
         public static readonly SolidColorBrush SecBrush   = new(Sec);
         public static readonly SolidColorBrush BorBrush   = new(Border);
+
+        public static void RefreshColors(AppTheme theme)
+        {
+            BgBrush.Color = theme.Background;
+            SideBrush.Color = theme.Surface;
+            CardBrush.Color = theme.Card;
+            InsetBrush.Color = Design.C.Inset;
+            FgBrush.Color = theme.TextPrimary;
+            MutedBrush.Color = theme.TextSecondary;
+            Muted70B.Color = Design.C.Muted70;
+            PriBrush.Color = theme.Accent;
+            Pri10.Color = Design.C.Pri10;
+            Pri5.Color = Design.C.Pri5;
+            DangerBrush.Color = theme.Danger;
+            SecBrush.Color = theme.CardHover;
+            BorBrush.Color = theme.Border;
+        }
     }
 
     public static class Rad { public static readonly CornerRadius Xl = new(12); public static readonly CornerRadius Lg = new(8); public static readonly CornerRadius Md = new(6); }

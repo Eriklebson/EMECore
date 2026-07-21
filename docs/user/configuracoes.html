@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>E.M.E Core — Configurações e temas</title>
+  <style>
+    :root{color-scheme:dark;font-family:Segoe UI,Arial,sans-serif;background:#07111f;color:#e5edf7}body{max-width:980px;margin:auto;padding:32px}header,section{background:#0d1b2c;border:1px solid #20334a;border-radius:16px;padding:24px;margin-bottom:18px}h1,h2{margin-top:0;color:#fff}input{box-sizing:border-box;width:100%;padding:12px;border-radius:10px;border:1px solid #36506d;background:#07111f;color:#fff}li{margin:8px 0}@media(max-width:640px){body{padding:16px}}@media print{body{background:#fff;color:#111}header,section{background:#fff;border-color:#bbb}}
+  </style>
+</head>
+<body>
+  <header><h1>Configurações e temas</h1><p>Personalize a identidade visual do E.M.E Core e mantenha sua escolha nas próximas execuções.</p><input id="busca" placeholder="Pesquisar nesta página" aria-label="Pesquisar"></header>
+  <main>
+    <section><h2>Escolher um tema</h2><p>Abra <strong>Configurações</strong> na barra lateral e selecione uma das paletas. A mudança é aplicada imediatamente à janela principal, às páginas e às janelas auxiliares abertas.</p></section>
+    <section><h2>O que muda</h2><p>Fundos, cards, bordas, textos, ícones, realces, estados de foco e a barra de título acompanham a paleta. Cores que indicam perigo, temperatura, carga ou identidade de plataforma continuam preservando seu significado.</p></section>
+    <section><h2>Salvamento automático</h2><p>Não é necessário clicar em Salvar. O tema escolhido é armazenado no perfil local e carregado antes da interface ser criada na próxima abertura, evitando que o aplicativo pisque com outra paleta.</p></section>
+  </main>
+  <script>busca.addEventListener('input',()=>{const q=busca.value.toLowerCase();document.querySelectorAll('section').forEach(s=>s.hidden=q&&!s.innerText.toLowerCase().includes(q))})</script>
+</body>
+</html>

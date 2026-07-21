@@ -27,7 +27,7 @@ public sealed partial class LibraryPage : UserControl
         root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-        var hdr = new Border { Height=64, Padding=new Thickness(Design.S.XXL,0,Design.S.XXL,0), Background=new SolidColorBrush(Windows.UI.Color.FromArgb(0xB3,0x0A,0x0B,0x0D)), BorderThickness=new Thickness(0,0,0,1), BorderBrush=Design.C.BorB };
+        var hdr = new Border { Height=64, Padding=new Thickness(Design.S.XXL,0,Design.S.XXL,0), Background=new SolidColorBrush(ThemeManager.WithAlpha(ThemeManager.Current.Background, 0xB3)), BorderThickness=new Thickness(0,0,0,1), BorderBrush=Design.C.BorB };
         var hg = new Grid();
         hg.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         hg.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
